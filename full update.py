@@ -163,7 +163,8 @@ try:
         address NVARCHAR(100),
         occupancy NVARCHAR(100),
         numbuildings NVARCHAR(100),
-        usetype NVARCHAR(100)
+        usetype NVARCHAR(100),
+        yearbuilt NVARCHAR(100)
     )
     """
     
@@ -208,6 +209,16 @@ try:
                     pass  # Column already exists
                 else:
                     print(f"Warning: Could not add 'usetype' column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD yearbuilt NVARCHAR(100)")
+                print("Added 'yearbuilt' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'yearbuilt' column: {e}")
         else:
             raise  # Re-raise if it's a different error
     
@@ -319,6 +330,7 @@ try:
             occupancy=dict_data['property']['occupancyPercentage']
             numbuildings=dict_data['property']['numberOfBuildings']
             usetype=dict_data['property']['primaryFunction']
+            yearbuilt=dict_data['property']['yearBuilt']
             
             
             # Store data for bulk update
@@ -329,7 +341,8 @@ try:
                 'gfa': str(gfa) if gfa else None,
                 'occupancy': str(occupancy) if occupancy else None,
                 'numbuildings': str(numbuildings) if numbuildings else None,
-                'usetype': str(usetype) if usetype else None
+                'usetype': str(usetype) if usetype else None,
+                'yearbuilt': str(yearbuilt) if yearbuilt else None
             })
         except Exception as e:
             print(f"Error processing espmid {espmid}: {e}")
@@ -347,14 +360,15 @@ try:
                     address NVARCHAR(100),
                     occupancy NVARCHAR(100),
                     numbuildings NVARCHAR(100),
-                    usetype NVARCHAR(100)
+                    usetype NVARCHAR(100),
+                    yearbuilt NVARCHAR(100)
                 )
             """)
             
             # Insert all property data into temp table
             temp_insert_query = """
-                INSERT INTO #TempPropertyData (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #TempPropertyData (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """
             insert_data = [
                 (
@@ -364,7 +378,8 @@ try:
                     prop['address'],
                     prop['occupancy'],
                     prop['numbuildings'],
-                    prop['usetype']
+                    prop['usetype'],
+                    prop['yearbuilt']
                 )
                 for prop in property_data
             ]
@@ -381,7 +396,8 @@ try:
                     ISNULL(target.address, '') <> ISNULL(source.address, '') OR
                     ISNULL(target.occupancy, '') <> ISNULL(source.occupancy, '') OR
                     ISNULL(target.numbuildings, '') <> ISNULL(source.numbuildings, '') OR
-                    ISNULL(target.usetype, '') <> ISNULL(source.usetype, '')
+                    ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
+                    ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '')
                 ) THEN
                     UPDATE SET
                         buildingname = source.buildingname,
@@ -389,10 +405,11 @@ try:
                         address = source.address,
                         occupancy = source.occupancy,
                         numbuildings = source.numbuildings,
-                        usetype = source.usetype
+                        usetype = source.usetype,
+                        yearbuilt = source.yearbuilt
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.yearbuilt);
             """
             cursor.execute(merge_query)
             
@@ -441,6 +458,22 @@ try:
                 meter_id_list = meter_ids
             else:
                 meter_id_list = [meter_ids]
+            
+            watermeter_list_data = dict_data.get('meterPropertyAssociationList', {}).get('waterMeterAssociation', {}).get('meters', {})
+            if not watermeter_list_data:
+                print(f"No water meter data found for espmid {espmid}")
+                continue
+            
+            watermeter_ids = watermeter_list_data.get('meterId')
+            if watermeter_ids is None:
+                print(f"No water meterId found for espmid {espmid}")
+                continue
+            
+            # Normalize to list: if it's a single value, make it a list
+            if isinstance(watermeter_ids, list):
+                watermeter_id_list = meter_ids
+            else:
+                watermeter_id_list = [meter_ids]
 
             for meter in meter_id_list:
                 try:
@@ -750,7 +783,117 @@ try:
         except Exception as espmid_error:
             print(f"Error processing espmid {espmid}: {espmid_error}")
             continue
+    for meter in watermeter_id_list:
+                try:
+                    response = requests.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meter}', auth=HTTPBasicAuth(user, pw), timeout=60)  
+                    dict_data = xmltodict.parse(response.content)
+                    #Meter Data
+                    # Check if 'meter' key exists in the response
+                    if 'meter' not in dict_data:
+                        print(f"Warning: 'meter' key not found in response for meter ID {meter}")
+                        print(f'ESPM ID of affected meter{espmid}')
+                        print(f"Response keys: {list(dict_data.keys())}")
+                        continue
+                    if dict_data['meter'].get('inUse')=="False":
+                        
+                       continue 
+                    meter_id = dict_data['meter'].get('id')
+                    if not meter_id:
+                        print(f"Warning: No meter ID found for meter {meter}")
+                        continue
+                    response = requests.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meter_id}/consumptionData?startDate=2020-01-01',auth=HTTPBasicAuth(user, pw), timeout=60)
+                    d = xmltodict.parse(response.content)
+                    
+                    # Handle case where meterConsumption might be a single dict or a list
+                    meter_consumption = d.get('meterData', {}).get('meterConsumption')
+                    if meter_consumption is None:
+                        print(f"No consumption data found for meter {meter}")
+                        continue
+                    
+                    # Normalize to list: if it's a dict, make it a list with one item
+                    if isinstance(meter_consumption, dict):
+                        consumption_list = [meter_consumption]
+                    elif isinstance(meter_consumption, list):
+                        consumption_list = meter_consumption
+                    else:
+                        print(f"Unexpected data type for meterConsumption: {type(meter_consumption)}")
+                        continue
+                    
+                    for entry in consumption_list:
+                        # Ensure entry is a dictionary
+                        if not isinstance(entry, dict):
+                            print(f"Skipping entry - not a dictionary: {entry}")
+                            continue
+                        
+                        entryid=entry.get('id')
+                        meterid=meter
+                        cost=entry.get('cost',0)
+                        usage=entry.get('usage')
+                        startdate_str=entry.get('startDate')
+                        enddate_str=entry.get('endDate')
+                        
+                        # Convert date strings to datetime objects for smalldatetime
+                        startdate = None
+                        enddate = None
+                        
+                        if startdate_str:
+                            try:
+                                # Parse ISO format date (YYYY-MM-DD) to datetime
+                                startdate_dt = datetime.datetime.strptime(startdate_str, '%Y-%m-%d')
+                                # Round to nearest minute (smalldatetime precision) and ensure valid range
+                                startdate_dt = startdate_dt.replace(second=0, microsecond=0)
+                                # Check if within smalldatetime range (1900-01-01 to 2079-06-06)
+                                if startdate_dt >= datetime.datetime(1900, 1, 1) and startdate_dt <= datetime.datetime(2079, 6, 6, 23, 59):
+                                    startdate = startdate_dt
+                                else:
+                                    print(f"Warning: startdate {startdate_str} is outside smalldatetime range")
+                            except ValueError as e:
+                                print(f"Warning: Could not parse startdate {startdate_str}: {e}")
+                        
+                        if enddate_str:
+                            try:
+                                # Parse ISO format date (YYYY-MM-DD) to datetime
+                                enddate_dt = datetime.datetime.strptime(enddate_str, '%Y-%m-%d')
+                                # Round to nearest minute (smalldatetime precision) and ensure valid range
+                                enddate_dt = enddate_dt.replace(second=0, microsecond=0)
+                                # Check if within smalldatetime range (1900-01-01 to 2079-06-06)
+                                if enddate_dt >= datetime.datetime(1900, 1, 1) and enddate_dt <= datetime.datetime(2079, 6, 6, 23, 59):
+                                    enddate = enddate_dt
+                                else:
+                                    print(f"Warning: enddate {enddate_str} is outside smalldatetime range")
+                            except ValueError as e:
+                                print(f"Warning: Could not parse enddate {enddate_str}: {e}")
+                        
+                        # Create a unique entryid by combining meterid and entryid to prevent duplicates
+                        # This ensures uniqueness across different meters that might have the same entryid
+                        if entryid and meterid:
+                            unique_entryid = f"{meterid}_{entryid}"
+                        elif entryid:
+                            # If we have entryid but no meterid, still use entryid but add espmid for uniqueness
+                            unique_entryid = f"{espmid}_{entryid}"
+                        elif meterid:
+                            # If entryid is None, create one using meterid and dates
+                            if startdate_str and enddate_str:
+                                unique_entryid = f"{meterid}_{startdate_str}_{enddate_str}"
+                            elif startdate_str:
+                                unique_entryid = f"{meterid}_{startdate_str}"
+                            else:
+                                # Fallback: use meterid, espmid, and index to ensure uniqueness
+                                unique_entryid = f"{meterid}_{espmid}_{len(gasdata)}"
 
+                        
+                        gasdata.append({
+                            'espmid': espmid,
+                            'entryid': unique_entryid,
+                            'meterid': str(meterid) if meterid else None,
+                            'cost': str(cost) if cost else None,
+                            'usage': str(usage) if usage else None,
+                            'startdate': startdate,
+                            'enddate': enddate,
+                        })
+                except Exception as meter_error:
+                    print(f"Error processing meter {meter} for espmid {espmid}: {meter_error}")
+                    continue
     # Ensure naturalgas table exists and has correct column sizes
     # First, check if table exists and alter entryid column size if needed
     # Check connection first
