@@ -34,7 +34,7 @@ top_30 = df.head(30)
 
 # Bar Chart - Top 30 only
 fig_bar = px.bar(
-    top_30,
+    df,
     x='total_sqft',
     y='usetype',
     orientation='h',
