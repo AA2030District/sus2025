@@ -46,7 +46,7 @@ fig_bar.update_layout(
     xaxis_title="Total Square Feet",
     yaxis_title="Building Type",
     yaxis={'categoryorder': 'total ascending'},
-    showlegend=False,  # COMMA ADDED HERE
+    showlegend=False,
     title = {
         'text': "District Property by Square Footage",
         'font': {'size': 20}
