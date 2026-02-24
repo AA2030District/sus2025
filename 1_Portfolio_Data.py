@@ -445,7 +445,7 @@ fig_scatter = px.scatter(
         'siteeui': 'Site EUI (kBtu/ft²)'
     },
     opacity=0.6,
-    trendline='ols',  
+    # Trendline? 
     trendline_color_override='red'
 )
 
