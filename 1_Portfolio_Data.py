@@ -409,6 +409,61 @@ fig_eui.update_traces(
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
 
+# SQL query to get unique buildings with year built and site EUI for 2024
+scatter_query = """
+SELECT DISTINCT 
+    [espmid],
+    [yearbuilt],
+    [siteeui]
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE [datayear] = 2024
+    AND [siteeui] IS NOT NULL
+"""
+
+df_scatter = conn.query(scatter_query)
+
+# Convert to numeric types
+df_scatter['siteeui'] = pd.to_numeric(df_scatter['siteeui'], errors='coerce')
+df_scatter['yearbuilt'] = pd.to_numeric(df_scatter['yearbuilt'], errors='coerce')
+
+# Drop any remaining nulls after conversion
+df_scatter = df_scatter.dropna(subset=['siteeui', 'yearbuilt'])
+
+# Remove outliers (EUI > 500)
+df_scatter = df_scatter[
+    (df_scatter['siteeui'] <= 500)
+]
+
+# Create the scatterplot
+fig_scatter = px.scatter(
+    df_scatter,
+    x='yearbuilt',
+    y='siteeui',
+    title='Building Age vs. Energy Use Intensity (2024)',
+    labels={
+        'yearbuilt': 'Year Built',
+        'siteeui': 'Site EUI (kBtu/ft²)'
+    },
+    opacity=0.6,
+    trendline='ols',  
+    trendline_color_override='red'
+)
+
+# Improve layout
+fig_scatter.update_layout(
+    height=600,
+    xaxis=dict(
+        tickmode='linear',
+        tick0=1800,
+        dtick=25
+    ),
+    yaxis=dict(
+        title='Site EUI (kBtu/ft²)'
+    )
+)
+
+st.plotly_chart(fig_scatter, use_container_width=True)
+
 # Manually inserted data, not taken from SQL/Energy Star
 buildings_data = {
     "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
