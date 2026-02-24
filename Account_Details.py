@@ -22,7 +22,7 @@ query = """
 @st.cache_data(ttl=86400)
 
 # Modified geocoding function with progress bar
-def geocode_addresses_with_progress(address_list, state="Michigan"):
+def geocode_addresses(address_list, state="Michigan"):
     contact_email = st.secrets["auth"]["email"]
     user_agent = f"ann_arbor_building_map/1.0 ({contact_email})"
     geolocator = Nominatim(user_agent=user_agent, timeout=10)
