@@ -356,39 +356,41 @@ df_yearly = df_yearly.sort_values('datayear')
 
 #Num buildings line graph
 fig_buildings = px.line(
-        df_yearly,
-        x='datayear',
-        y='building_count',
-        title='Number of Buildings by Year',
-        labels={'datayear': 'Year', 'building_count': 'Building Count'},
-        text='building_count'
-    )
+    df_yearly,
+    x='datayear',
+    y='building_count',
+    title='Number of Buildings by Year',
+    labels={'datayear': 'Year', 'building_count': 'Building Count'},
+    markers=True,
+    text='building_count' 
+)
 fig_buildings.update_traces(textposition='outside')
 fig_buildings.update_layout(showlegend=False, height=400)
 st.plotly_chart(fig_buildings, use_container_width=True)
 
 # Sq ft line graph
 fig_sqft = px.line(
-        df_yearly,
-        x='datayear',
-        y='total_sqft',
-        title='Total Square Footage by Year',
-        labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
-        text_auto='.2s'
-    )
+    df_yearly,
+    x='datayear',
+    y='total_sqft',
+    title='Total Square Footage by Year',
+    labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
+    markers=True,
+    text=df_yearly['total_sqft'].apply(lambda x: f'{x:,.0f}')
+)
 fig_sqft.update_traces(textposition='outside')
 fig_sqft.update_layout(showlegend=False, height=400)
 st.plotly_chart(fig_sqft, use_container_width=True)
 
 fig_eui = px.line(
-        df_yearly,
-        x='datayear',
-        y='avg_siteeui',
-        title='Average Site EUI by Year',
-        labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
-        markers=True,
-        line_shape='linear'
-    )
+    df_yearly,
+    x='datayear',
+    y='avg_siteeui',
+    title='Average Site EUI by Year',
+    labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
+    markers=True,
+    text=df_yearly['avg_siteeui'].round(1)
+)
 fig_eui.update_traces(line=dict(color='red', width=3), marker=dict(size=10))
 fig_eui.update_layout(height=400)
 st.plotly_chart(fig_eui, use_container_width=True)
