@@ -13,9 +13,22 @@ st.write("Home page content here.")
 
 conn = st.connection("sql", type="sql")
 
-# excluded espmid, 865 entries for total portfolio in 
-df = conn.query("SELECT * FROM ESPMFIRSTTEST WHERE ISNULL(pmparentid,espmid)=espmid AND hasenergygaps = 'OK' AND haswatergaps = 'OK' AND energylessthan12months = 'OK' AND waterlessthan12months='OK' AND siteeui is not NULL AND datayear = 2024];")
-
+# excluded espmid, 865 entries for total portfolio in
+base_list_query = """
+    SELECT [buildingname]
+        , [usetype]
+        , [occupany]
+        , [numbuildings]
+        , [sqfootage]
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE ISNULL(pmparentid,espmid)=espmid 
+        AND hasenergygaps = 'OK' 
+        AND haswatergaps = 'OK' 
+        AND energylessthan12months = 'OK' 
+        AND waterlessthan12months='OK' 
+        AND siteeui is not NULL 
+        AND datayear = 2024
+""" 
 st.dataframe(df, height = 1000)
 
 query = """
