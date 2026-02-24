@@ -29,7 +29,7 @@ base_list_query = """
         AND siteeui is not NULL 
         AND datayear = 2024
 """ 
-st.dataframe(df, height = 1000)
+st.dataframe(base_list_query, height = 1000)
 
 query = """
     SELECT DISTINCT [address]
