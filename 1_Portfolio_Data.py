@@ -361,8 +361,6 @@ fig_buildings = px.line(
         y='building_count',
         title='Number of Buildings by Year',
         labels={'datayear': 'Year', 'building_count': 'Building Count'},
-        color='building_count',
-        color_continuous_scale='Blues',
         text='building_count'
     )
 fig_buildings.update_traces(textposition='outside')
@@ -376,8 +374,6 @@ fig_sqft = px.line(
         y='total_sqft',
         title='Total Square Footage by Year',
         labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
-        color='total_sqft',
-        color_continuous_scale='Greens',
         text_auto='.2s'
     )
 fig_sqft.update_traces(textposition='outside')
