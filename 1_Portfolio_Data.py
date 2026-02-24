@@ -11,7 +11,7 @@ st.title("Portfolio Data")
 
 conn = st.connection("sql", type="sql")
 
-# SQL Query to get the data
+# CHANGE THIS TO 2025
 query = """
 SELECT 
     [usetype],
@@ -24,6 +24,13 @@ GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
 df = conn.query(query)
+
+# Summary stats
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("Total Buildings", f"{df['building_count'].sum():,}")
+with col2:
+    st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
@@ -196,21 +203,9 @@ for i, (label, color) in enumerate(legend_items):
         borderpad=4
     )
 
-# Display in Streamlit
-st.title("Energy Performance Analysis")
-st.write("2024 Data - Size = Total Square Footage, Color = Performance vs Benchmark")
-
-# Show the treemap
 st.plotly_chart(fig, use_container_width=True)
 
-df = conn.query(query)
 
-# Summary stats
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("Total Buildings", f"{df['building_count'].sum():,}")
-with col2:
-    st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
 
 # Show only top 30 building types in the chart
 top_30 = df.head(30)
