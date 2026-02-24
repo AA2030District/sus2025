@@ -32,6 +32,135 @@ with col1:
 with col2:
     st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
 
+# Categorize each use type into simpler
+# Residential, Commercial, Industrial, Transportation, Solid Waste
+use_type_mapping = {
+    # CITY-OWNED (public facilities, government buildings, infrastructure)
+    'Fire Station': 'City-Owned',
+    'Police Station': 'City-Owned',
+    'Library': 'City-Owned',
+    'Courthouse': 'City-Owned',
+    'Prison/Incarceration': 'City-Owned',
+    'K-12 School': 'City-Owned', 
+    'Drinking Water Treatment & Distribution': 'City-Owned',
+    'Wastewater Treatment Plant': 'City-Owned',
+    'Parking': 'City-Owned',  
+    'Transportation Terminal/Station': 'City-Owned', 
+    'Other - Public Services': 'City-Owned',
+    'Social/Meeting Hall': 'City-Owned',  
+    'Other - Recreation': 'City-Owned',  
+    'Swimming Pool': 'City-Owned',  
+    'Ice/Curling Rink': 'City-Owned',  
+    'Bowling Alley': 'City-Owned',  
+    'Museum': 'City-Owned',  
+    'Convention Center': 'City-Owned',  
+    
+    # RESIDENTIAL
+    'Single Family Home': 'Residential',
+    'Senior Living Community': 'Residential',
+    'Multifamily Housing': 'Residential',
+    'Residence Hall/Dormitory': 'Residential',
+    'Residential Care Facility': 'Residential',
+    'Other - Lodging/Residential': 'Residential',
+    
+    # COMMERCIAL (private businesses, retail, offices)
+    'Other - Mall': 'Commercial',
+    'Vehicle Dealership': 'Commercial',
+    'Adult Education': 'Commercial',  
+    'Bar/Nightclub': 'Commercial',
+    'Non-Refrigerated Warehouse': 'Commercial',
+    'Other - Technology/Science': 'Commercial',
+    'Other - Services': 'Commercial',
+    'Mixed Use Property': 'Commercial',
+    'Hotel': 'Commercial',
+    'Laboratory': 'Commercial',  
+    'Other - Education': 'Commercial',  
+    'Food Service': 'Commercial',
+    'Retail Store': 'Commercial',
+    'Medical Office': 'Commercial',
+    'Office': 'Commercial',
+    'Financial Office': 'Commercial',
+    'Other - Restaurant/Bar': 'Commercial',
+    'College/University': 'Commercial',  
+    'Worship Facility': 'Commercial',  
+    'Distribution Center': 'Commercial',
+    'Supermarket/Grocery Store': 'Commercial',
+    'Strip Mall': 'Commercial',
+    'Self-Storage Facility': 'Commercial',
+    'Wholesale Club/Supercenter': 'Commercial',
+    'Fitness Center/Health Club/Gym': 'Commercial',
+    'Vehicle Repair Services': 'Commercial',
+    'Convenience Store without Gas Station': 'Commercial',
+    'Personal Services (Health/Beauty, Dry Cleaning, etc)': 'Commercial',
+    'Restaurant': 'Commercial',
+    'Other - Entertainment/Public Assembly': 'Commercial',  
+    'Other - Utility': 'Commercial',  
+    'Other - Recreation': 'Commercial',  
+    'Other': 'Commercial',  
+    
+    # INDUSTRIAL
+    'Manufacturing/Industrial Plant': 'Industrial',
+    'Energy/Power Station': 'Industrial',
+    'Laboratory': 'Industrial',  
+    'Wastewater Treatment Plant': 'Industrial',  
+    'Drinking Water Treatment & Distribution': 'Industrial',  
+}
+
+graph_df = df.copy()
+graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
+
+category_summary = graph_df.groupby('category').agg({
+    'total_sqft': 'sum',
+    'building_count': 'sum',
+    'avg_siteeui': 'mean'  # Weighted average would be better, but this is simple
+}).round(2).reset_index()
+
+# Bar Chart
+fig_bar = px.bar(
+    category_summary,
+    x='category',
+    y='total_sqft',
+    title='Total Square Footage by Building Category',
+    labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
+    color='category',
+    color_discrete_sequence=px.colors.qualitative.Set2,  
+    text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
+)
+
+fig_bar.update_layout(
+    xaxis_title="Building Category",
+    yaxis_title="Total Square Footage (sq ft)",
+    showlegend=False,
+    height=500,
+    margin=dict(l=50, r=50, t=80, b=50)
+)
+fig_bar.update_traces(
+    textposition='outside',
+    textfont_size=12
+)
+
+# Pie Chart
+fig_pie = px.pie(
+    category_summary,
+    values='total_sqft',
+    names='category',
+    title='Square Footage Distribution by Building Category',
+    color_discrete_sequence=px.colors.qualitative.Set2,
+)
+
+# Improve pie chart layout
+fig_pie.update_traces(
+    textposition='inside',
+    textinfo='percent+label',
+    hoverinfo='label+percent+value',
+    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+)
+
+fig_pie.update_layout(
+    height=500,
+    margin=dict(l=50, r=50, t=80, b=50)
+)
+
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
 site_eui_benchmark = {
@@ -130,13 +259,10 @@ df = df.sort_values('total_sqft', ascending=False).reset_index(drop=True)
 # Create custom hover text
 hover_text = []
 for idx, row in df.iterrows():
-    text = f"Category: {row['performance_category']}"
-    text += f"<b>{row['usetype']}</b><br>"
+    text = f"<b>{row['usetype']}</b><br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
     text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
-    text += f"Performance Ratio: {row['performance_ratio']:.2f}x<br>"
-    text += f"Buildings: {row['building_count']}<br>"
 
     hover_text.append(text)
 
