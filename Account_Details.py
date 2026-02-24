@@ -17,7 +17,7 @@ conn = st.connection("sql", type="sql")
 base_list_query = """
     SELECT [buildingname]
         , [usetype]
-        , [occupany]
+        , [occupancy]
         , [numbuildings]
         , [sqfootage]
     FROM [dbo].[ESPMFIRSTTEST]
@@ -31,19 +31,6 @@ base_list_query = """
 """ 
 base_list = conn.query(base_list_query)
 st.dataframe(base_list, height = 1000)
-
-query = """
-    SELECT DISTINCT [address]
-    FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [datayear] = 2024
-        AND [address] IS NOT NULL
-        AND ISNULL(pmparentid,espmid)=espmid 
-        AND hasenergygaps = 'OK' 
-        AND haswatergaps = 'OK' 
-        AND energylessthan12months = 'OK' 
-        AND waterlessthan12months='OK' 
-        AND siteeui is not NULL
-"""
 
 # Function to Geocode Addresses
 @st.cache_data(ttl=86400)
@@ -88,6 +75,19 @@ def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
         'lon': longitudes
     }).dropna()
 
+
+query = """
+    SELECT DISTINCT [address]
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [datayear] = 2024
+        AND [address] IS NOT NULL
+        AND ISNULL(pmparentid,espmid)=espmid 
+        AND hasenergygaps = 'OK' 
+        AND haswatergaps = 'OK' 
+        AND energylessthan12months = 'OK' 
+        AND waterlessthan12months='OK' 
+        AND siteeui is not NULL
+"""
 df_addresses = conn.query(query)
 address_list = df_addresses['address'].tolist()
 
