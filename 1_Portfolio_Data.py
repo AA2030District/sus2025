@@ -123,8 +123,8 @@ df = df.sort_values('total_sqft', ascending=False).reset_index(drop=True)
 # Create custom hover text
 hover_text = []
 for idx, row in df.iterrows():
-    text += f"Category: {row['performance_category']}"
-    text = f"<b>{row['usetype']}</b><br>"
+    text = f"Category: {row['performance_category']}"
+    text += f"<b>{row['usetype']}</b><br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
     text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
