@@ -355,44 +355,58 @@ df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 
 #Num buildings line graph
+# Number of buildings line graph
 fig_buildings = px.line(
     df_yearly,
     x='datayear',
     y='building_count',
     title='Number of Buildings by Year',
     labels={'datayear': 'Year', 'building_count': 'Building Count'},
-    markers=True,
-    text='building_count' 
+    markers=True
 )
-fig_buildings.update_traces(textposition='outside')
-fig_buildings.update_layout(showlegend=False, height=400)
+fig_buildings.update_traces(
+    text=df_yearly['building_count'],
+    textposition='top center',
+    line=dict(color='steelblue', width=3),
+    marker=dict(size=10, color='steelblue')
+)
+fig_buildings.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_buildings, use_container_width=True)
 
-# Sq ft line graph
+# Square footage line graph
 fig_sqft = px.line(
     df_yearly,
     x='datayear',
     y='total_sqft',
     title='Total Square Footage by Year',
     labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
-    markers=True,
-    text=df_yearly['total_sqft'].apply(lambda x: f'{x:,.0f}')
+    markers=True
 )
-fig_sqft.update_traces(textposition='outside')
-fig_sqft.update_layout(showlegend=False, height=400)
+fig_sqft.update_traces(
+    text=df_yearly['total_sqft'].apply(lambda x: f'{x:,.0f}'),
+    textposition='top center',
+    line=dict(color='green', width=3),
+    marker=dict(size=10, color='green')
+)
+fig_sqft.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_sqft, use_container_width=True)
 
+# EUI line graph
 fig_eui = px.line(
     df_yearly,
     x='datayear',
     y='avg_siteeui',
     title='Average Site EUI by Year',
     labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
-    markers=True,
-    text=df_yearly['avg_siteeui'].round(1)
+    markers=True
 )
-fig_eui.update_traces(line=dict(color='red', width=3), marker=dict(size=10))
-fig_eui.update_layout(height=400)
+fig_eui.update_traces(
+    text=df_yearly['avg_siteeui'].round(1),
+    textposition='top center',
+    line=dict(color='red', width=3),
+    marker=dict(size=10, color='red')
+)
+fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
 
 # Manually inserted data, not taken from SQL/Energy Star
