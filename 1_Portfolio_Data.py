@@ -23,7 +23,7 @@ WHERE [datayear] = 2024
 GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
-df = pd.read_sql(query, conn)
+df = conn.query(query)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
