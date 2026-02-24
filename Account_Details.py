@@ -20,62 +20,48 @@ query = """
 
 # --- Function to Geocode Addresses ---
 @st.cache_data(ttl=86400)
-def geocode_addresses(address_list, state="Michigan"):
-    
-    # Create user agent with the email from secrets
-    user_agent = f"ann_arbor_building_map/1.0 ({st.secrets["auth"]["email"]})"
 
-    user_agent = "your_ann_arbor_app_name/1.0 (your-email@example.com)"
+# Modified geocoding function with progress bar
+def geocode_addresses_with_progress(address_list, state="Michigan"):
+    contact_email = st.secrets["auth"]["email"]
+    user_agent = f"ann_arbor_building_map/1.0 ({contact_email})"
     geolocator = Nominatim(user_agent=user_agent, timeout=10)
     geocode_with_delay = RateLimiter(geolocator.geocode, min_delay_seconds=1)
 
     latitudes = []
     longitudes = []
-    successful_addresses = []
-    full_addresses_used = []
-
-    for full_address in address_list:
-        # Append state to make addresses more specific
+    
+    # Add progress bar
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
+    for i, full_address in enumerate(address_list):
+        status_text.text(f"Geocoding {i+1}/{len(address_list)}: {full_address}")
+        progress_bar.progress((i + 1) / len(address_list))
+        
         full_address_with_state = f"{full_address}, {state}"
         
         try:
             location = geocode_with_delay(full_address_with_state)
-            
             if location:
                 latitudes.append(location.latitude)
                 longitudes.append(location.longitude)
-                successful_addresses.append(full_address)
-                full_addresses_used.append(location.address)  # Store the full matched address
             else:
-                # Try without state as fallback
-                location = geocode_with_delay(full_address)
-                if location:
-                    latitudes.append(location.latitude)
-                    longitudes.append(location.longitude)
-                    successful_addresses.append(full_address)
-                    full_addresses_used.append(location.address)
-                else:
-                    latitudes.append(None)
-                    longitudes.append(None)
-                    successful_addresses.append(full_address)
-                    full_addresses_used.append(None)
-
-        except (GeocoderTimedOut, GeocoderServiceError) as e:
-            st.warning(f"Error geocoding {full_address}: {e}. Skipping.")
+                latitudes.append(None)
+                longitudes.append(None)
+        except:
             latitudes.append(None)
             longitudes.append(None)
-            successful_addresses.append(full_address)
-            full_addresses_used.append(None)
             time.sleep(1)
-
-    df_result = pd.DataFrame({
-        'original_address': successful_addresses,
-        'matched_address': full_addresses_used,
+    
+    progress_bar.empty()
+    status_text.empty()
+    
+    return pd.DataFrame({
+        'address': address_list,
         'lat': latitudes,
         'lon': longitudes
-    }).dropna(subset=['lat', 'lon'])
-
-    return df_result
+    }).dropna()
 
 df_addresses = conn.query(query)
 address_list = df_addresses['address'].tolist()
