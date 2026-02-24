@@ -5,6 +5,7 @@ from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import pandas as pd
 import time
+import pydeck as pdk
 
 require_login()
 st.title("Account Details")
@@ -12,18 +13,27 @@ st.write("Home page content here.")
 
 conn = st.connection("sql", type="sql")
 
+# excluded espmid, 865 entries for total portfolio in 
+df = conn.query("SELECT * FROM ESPMFIRSTTEST WHERE ISNULL(pmparentid,espmid)=espmid AND hasenergygaps = 'OK' AND haswatergaps = 'OK' AND energylessthan12months = 'OK' AND waterlessthan12months='OK' AND siteeui is not NULL AND datayear = 2024];")
+
+st.dataframe(df, height = 1000)
+
 query = """
     SELECT DISTINCT [address]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [datayear] = 2024
         AND [address] IS NOT NULL
+        AND ISNULL(pmparentid,espmid)=espmid 
+        AND hasenergygaps = 'OK' 
+        AND haswatergaps = 'OK' 
+        AND energylessthan12months = 'OK' 
+        AND waterlessthan12months='OK' 
+        AND siteeui is not NULL
 """
 
-# --- Function to Geocode Addresses ---
+# Function to Geocode Addresses
 @st.cache_data(ttl=86400)
-
-# Modified geocoding function with progress bar
-def geocode_addresses(address_list, state="Michigan"):
+def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
     contact_email = st.secrets["auth"]["email"]
     user_agent = f"ann_arbor_building_map/1.0 ({contact_email})"
     geolocator = Nominatim(user_agent=user_agent, timeout=10)
@@ -67,22 +77,48 @@ def geocode_addresses(address_list, state="Michigan"):
 df_addresses = conn.query(query)
 address_list = df_addresses['address'].tolist()
 
-# --- Geocode the addresses ---
-with st.spinner("Geocoding addresses... This might take a while for large lists."):
-    df_geocoded = geocode_addresses(address_list, state="Michigan")
+# BUTTON to trigger geocoding
+if st.button("Generate Building Map", type="primary"):
+    # Geocode addresses only when button is pressed
+    with st.spinner("Geocoding Ann Arbor addresses..."):
+        df_geocoded = geocode_addresses(address_list, city="Ann Arbor", state="MI")
+    
+    # Store in session state so it persists
+    st.session_state['geocoded_df'] = df_geocoded
 
-# --- Display Results ---
-st.success(f"Successfully geocoded {len(df_geocoded)} out of {len(address_list)} addresses.")
-st.dataframe(df_geocoded)
-
-# --- Create the Map ---
-st.subheader("🗺️ Building Locations in Michigan")
-if not df_geocoded.empty:
-    st.map(df_geocoded, zoom=7)  # Zoom out to show all of SE Michigan
-else:
-    st.warning("No addresses could be geocoded to display on the map.")
-
-# excluded espmid, 865 entries for total portfolio in 
-df = conn.query("SELECT TOP (1000) [buildingname],[sqfootage],[address],[usetype], [occupancy], [numbuildings] FROM [dbo].[ESPMFIRSTTEST];")
-
-st.dataframe(df, height = 1000)
+# Check if we have geocoded data in session state
+if 'geocoded_df' in st.session_state:
+    df_geocoded = st.session_state['geocoded_df']
+    
+    # Create map with GREEN dots using pydeck
+    if not df_geocoded.empty:
+        # Calculate map center
+        center_lat = df_geocoded['lat'].mean()
+        center_lon = df_geocoded['lon'].mean()
+        
+        # Create a layer with green circles
+        layer = pdk.Layer(
+            'ScatterplotLayer',
+            data=df_geocoded,
+            get_position='[lon, lat]',
+            get_color='[0, 255, 0, 160]',  # Green with some transparency
+            get_radius=100,  # Radius in meters
+            pickable=True
+        )
+        
+        # Set the viewport location
+        view_state = pdk.ViewState(
+            latitude=center_lat,
+            longitude=center_lon,
+            zoom=12,
+            pitch=0
+        )
+        
+        # Create the deck
+        r = pdk.Deck(
+            layers=[layer],
+            initial_view_state=view_state,
+            tooltip={"text": "{address}"}
+        )
+        
+        st.pydeck_chart(r)
