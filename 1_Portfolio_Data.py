@@ -12,7 +12,7 @@ st.title("Portfolio Data")
 conn = st.connection("sql", type="sql")
 
 # CHANGE THIS TO 2025
-query = """
+current_query = """
 SELECT 
     [usetype],
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
@@ -23,11 +23,13 @@ WHERE [datayear] = 2024
 GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
-df = conn.query(query)
+
+df = conn.query(current_query)
 
 # Summary stats
 col1, col2 = st.columns(2)
 with col1:
+    # This is just totaling number of data entries totaled, should use numbuildings?
     st.metric("Total Buildings", f"{df['building_count'].sum():,}")
 with col2:
     st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
@@ -335,7 +337,65 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 
+yearly_query = """
+    SELECT 
+        [datayear],
+        COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
+        AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
+        COUNT(*) as building_count,
+        SUM(TRY_CAST([numbuildings] AS INT)) as total_numbuildings
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
+    GROUP BY [datayear]
+    HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
+    ORDER BY [datayear]
+"""
 
+df_yearly = conn.query(yearly_query)
+df_yearly = df_yearly.sort_values('datayear')
+
+#Num buildings line graph
+fig_buildings = px.line(
+        df_yearly,
+        x='datayear',
+        y='building_count',
+        title='Number of Buildings by Year',
+        labels={'datayear': 'Year', 'building_count': 'Building Count'},
+        color='building_count',
+        color_continuous_scale='Blues',
+        text='building_count'
+    )
+fig_buildings.update_traces(textposition='outside')
+fig_buildings.update_layout(showlegend=False, height=400)
+st.plotly_chart(fig_buildings, use_container_width=True)
+
+# Sq ft line graph
+fig_sqft = px.line(
+        df_yearly,
+        x='datayear',
+        y='total_sqft',
+        title='Total Square Footage by Year',
+        labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
+        color='total_sqft',
+        color_continuous_scale='Greens',
+        text_auto='.2s'
+    )
+fig_sqft.update_traces(textposition='outside')
+fig_sqft.update_layout(showlegend=False, height=400)
+st.plotly_chart(fig_sqft, use_container_width=True)
+
+fig_eui = px.line(
+        df_yearly,
+        x='datayear',
+        y='avg_siteeui',
+        title='Average Site EUI by Year',
+        labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
+        markers=True,
+        line_shape='linear'
+    )
+fig_eui.update_traces(line=dict(color='red', width=3), marker=dict(size=10))
+fig_eui.update_layout(height=400)
+st.plotly_chart(fig_eui, use_container_width=True)
 
 # Manually inserted data, not taken from SQL/Energy Star
 buildings_data = {
