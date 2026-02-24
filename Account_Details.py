@@ -3,6 +3,7 @@ from auth_helper import require_login
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
+import pandas as pd
 import time
 
 require_login()
