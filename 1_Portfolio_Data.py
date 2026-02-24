@@ -449,7 +449,6 @@ fig_scatter = px.scatter(
     trendline_color_override='red'
 )
 
-# Improve layout
 fig_scatter.update_layout(
     height=600,
     xaxis=dict(
@@ -463,6 +462,8 @@ fig_scatter.update_layout(
 )
 
 st.plotly_chart(fig_scatter, use_container_width=True)
+
+
 
 # Manually inserted data, not taken from SQL/Energy Star
 buildings_data = {
