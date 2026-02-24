@@ -138,6 +138,7 @@ fig_bar.update_traces(
     textposition='outside',
     textfont_size=12
 )
+st.plotly_chart(fig_bar, use_container_width=True)
 
 # Pie Chart
 fig_pie = px.pie(
@@ -160,6 +161,7 @@ fig_pie.update_layout(
     height=500,
     margin=dict(l=50, r=50, t=80, b=50)
 )
+st.plotly_chart(fig_pie, use_container_width=True)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
