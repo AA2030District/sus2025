@@ -88,7 +88,7 @@ buildings_query = """
         [sqfootage],
         [address],
         [datayear],
-        [avgsiteeui],
+        [siteeui],
         [wui]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
