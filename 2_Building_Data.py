@@ -109,7 +109,7 @@ selected_building = st.selectbox(
 # Get building info
 selected_espmid = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid'].iloc[0]
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
-st.write(building_info['usetype'])
+st.write(str(building_info[0]['usetype']))
 st.write(selected_espmid)
 current_year = 0
 
