@@ -73,6 +73,6 @@ with select: # Add select tab #############################################
     filtered_df = df.iloc[building]
 with errors:
     if building:
-        findgaps(building)
+        findgaps(filtered_df)
     else:
         st.write("No Building Selected")
