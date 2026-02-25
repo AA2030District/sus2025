@@ -22,7 +22,7 @@ def findgaps(selection):
     ###Finding the gaps
         espmid=selection['espmid']
         response =requests.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
-        st.write(response.content())
+        st.write(response.text)
     
 
 
