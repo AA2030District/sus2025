@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
-from espmreportingapproach import haswatergaps
 st.set_page_config(layout="wide")
 require_login() 
 
@@ -13,7 +12,7 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-    if selection[haswatergaps] == "Possible Issue":
+    if selection['haswatergaps'] == "Possible Issue":
         st.write("This has water gaps")
     
 
