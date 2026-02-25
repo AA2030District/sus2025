@@ -11,33 +11,86 @@ st.title("Portfolio Data")
 
 conn = st.connection("sql", type="sql")
 
-# CHANGE THIS TO 2025
-current_query = """
+summary_query = """
 SELECT 
-    [usetype],
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-    COUNT(*) as building_count
+    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
 FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2024
-GROUP BY [usetype]
-HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
-"""
-
-df = conn.query(current_query)
+WHERE [datayear] = 2025
+    AND ISNULL(pmparentid,espmid)=espmid 
+HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
+summary_df = conn.query(summary_query)
 
 # Summary stats
 col1, col2 = st.columns(2)
 with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
-    st.metric("Total Buildings", f"{df['building_count'].sum():,}")
+    st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
 with col2:
-    st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
+    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
+
+
+# Manually inserted data, not taken from SQL/Energy Star
+buildings_data = {
+    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
+    "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
+}
+
+# Create dataframe
+df = pd.DataFrame(buildings_data)
+
+# Line graph
+fig = px.line(
+    df,
+    x='years',
+    y='buildings',
+    markers=True
+)
+fig.update_layout(
+    height=500,
+    xaxis_title="Year",
+    yaxis_title="Number of Buildings",
+    title={
+        'text': "Ann Arbor 2030 Buildings By Year",
+        'font': {'size': 20}
+    }
+)
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+# Manually inserted data, not taken from SQL/Energy Star
+sqft_data = {
+    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
+    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
+}
+
+# Create dataframe
+df = pd.DataFrame(sqft_data)
+
+# Line graph
+fig = px.line(
+    df,
+    x='years',
+    y='square_footage',
+    markers=True
+)
+fig.update_layout(
+    height=500,
+    xaxis_title="Year",
+    yaxis_title="Square Footage",
+    title={
+        'text': "Ann Arbor 2030 Square Footage By Year",
+        'font': {'size': 20}
+    }
+)
+st.plotly_chart(fig, use_container_width=True)
 
 # Categorize each use type into simpler
-# Residential, Commercial, Industrial, Transportation, Solid Waste
+# City-Owned, Residential, Commercial, Industrial
 use_type_mapping = {
-    # CITY-OWNED (public facilities, government buildings, infrastructure)
+    # CITY-OWNED
     'Fire Station': 'City-Owned',
     'Police Station': 'City-Owned',
     'Library': 'City-Owned',
@@ -65,7 +118,7 @@ use_type_mapping = {
     'Residential Care Facility': 'Residential',
     'Other - Lodging/Residential': 'Residential',
     
-    # COMMERCIAL (private businesses, retail, offices)
+    # COMMERCIAL
     'Other - Mall': 'Commercial',
     'Vehicle Dealership': 'Commercial',
     'Adult Education': 'Commercial',  
@@ -108,39 +161,53 @@ use_type_mapping = {
     'Drinking Water Treatment & Distribution': 'Industrial',  
 }
 
+# CHANGE THIS TO 2025
+current_query = """
+SELECT 
+    [usetype],
+    COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
+    AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
+    COUNT(*) as building_count
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE [datayear] = 2024
+GROUP BY [usetype]
+HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
+"""
+
+df = conn.query(current_query)
 graph_df = df.copy()
 graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
 
 category_summary = graph_df.groupby('category').agg({
     'total_sqft': 'sum',
     'building_count': 'sum',
-    'avg_siteeui': 'mean'  # Weighted average would be better, but this is simple
+    'avg_siteeui': 'mean'
 }).round(2).reset_index()
 
-# Bar Chart
-fig_bar = px.bar(
-    category_summary,
-    x='category',
-    y='total_sqft',
-    title='Total Square Footage by Building Category',
-    labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
-    color='category',
-    color_discrete_sequence=px.colors.qualitative.Set2,  
-    text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
-)
+# # Bar Chart
+# fig_bar = px.bar(
+#     category_summary,
+#     x='category',
+#     y='total_sqft',
+#     title='Total Square Footage by Building Category',
+#     labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
+#     color='category',
+#     color_discrete_sequence=px.colors.qualitative.Set2,  
+#     text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
+# )
 
-fig_bar.update_layout(
-    xaxis_title="Building Category",
-    yaxis_title="Total Square Footage (sq ft)",
-    showlegend=False,
-    height=500,
-    margin=dict(l=50, r=50, t=80, b=50)
-)
-fig_bar.update_traces(
-    textposition='outside',
-    textfont_size=12
-)
-st.plotly_chart(fig_bar, use_container_width=True)
+# fig_bar.update_layout(
+#     xaxis_title="Building Category",
+#     yaxis_title="Total Square Footage (sq ft)",
+#     showlegend=False,
+#     height=500,
+#     margin=dict(l=50, r=50, t=80, b=50)
+# )
+# fig_bar.update_traces(
+#     textposition='outside',
+#     textfont_size=12
+# )
+# st.plotly_chart(fig_bar, use_container_width=True)
 
 # Pie Chart
 fig_pie = px.pie(
@@ -339,13 +406,18 @@ st.plotly_chart(fig, use_container_width=True)
 
 yearly_query = """
     SELECT 
-        [datayear],
+        TRY_CAST([datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        COUNT(*) as building_count,
-        SUM(TRY_CAST([numbuildings] AS INT)) as total_numbuildings
+        AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
+        AND ISNULL(pmparentid,espmid)=espmid 
+        AND hasenergygaps = 'OK' 
+        AND haswatergaps = 'OK' 
+        AND energylessthan12months = 'OK' 
+        AND waterlessthan12months='OK' 
+        AND siteeui is not NULL 
     GROUP BY [datayear]
     HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY [datayear]
@@ -354,42 +426,6 @@ yearly_query = """
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 
-#Num buildings line graph
-# Number of buildings line graph
-fig_buildings = px.line(
-    df_yearly,
-    x='datayear',
-    y='building_count',
-    title='Number of Buildings by Year',
-    labels={'datayear': 'Year', 'building_count': 'Building Count'},
-    markers=True
-)
-fig_buildings.update_traces(
-    text=df_yearly['building_count'],
-    textposition='top center',
-    line=dict(color='steelblue', width=3),
-    marker=dict(size=10, color='steelblue')
-)
-fig_buildings.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_buildings, use_container_width=True)
-
-# Square footage line graph
-fig_sqft = px.line(
-    df_yearly,
-    x='datayear',
-    y='total_sqft',
-    title='Total Square Footage by Year',
-    labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
-    markers=True
-)
-fig_sqft.update_traces(
-    text=df_yearly['total_sqft'].apply(lambda x: f'{x:,.0f}'),
-    textposition='top center',
-    line=dict(color='green', width=3),
-    marker=dict(size=10, color='green')
-)
-fig_sqft.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_sqft, use_container_width=True)
 
 # EUI line graph
 fig_eui = px.line(
@@ -406,8 +442,28 @@ fig_eui.update_traces(
     line=dict(color='red', width=3),
     marker=dict(size=10, color='red')
 )
+fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
+
+# WUI line graph
+fig_wui = px.line(
+    df_yearly,
+    x='datayear',
+    y='avg_wui',
+    title='Average WUI by Year',
+    labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ft²)'},
+    markers=True
+)
+fig_wui.update_traces(
+    text=df_yearly['avg_wui'].round(1),
+    textposition='top center',
+    line=dict(color='red', width=3),
+    marker=dict(size=10, color='red')
+)
+fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
+fig_wui.update_layout(height=400, showlegend=False)
+st.plotly_chart(fig_wui, use_container_width=True)
 
 # SQL query to get unique buildings with year built and site EUI for 2024
 scatter_query = """
@@ -465,59 +521,7 @@ st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 
-# Manually inserted data, not taken from SQL/Energy Star
-buildings_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "buildings": [25, 36, 99, 274, 415, 1154, 1203]
-}
 
-# Create dataframe
-df = pd.DataFrame(buildings_data)
-
-# Line graph
-fig = px.line(
-    df,
-    x='years',
-    y='buildings',
-    markers=True
-)
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="Number of Buildings",
-    title={
-        'text': "Ann Arbor 2030 Buildings By Year",
-        'font': {'size': 20}
-    }
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# Manually inserted data, not taken from SQL/Energy Star
-sqft_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, 39033537]
-}
-
-# Create dataframe
-df = pd.DataFrame(sqft_data)
-
-# Line graph
-fig = px.line(
-    df,
-    x='years',
-    y='square_footage',
-    markers=True
-)
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="Square Footage",
-    title={
-        'text': "Ann Arbor 2030 Square Footage By Year",
-        'font': {'size': 20}
-    }
-)
-st.plotly_chart(fig, use_container_width=True)
 
 # Hardcoded data
 eui_data = {
