@@ -79,9 +79,14 @@ site_eui_benchmark = {
 }
 
 # Get all buildings for dropdown
+
 buildings_query = """
-    SELECT DISTINCT [buildingname]
-    , [espmid]
+    SELECT DISTINCT 
+        [espmid],
+        [buildingname],
+        [usetype],
+        [sqfootage],
+        [address]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
     AND [espmid] IS NOT NULL
@@ -96,22 +101,50 @@ selected_building = st.selectbox(
     "Select a Building:",
     building_names,
     index=0,
-    help="Start typing to search through all available buildings in your portfolio"
+    help="Start typing to search through 867 buildings"
 )
 
 # Get building info
-selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
-result = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid']
-st.write(f"Type: {type(result)}")
-st.write(f"Value: {result}")
-st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
-this_building_query = """
-    SELECT *
-    FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [buildingname] = {selected_building}
-    ORDER BY [datayear] DESC
-"""
-this_building_df = conn.query(this_building_query)
+selected_espmid = buildings_df.loc[
+    buildings_df['buildingname'] == selected_building, 'espmid'
+].iloc[0]
+building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
+st.write(building_info)
+
+
+# buildings_query = """
+#     SELECT DISTINCT [buildingname]
+#     , [espmid]
+#     FROM [dbo].[ESPMFIRSTTEST]
+#     WHERE [buildingname] IS NOT NULL
+#     AND [espmid] IS NOT NULL
+#     ORDER BY [buildingname]
+# """
+
+# buildings_df = conn.query(buildings_query)
+
+# # Create dropdown with building names
+# building_names = buildings_df['buildingname'].tolist()
+# selected_building = st.selectbox(
+#     "Select a Building:",
+#     building_names,
+#     index=0,
+#     help="Start typing to search through all available buildings in your portfolio"
+# )
+
+# # Get building info
+# selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
+# result = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid']
+# st.write(f"Type: {type(result)}")
+# st.write(f"Value: {result}")
+# st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
+# this_building_query = """
+#     SELECT *
+#     FROM [dbo].[ESPMFIRSTTEST]
+#     WHERE [buildingname] = {selected_building}
+#     ORDER BY [datayear] DESC
+# """
+# this_building_df = conn.query(this_building_query)
 
 # building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
 # st.write(str(building_info[0]['usetype']))
