@@ -20,7 +20,9 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-        espmid=str(selection['espmid'])
+        espmid=selection['espmid']
+        st.write(espmid)
+        st.write(espmid.type())
         response =requests.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
         st.write(response.text)
     
