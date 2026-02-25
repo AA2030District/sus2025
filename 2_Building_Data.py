@@ -125,105 +125,66 @@ this_building_query = f"""
 this_building_df = conn.query(this_building_query)
 
 # Now you can use the data
-if not this_building_df.empty:
-    most_current_data = this_building_df.iloc[0]
-    most_current_year = most_current_data['datayear']
-    
-    st.write(f"Most current data is from: {most_current_year}")
-    st.write(f"Site EUI: {most_current_data['siteeui']}")
-    st.write(f"WUI: {most_current_data['wui']}")
-    
-    # Continue with your meter data functions...
-    building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
-    baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
-
-
-# buildings_query = """
-#     SELECT DISTINCT [buildingname]
-#     , [espmid]
-#     FROM [dbo].[ESPMFIRSTTEST]
-#     WHERE [buildingname] IS NOT NULL
-#     AND [espmid] IS NOT NULL
-#     ORDER BY [buildingname]
-# """
-
-# buildings_df = conn.query(buildings_query)
-
-# # Create dropdown with building names
-# building_names = buildings_df['buildingname'].tolist()
-# selected_building = st.selectbox(
-#     "Select a Building:",
-#     building_names,
-#     index=0,
-#     help="Start typing to search through all available buildings in your portfolio"
-# )
-
-# # Get building info
-# selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
-# result = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid']
-# st.write(f"Type: {type(result)}")
-# st.write(f"Value: {result}")
-# st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
-# this_building_query = """
-#     SELECT *
-#     FROM [dbo].[ESPMFIRSTTEST]
-#     WHERE [espmid] = '{building_info['espmid']}'
-#     ORDER BY [datayear] DESC
-# """
-# this_building_df = conn.query(this_building_query)
-
-# building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
-# st.write(str(building_info[0]['usetype']))
-# st.write(selected_espmid)
-# current_year = 0
-# Display building info
-# Get the most current year's data (first row since we ordered DESC)
 # if not this_building_df.empty:
 #     most_current_data = this_building_df.iloc[0]
 #     most_current_year = most_current_data['datayear']
     
-#     # Get the use type (should be consistent across years, but we'll get it from most current)
-#     use_type = most_current_data['usetype']
-    
 #     st.write(f"Most current data is from: {most_current_year}")
-#     st.write(f"Building Use Type: {use_type}")
+#     st.write(f"Site EUI: {most_current_data['siteeui']}")
+#     st.write(f"WUI: {most_current_data['wui']}")
     
-#     # Optional: Show all available years
-#     available_years = this_building_df['datayear'].tolist()
-#     st.write(f"All available years: {available_years}")
+#     # Continue with your meter data functions...
+#     building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
+#     baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
+
+# Display building info
+# Get the most current year's data (first row since we ordered DESC)
+if not this_building_df.empty:
+    most_current_data = this_building_df.iloc[0]
+    most_current_year = most_current_data['datayear']
     
-#     # Display the data in columns
-#     col1, col2 = st.columns(2)
-#     with col1:
-#         st.write("ESPM ID:")
-#         st.write("Use Type:")
-#         st.write("Square Footage:")
-#         st.write("Site EUI:")
-#         st.write("WUI:")
-#         st.write("Most Current Year:")
-#     with col2:
-#         st.write(selected_espmid)
-#         st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
+    # Get the use type (should be consistent across years, but we'll get it from most current)
+    use_type = most_current_data['usetype']
+    
+    st.write(f"Most current data is from: {most_current_year}")
+    st.write(f"Building Use Type: {use_type}")
+    
+    # Optional: Show all available years
+    available_years = this_building_df['datayear'].tolist()
+    st.write(f"All available years: {available_years}")
+    
+    # Display the data in columns
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("ESPM ID:")
+        st.write("Use Type:")
+        st.write("Square Footage:")
+        st.write("Site EUI:")
+        st.write("WUI:")
+        st.write("Most Current Year:")
+    with col2:
+        st.write(selected_espmid)
+        st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
         
-#         # Square footage formatting
-#         if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
-#             st.write(f"{float(most_current_data['sqfootage']):,.0f}")
-#         elif pd.notna(most_current_data['sqfootage']):
-#             st.write(str(most_current_data['sqfootage']))
-#         else:
-#             st.write('Not Available')
+        # Square footage formatting
+        if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
+            st.write(f"{float(most_current_data['sqfootage']):,.0f}")
+        elif pd.notna(most_current_data['sqfootage']):
+            st.write(str(most_current_data['sqfootage']))
+        else:
+            st.write('Not Available')
         
-#         # Site EUI
-#         st.write(str(most_current_data['siteeui']) if pd.notna(most_current_data['siteeui']) else 'Not Available')
+        # Site EUI
+        st.write(str(most_current_data['siteeui']) if pd.notna(most_current_data['siteeui']) else 'Not Available')
         
-#         # WUI
-#         st.write(str(most_current_data['wui']) if pd.notna(most_current_data['wui']) else 'Not Available')
+        # WUI
+        st.write(str(most_current_data['wui']) if pd.notna(most_current_data['wui']) else 'Not Available')
         
-#         # Year
-#         st.write(str(most_current_year))
-# else:
-#     st.error(f"No data found for ESPMID: {selected_espmid}")
-# col1, col2 = st.columns(2)
+        # Year
+        st.write(str(most_current_year))
+else:
+    st.error(f"No data found for ESPMID: {selected_espmid}")
+col1, col2 = st.columns(2)
 
 # with col1:
 #     st.write("Use Type")
