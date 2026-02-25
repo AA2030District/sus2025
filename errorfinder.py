@@ -42,12 +42,19 @@ ORDER BY espmid;
 """
 
 buildings_df = conn.query(buildings_query)
-st.dataframe(buildings_df, height = 1000)
-selected_indices = st.multiselect('Select rows:', buildings_df.index)
-
-# Subset the dataframe with the selected indices
-selected_rows = buildings_df.loc[selected_indices]
-
-# Display the selected data
-st.write('Selected Rows:')
-st.dataframe(selected_rows)
+column_configuration = {
+    "Building Name": st.column_config.TextColumn(
+        "buildingname", help="The name of the user", max_chars=100, width="medium"
+    ),
+    "espmid": st.column_config.TextColumn(
+        "espmid", help="The name of the user", max_chars=100, width="medium"
+    ),
+}
+event = st.dataframe(
+    buildings_df,
+    column_config=column_configuration,
+    use_container_width=True,
+    hide_index=True,
+    on_select="rerun",
+    selection_mode="single-row",
+)
