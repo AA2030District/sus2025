@@ -140,13 +140,13 @@ st.write(building_info['espmid'])
 # st.write(f"Type: {type(result)}")
 # st.write(f"Value: {result}")
 # st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
-# this_building_query = """
-#     SELECT *
-#     FROM [dbo].[ESPMFIRSTTEST]
-#     WHERE [buildingname] = {selected_building}
-#     ORDER BY [datayear] DESC
-# """
-# this_building_df = conn.query(this_building_query)
+this_building_query = """
+    SELECT *
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [espmid] = '{building_info['espmid']}'
+    ORDER BY [datayear] DESC
+"""
+this_building_df = conn.query(this_building_query)
 
 # building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
 # st.write(str(building_info[0]['usetype']))
