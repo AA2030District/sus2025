@@ -80,14 +80,8 @@ site_eui_benchmark = {
 
 # Get all buildings for dropdown
 buildings_query = """
-    SELECT DISTINCT 
-        [espmid],
-        [buildingname],
-        [usetype],
-        [sqfootage],
-        [siteeui],
-        [wui],
-        [datayear]
+    SELECT DISTINCT [buildingname]
+    , [espmid]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
     AND [espmid] IS NOT NULL
@@ -106,17 +100,15 @@ selected_building = st.selectbox(
 )
 
 # Get building info
-selected_espmid = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid'].iloc[0]
-st.write(selected_espmid)
+selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
+result = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid']
+st.write(f"Type: {type(result)}")
+st.write(f"Value: {result}")
+st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
 this_building_query = """
-    SELECT 
-        [usetype],
-        [sqfootage],
-        [siteeui],
-        [wui],
-        [datayear]
+    SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] = '{selected_espmid}'
+    WHERE [buildingname] = {selected_building}
     ORDER BY [datayear] DESC
 """
 this_building_df = conn.query(this_building_query)
