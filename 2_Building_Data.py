@@ -188,10 +188,8 @@ WHERE [usetype] = '{use_type}'
 GROUP BY [usetype]
 """
 use_type_df = conn.query(usetype_averages_query)
-st.write(use_type_df)
 
 baseline_eui_value = site_eui_benchmark.get(use_type, None)
-st.write(baseline_eui_value)
 
 # Check if EUI column has any non-null values
 if not this_building_df.empty and this_building_df['siteeui'].notna().any():
@@ -266,10 +264,70 @@ else:
     st.warning("No EUI data available")
 
 # Check if WUI column has any non-null values  
-if pd.notna(this_building_df['wui']).any():
-    st.write("WUI data exists")
+if not this_building_df.empty and this_building_df['wui'].notna().any():
+    # Get the most current WUI value
+    most_current_wui = this_building_df.iloc[0]['wui']
+    
+    # Get the average WUI for the use type
+    avg_wui = use_type_df['avg_wui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_wui'].iloc[0]) else None
+    building_count = use_type_df['building_count'].iloc[0] if not use_type_df.empty else 0
+    
+    # Prepare data for the bar chart
+    chart_data = {
+        'Category': [],
+        'WUI Value': []
+    }
+    
+    # Add current building's WUI
+    chart_data['Category'].append('This Building')
+    chart_data['WUI Value'].append(most_current_wui)
+    
+    # Add average WUI for same use type (if available)
+    if avg_wui is not None:
+        chart_data['Category'].append(f'Average {use_type}')
+        chart_data['WUI Value'].append(avg_wui)
+    
+    # Create DataFrame for plotting
+    chart_df = pd.DataFrame(chart_data)
+    
+    
+    fig = px.bar(
+        chart_df,
+        x='Category',
+        y='WUI Value',
+        title=f'WUI Comparison: {building_info["buildingname"]}',
+        labels={'WUI Value': 'Water Usage Intensity (WUI)', 'Category': ''},
+        text='WUI Value',
+        color='Category',
+        color_discrete_sequence=['#1f77b4', '#ff7f0e']
+    )
+    
+    # Customize the chart
+    fig.update_traces(
+        texttemplate='%{text:.2f}',
+        textposition='outside',
+        marker_line_width=1.5,
+        marker_line_color='black'
+    )
+    
+    fig.update_layout(
+        height=500,
+        showlegend=False,
+        yaxis=dict(
+            title='Water Usage Intensity (WUI)',
+            gridcolor='lightgray',
+            rangemode='nonnegative'
+        ),
+        xaxis=dict(
+            tickangle=0
+        ),
+        plot_bgcolor='white'
+    )
+    
+    # Display the chart
+    st.plotly_chart(fig, use_container_width=True)
 else:
-    st.write("No WUI data available")
+    st.warning("No WUI data available")
 
 
 # with col1:
