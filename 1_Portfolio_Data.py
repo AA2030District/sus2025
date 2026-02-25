@@ -442,7 +442,7 @@ fig_eui.update_traces(
     line=dict(color='red', width=3),
     marker=dict(size=10, color='red')
 )
-fig.update_xaxes(dtick="M12", tickformat="%Y")
+fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
 
@@ -461,7 +461,7 @@ fig_wui.update_traces(
     line=dict(color='red', width=3),
     marker=dict(size=10, color='red')
 )
-fig.update_xaxes(dtick="M12", tickformat="%Y")
+fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
 
