@@ -108,40 +108,101 @@ selected_building = st.selectbox(
 
 # Get building info
 selected_espmid = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid'].iloc[0]
-building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
-st.write(str(building_info[0]['usetype']))
-st.write(selected_espmid)
-current_year = 0
+
+this_building_query = """
+    SELECT 
+        [usetype],
+        [sqfootage],
+        [siteeui],
+        [wui],
+        [datayear]
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [espmid] IS '{selected_espmid}'
+    ORDER BY [datayear] DESC
+"""
+this_building_df = conn.query(this_building_query)
+
+# building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
+# st.write(str(building_info[0]['usetype']))
+# st.write(selected_espmid)
+# current_year = 0
 
 # Display building info
-col1, col2 = st.columns(2)
-with col1:
-    st.write("Use Type")
-    st.write("Square Footage")
-    st.write("Current Year")
-with col2:
-    st.write(str(building_info['usetype']) if pd.notna(building_info['usetype']) else 'Not Available')
+# Get the most current year's data (first row since we ordered DESC)
+if not this_building_df.empty:
+    most_current_data = this_building_df.iloc[0]
+    most_current_year = most_current_data['datayear']
     
-    # Fixed the square footage formatting
-    if pd.notna(building_info['sqfootage']) and str(building_info['sqfootage']).replace('.', '').isdigit():
-        st.write(f"{float(building_info['sqfootage']):,.0f}")
-    elif pd.notna(building_info['sqfootage']):
-        st.write(str(building_info['sqfootage']))
-    else:
-        st.write('Not Available')
+    # Get the use type (should be consistent across years, but we'll get it from most current)
+    use_type = most_current_data['usetype']
+    
+    st.write(f"Most current data is from: {most_current_year}")
+    st.write(f"Building Use Type: {use_type}")
+    
+    # Optional: Show all available years
+    available_years = this_building_df['datayear'].tolist()
+    st.write(f"All available years: {available_years}")
+    
+    # Display the data in columns
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("ESPM ID:")
+        st.write("Use Type:")
+        st.write("Square Footage:")
+        st.write("Site EUI:")
+        st.write("WUI:")
+        st.write("Most Current Year:")
+    with col2:
+        st.write(selected_espmid)
+        st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
+        
+        # Square footage formatting
+        if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
+            st.write(f"{float(most_current_data['sqfootage']):,.0f}")
+        elif pd.notna(most_current_data['sqfootage']):
+            st.write(str(most_current_data['sqfootage']))
+        else:
+            st.write('Not Available')
+        
+        # Site EUI
+        st.write(str(most_current_data['siteeui']) if pd.notna(most_current_data['siteeui']) else 'Not Available')
+        
+        # WUI
+        st.write(str(most_current_data['wui']) if pd.notna(most_current_data['wui']) else 'Not Available')
+        
+        # Year
+        st.write(str(most_current_year))
+else:
+    st.error(f"No data found for ESPMID: {selected_espmid}")
+# col1, col2 = st.columns(2)
 
-    # Check for Year
-    if 2025 in building_info['datayear'].values:
-        st.write('2025')
-        current_year = 2025
-    elif 2024 in building_info['datayear'].values:
-        st.write('2024')
-        current_year = 2024
-    elif 2023 in building_info['datayear'].values:
-        st.write('2023')
-        current_year = 2023
-    else:
-        st.write('No current Data Available')
+# with col1:
+#     st.write("Use Type")
+#     st.write("Square Footage")
+#     st.write("Current Year")
+# with col2:
+#     st.write(str(building_info['usetype']) if pd.notna(building_info['usetype']) else 'Not Available')
+    
+#     # Fixed the square footage formatting
+#     if pd.notna(building_info['sqfootage']) and str(building_info['sqfootage']).replace('.', '').isdigit():
+#         st.write(f"{float(building_info['sqfootage']):,.0f}")
+#     elif pd.notna(building_info['sqfootage']):
+#         st.write(str(building_info['sqfootage']))
+#     else:
+#         st.write('Not Available')
+
+#     # Check for Year
+#     if 2025 in building_info['datayear'].values:
+#         st.write('2025')
+#         current_year = 2025
+#     elif 2024 in building_info['datayear'].values:
+#         st.write('2024')
+#         current_year = 2024
+#     elif 2023 in building_info['datayear'].values:
+#         st.write('2023')
+#         current_year = 2023
+#     else:
+#         st.write('No current Data Available')
     
 # Get baseline EUI
 building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
