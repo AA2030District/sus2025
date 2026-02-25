@@ -103,14 +103,14 @@ selected_building = st.selectbox(
     "Select a Building:",
     building_names,
     index=0,
-    help="Start typing to search through 867 buildings"
+    help="Start typing to search through all available buildings in your portfolio"
 )
 
 # Get building info
 selected_espmid = buildings_df.loc[
     buildings_df['buildingname'] == selected_building, 'espmid'
 ].iloc[0]
-building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
+building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building]
 current_year = 0
 
 # Display building info
