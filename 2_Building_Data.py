@@ -112,7 +112,6 @@ selected_espmid = buildings_df.loc[
     buildings_df['buildingname'] == selected_building, 'espmid'
 ].iloc[0]
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
-st.write(building_info)
 # st.write(building_info['this_espmid'])
 
 # Get all data for this building using parameterized query
@@ -150,20 +149,16 @@ if not this_building_df.empty:
     st.write(f"Building Use Type: {use_type}")
     
     # Optional: Show all available years
-    available_years = this_building_df['datayear'].tolist()
-    st.write(f"All available years: {available_years}")
+    
     
     # Display the data in columns
     col1, col2 = st.columns(2)
     with col1:
-        st.write("ESPM ID:")
         st.write("Use Type:")
         st.write("Square Footage:")
-        st.write("Site EUI:")
-        st.write("WUI:")
         st.write("Most Current Year:")
+        st.write("All recorded years:")
     with col2:
-        st.write(selected_espmid)
         st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
         
         # Square footage formatting
@@ -174,14 +169,11 @@ if not this_building_df.empty:
         else:
             st.write('Not Available')
         
-        # Site EUI
-        st.write(str(most_current_data['siteeui']) if pd.notna(most_current_data['siteeui']) else 'Not Available')
-        
-        # WUI
-        st.write(str(most_current_data['wui']) if pd.notna(most_current_data['wui']) else 'Not Available')
-        
         # Year
         st.write(str(most_current_year))
+        available_years = this_building_df['datayear'].tolist()
+        st.write(str(available_years))
+
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
 col1, col2 = st.columns(2)
