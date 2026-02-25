@@ -3,12 +3,19 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
+from espmreportingapproach import haswatergaps
 st.set_page_config(layout="wide")
 require_login() 
 
 st.title("Error Finder")
 
 conn = st.connection("sql", type="sql")
+
+def findgaps(selection):
+    ###Finding the gaps
+    if selection[haswatergaps] == "Possible Issue":
+        st.write("This has water gaps")
+    
 
 
 buildings_query = """
@@ -62,16 +69,13 @@ with select: # Add select tab #############################################
         use_container_width=True,
         hide_index=True,
         on_select="rerun",
-        selection_mode="multi-row",
+        selection_mode="single-row",
     )
 
-    st.header("Selected members")
-    people = event.selection.rows
-    filtered_df = df.iloc[people]
-    st.dataframe(
-        filtered_df,
-        column_config=column_configuration,
-        use_container_width=True,
-    )
+    building = event.selection.rows
+    filtered_df = df.iloc[building]
 with errors:
-    st.header("Empty Right Now")
+    if building:
+        findgaps(building)
+    else:
+        st.write("No Building Selected")
