@@ -115,6 +115,14 @@ building_info = buildings_df.loc[buildings_df['buildingname'] == selected_buildi
 st.write(building_info)
 st.write(building_info['espmid'])
 
+this_building_query = """
+    SELECT *
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [espmid] = 27588473
+    ORDER BY [datayear] DESC
+"""
+this_building_df = conn.query(this_building_query)
+
 
 # buildings_query = """
 #     SELECT DISTINCT [buildingname]
