@@ -86,7 +86,8 @@ buildings_query = """
         [buildingname],
         [usetype],
         [sqfootage],
-        [address]
+        [address],
+        [datayear]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
     AND [espmid] IS NOT NULL
