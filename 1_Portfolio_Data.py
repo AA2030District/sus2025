@@ -409,10 +409,15 @@ yearly_query = """
         [datayear],
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        COUNT(*) as building_count,
-        SUM(TRY_CAST([numbuildings] AS INT)) as total_numbuildings
+        AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui,
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
+        AND ISNULL(pmparentid,espmid)=espmid 
+        AND hasenergygaps = 'OK' 
+        AND haswatergaps = 'OK' 
+        AND energylessthan12months = 'OK' 
+        AND waterlessthan12months='OK' 
+        AND siteeui is not NULL 
     GROUP BY [datayear]
     HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY [datayear]
@@ -439,6 +444,24 @@ fig_eui.update_traces(
 )
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
+
+# WUI line graph
+fig_wui = px.line(
+    df_yearly,
+    x='datayear',
+    y='avg_wui',
+    title='Average WUI by Year',
+    labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ft²)'},
+    markers=True
+)
+fig_wui.update_traces(
+    text=df_yearly['avg_wui'].round(1),
+    textposition='top center',
+    line=dict(color='red', width=3),
+    marker=dict(size=10, color='red')
+)
+fig_wui.update_layout(height=400, showlegend=False)
+st.plotly_chart(fig_wui, use_container_width=True)
 
 # SQL query to get unique buildings with year built and site EUI for 2024
 scatter_query = """
