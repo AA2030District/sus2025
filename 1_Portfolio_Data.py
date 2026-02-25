@@ -30,6 +30,63 @@ with col1:
 with col2:
     st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
 
+
+# Manually inserted data, not taken from SQL/Energy Star
+buildings_data = {
+    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
+    "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
+}
+
+# Create dataframe
+df = pd.DataFrame(buildings_data)
+
+# Line graph
+fig = px.line(
+    df,
+    x='years',
+    y='buildings',
+    markers=True
+)
+fig.update_layout(
+    height=500,
+    xaxis_title="Year",
+    yaxis_title="Number of Buildings",
+    title={
+        'text': "Ann Arbor 2030 Buildings By Year",
+        'font': {'size': 20}
+    }
+)
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+# Manually inserted data, not taken from SQL/Energy Star
+sqft_data = {
+    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
+    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
+}
+
+# Create dataframe
+df = pd.DataFrame(sqft_data)
+
+# Line graph
+fig = px.line(
+    df,
+    x='years',
+    y='square_footage',
+    markers=True
+)
+fig.update_layout(
+    height=500,
+    xaxis_title="Year",
+    yaxis_title="Square Footage",
+    title={
+        'text': "Ann Arbor 2030 Square Footage By Year",
+        'font': {'size': 20}
+    }
+)
+st.plotly_chart(fig, use_container_width=True)
+
 # Categorize each use type into simpler
 # City-Owned, Residential, Commercial, Industrial
 use_type_mapping = {
@@ -475,59 +532,7 @@ st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 
-# Manually inserted data, not taken from SQL/Energy Star
-buildings_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "buildings": [25, 36, 99, 274, 415, 1154, 1203]
-}
 
-# Create dataframe
-df = pd.DataFrame(buildings_data)
-
-# Line graph
-fig = px.line(
-    df,
-    x='years',
-    y='buildings',
-    markers=True
-)
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="Number of Buildings",
-    title={
-        'text': "Ann Arbor 2030 Buildings By Year",
-        'font': {'size': 20}
-    }
-)
-st.plotly_chart(fig, use_container_width=True)
-
-# Manually inserted data, not taken from SQL/Energy Star
-sqft_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, 39033537]
-}
-
-# Create dataframe
-df = pd.DataFrame(sqft_data)
-
-# Line graph
-fig = px.line(
-    df,
-    x='years',
-    y='square_footage',
-    markers=True
-)
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="Square Footage",
-    title={
-        'text': "Ann Arbor 2030 Square Footage By Year",
-        'font': {'size': 20}
-    }
-)
-st.plotly_chart(fig, use_container_width=True)
 
 # Hardcoded data
 eui_data = {
