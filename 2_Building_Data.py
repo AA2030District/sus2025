@@ -81,15 +81,8 @@ site_eui_benchmark = {
 # Get all buildings for dropdown
 
 buildings_query = """
-    SELECT DISTINCT 
-        [espmid],
-        [buildingname],
-        [usetype],
-        [sqfootage],
-        [address],
-        [datayear],
-        [siteeui],
-        [wui]
+    SELECT DISTINCT [espmid],
+        [buildingname]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
     AND [espmid] IS NOT NULL
