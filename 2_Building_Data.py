@@ -82,7 +82,7 @@ site_eui_benchmark = {
 
 buildings_query = """
     SELECT DISTINCT 
-        [espmid],
+        TRY_CAST([espmid] AS INT) as this_espmid,
         [buildingname],
         [usetype],
         [sqfootage],
@@ -113,9 +113,7 @@ selected_espmid = buildings_df.loc[
 ].iloc[0]
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
 st.write(building_info)
-st.write(building_info['espmid'])
-this_espmid = 0
-this_espmid = int(building_info['espmid'])
+st.write(building_info['this_espmid'])
 
 this_building_query = """
     SELECT *
