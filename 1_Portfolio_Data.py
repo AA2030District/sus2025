@@ -406,7 +406,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 yearly_query = """
     SELECT 
-        [datayear],
+        TRY_CAST([datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
@@ -440,12 +440,7 @@ fig_eui.update_traces(
     text=df_yearly['avg_siteeui'].round(1),
     textposition='top center',
     line=dict(color='red', width=3),
-    marker=dict(size=10, color='red'),
-    xaxis=dict(
-        tickmode='linear',  # Force linear spacing
-        tick0=2021,         # Start tick at 2021
-        dtick=1             # Tick every 1 year
-    )
+    marker=dict(size=10, color='red')
 )
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
@@ -463,12 +458,7 @@ fig_wui.update_traces(
     text=df_yearly['avg_wui'].round(1),
     textposition='top center',
     line=dict(color='red', width=3),
-    marker=dict(size=10, color='red'),
-    xaxis=dict(
-        tickmode='linear',  # Force linear spacing
-        tick0=2021,         # Start tick at 2021
-        dtick=1             # Tick every 1 year
-    )
+    marker=dict(size=10, color='red')
 )
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
