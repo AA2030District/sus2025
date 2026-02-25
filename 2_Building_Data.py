@@ -102,12 +102,12 @@ selected_building = st.selectbox(
 
 # Get building info
 
-selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].iloc[0]
+selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
 st.write(selected_espmid)
 this_building_query = """
     SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] = {selected_espmid}
+    WHERE [espmid] = '{selected_espmid}'
     ORDER BY [datayear] DESC
 """
 this_building_df = conn.query(this_building_query)
