@@ -117,7 +117,7 @@ this_building_query = """
         [wui],
         [datayear]
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] IS '{selected_espmid}'
+    WHERE [espmid] = '{selected_espmid}'
     ORDER BY [datayear] DESC
 """
 this_building_df = conn.query(this_building_query)
