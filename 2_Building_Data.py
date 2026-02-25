@@ -101,7 +101,7 @@ selected_building = st.selectbox(
 )
 
 # Get building info
-selected_espmid = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid'].iloc[0]
+selected_espmid = str(buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid'].iloc[0])
 st.write(selected_espmid)
 this_building_query = """
     SELECT 
