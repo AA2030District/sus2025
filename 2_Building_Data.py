@@ -116,13 +116,13 @@ st.write(building_info)
 # st.write(building_info['this_espmid'])
 
 # Get all data for this building using parameterized query
-# this_building_query = """
-#     SELECT *
-#     FROM [dbo].[ESPMFIRSTTEST]
-#     WHERE [buildingname] = ?
-#     ORDER BY [datayear] DESC
-# """
-# this_building_df = conn.query(this_building_query, params=(selected_building,))
+this_building_query = f"""
+    SELECT *
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [espmid] = '{selected_espmid}'
+    ORDER BY [datayear] DESC
+"""
+this_building_df = conn.query(this_building_query)
 
 # Now you can use the data
 # if not this_building_df.empty:
