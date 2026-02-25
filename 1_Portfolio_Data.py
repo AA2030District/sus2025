@@ -184,30 +184,30 @@ category_summary = graph_df.groupby('category').agg({
     'avg_siteeui': 'mean'
 }).round(2).reset_index()
 
-# Bar Chart
-fig_bar = px.bar(
-    category_summary,
-    x='category',
-    y='total_sqft',
-    title='Total Square Footage by Building Category',
-    labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
-    color='category',
-    color_discrete_sequence=px.colors.qualitative.Set2,  
-    text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
-)
+# # Bar Chart
+# fig_bar = px.bar(
+#     category_summary,
+#     x='category',
+#     y='total_sqft',
+#     title='Total Square Footage by Building Category',
+#     labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
+#     color='category',
+#     color_discrete_sequence=px.colors.qualitative.Set2,  
+#     text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
+# )
 
-fig_bar.update_layout(
-    xaxis_title="Building Category",
-    yaxis_title="Total Square Footage (sq ft)",
-    showlegend=False,
-    height=500,
-    margin=dict(l=50, r=50, t=80, b=50)
-)
-fig_bar.update_traces(
-    textposition='outside',
-    textfont_size=12
-)
-st.plotly_chart(fig_bar, use_container_width=True)
+# fig_bar.update_layout(
+#     xaxis_title="Building Category",
+#     yaxis_title="Total Square Footage (sq ft)",
+#     showlegend=False,
+#     height=500,
+#     margin=dict(l=50, r=50, t=80, b=50)
+# )
+# fig_bar.update_traces(
+#     textposition='outside',
+#     textfont_size=12
+# )
+# st.plotly_chart(fig_bar, use_container_width=True)
 
 # Pie Chart
 fig_pie = px.pie(
@@ -421,42 +421,6 @@ yearly_query = """
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 
-#Num buildings line graph
-# Number of buildings line graph
-fig_buildings = px.line(
-    df_yearly,
-    x='datayear',
-    y='building_count',
-    title='Number of Buildings by Year',
-    labels={'datayear': 'Year', 'building_count': 'Building Count'},
-    markers=True
-)
-fig_buildings.update_traces(
-    text=df_yearly['building_count'],
-    textposition='top center',
-    line=dict(color='steelblue', width=3),
-    marker=dict(size=10, color='steelblue')
-)
-fig_buildings.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_buildings, use_container_width=True)
-
-# Square footage line graph
-fig_sqft = px.line(
-    df_yearly,
-    x='datayear',
-    y='total_sqft',
-    title='Total Square Footage by Year',
-    labels={'datayear': 'Year', 'total_sqft': 'Total Sq Ft'},
-    markers=True
-)
-fig_sqft.update_traces(
-    text=df_yearly['total_sqft'].apply(lambda x: f'{x:,.0f}'),
-    textposition='top center',
-    line=dict(color='green', width=3),
-    marker=dict(size=10, color='green')
-)
-fig_sqft.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_sqft, use_container_width=True)
 
 # EUI line graph
 fig_eui = px.line(
