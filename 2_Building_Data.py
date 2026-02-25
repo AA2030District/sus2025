@@ -114,11 +114,13 @@ selected_espmid = buildings_df.loc[
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
 st.write(building_info)
 st.write(building_info['espmid'])
+this_espmid = 0
+this_espmid = int(building_info['espmid'])
 
 this_building_query = """
     SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] = 27588473
+    WHERE [espmid] = {this_espmid}
     ORDER BY [datayear] DESC
 """
 this_building_df = conn.query(this_building_query)
