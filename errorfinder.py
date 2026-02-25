@@ -13,7 +13,7 @@ conn = st.connection("sql", type="sql")
 def findgaps(selection):
     ###Finding the gaps
     st.write("hello")
-    st.write(selection)
+    st.write(selection[0])
     
 
 
