@@ -434,7 +434,8 @@ fig_eui = px.line(
     y='avg_siteeui',
     title='Average Site EUI by Year',
     labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
-    markers=True
+    markers=True,
+    category_orders={"datayear": [2021, 2022, 2023, 2024, 2025]}
 )
 fig_eui.update_traces(
     text=df_yearly['avg_siteeui'].round(1),
@@ -452,7 +453,8 @@ fig_wui = px.line(
     y='avg_wui',
     title='Average WUI by Year',
     labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ft²)'},
-    markers=True
+    markers=True,
+    category_orders={"datayear": [2021, 2022, 2023, 2024, 2025]}
 )
 fig_wui.update_traces(
     text=df_yearly['avg_wui'].round(1),
