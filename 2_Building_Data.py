@@ -11,7 +11,6 @@ st.title("Building Energy Analysis")
 conn = st.connection("sql", type="sql")
 
 # Conversion factors
-
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU
 THERM_TO_KBTU = 100  # 1 therm = 100 kBTU (also ~1 CCF = 100 kBTU)
 
@@ -126,7 +125,6 @@ this_building_df = conn.query(this_building_query)
 # st.write(str(building_info[0]['usetype']))
 # st.write(selected_espmid)
 # current_year = 0
-
 # Display building info
 # Get the most current year's data (first row since we ordered DESC)
 if not this_building_df.empty:

@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
 
-require_login()
+require_login() 
 
 st.title("Error Finder")
 
@@ -42,3 +42,12 @@ ORDER BY espmid;
 """
 
 buildings_df = conn.query(buildings_query)
+st.dataframe(buildings_df, height = 1000)
+selected_indices = st.selectbox('Select rows:', buildings_df.index)
+
+# Subset the dataframe with the selected indices
+selected_rows = buildings_df.loc[selected_indices]
+
+# Display the selected data
+st.write('Selected Rows:')
+st.dataframe(selected_rows)
