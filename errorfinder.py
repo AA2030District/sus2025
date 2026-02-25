@@ -12,8 +12,7 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-    if selection['haswatergaps'] == "Possible Issue":
-        st.write("This has water gaps")
+    print(selection)
     
 
 
