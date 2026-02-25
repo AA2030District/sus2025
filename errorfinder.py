@@ -12,9 +12,20 @@ conn = st.connection("sql", type="sql")
 
 
 buildings_query = """
-    SELECT distinct * FROM ESPMFIRSTTEST 
-    where hasenergygaps='Possible Issue' or 
-    haswatergaps='Possible Issue' or 
-    energylessthan12months ='Possible Issue' or 
-    waterlessthan12months = 'Possible Issue'
+    SELECT *
+FROM (
+    SELECT *,
+           ROW_NUMBER() OVER (
+               PARTITION BY espmid
+               ORDER BY datayear DESC
+           ) AS rn
+    FROM ESPMFIRSTTEST
+    WHERE hasenergygaps = 'Possible Issue'
+       OR haswatergaps = 'Possible Issue'
+       OR energylessthan12months = 'Possible Issue'
+       OR waterlessthan12months = 'Possible Issue'
+) t
+WHERE rn = 1;
 """
+
+buildings_df = conn.query(buildings_query)

@@ -185,10 +185,8 @@ def generatereport(espmidlist):
         headers={"Content-Type": "application/xml"},
         timeout=60,
     ).content
-    print(response)
     response =session.post("https://portfoliomanager.energystar.gov/ws/reports/21829340/generate",auth=HTTPBasicAuth(user, pw),timeout=60)
     results=response.content
-    print(results)
     try:
         time.sleep(60)
         response =session.get("https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",auth=HTTPBasicAuth(user, pw),timeout=60)
@@ -196,8 +194,14 @@ def generatereport(espmidlist):
         dict_data = xmltodict.parse(response.content)
     except Exception as e:
         print("The following exception occured, "+e)
-    print(results)
     return dict_data
+
+def errordbhandling():
+    espmyearsort="""
+    CREATE INDEX ix_espmid_datayear
+    ON ESPMFIRSTTEST (espmid, datayear DESC);
+    """
+
 
 try:
     connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
@@ -205,7 +209,7 @@ try:
     # Create cursor with fast_executemany for better performance
     cursor = connection.cursor()
     # Enable fast_executemany for bulk operations (much faster for large datasets)
-    cursor.fast_executemany = True
+    cursor.fast_executemany = True  
 
     # Define the CREATE TABLE SQL query
     create_table_query = """
@@ -220,16 +224,16 @@ try:
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
         siteeui NVARCHAR(100),
+        wui NVARCHAR(100),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
         waterlessthan12months NVARCHAR(100),
         pmparentid INT,
+        has_errors BIT,
         CONSTRAINT PK_ESPMFIRSTTEST PRIMARY KEY (espmid, datayear)
     )
-    """
-    def createfaildictionary():
-        
+    """ 
     # Execute the query
     try:
         cursor.execute(create_table_query)
@@ -330,6 +334,16 @@ try:
                     pass  # Column already exists
                 else:
                     print(f"Warning: Could not add 'avgsiteeui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD wui NVARCHAR(100)")
+                print("Added 'wui' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'wui' column: {e}")
             
             try:
                 cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD hasenergygaps NVARCHAR(100)")
@@ -431,6 +445,7 @@ try:
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
         siteeui NVARCHAR(100),
+        wui NVARCHAR(100),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -457,6 +472,7 @@ try:
         yearbuilt = None
         datayear = None
         siteeui = None
+        wui = None
         hasenergygaps = None
         haswatergaps = None
         pmparentid = None
@@ -485,6 +501,8 @@ try:
                 siteeui = metric_value
             elif metric_name == 'alertEnergyMeterGap':
                 hasenergygaps = metric_value
+            elif metric_name == 'waterIntensityTotal':
+                wui = metric_value
             elif metric_name == 'alertWaterMeterGap':
                 haswatergaps = metric_value
             elif metric_name == 'alertEnergyMeterLessThanTwelveMonthsMeterData':
@@ -498,10 +516,10 @@ try:
                     pmparentid = None
             elif metric_name == 'occupancy':
                 occupancy = metric_value
-        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,wui,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
@@ -520,6 +538,7 @@ try:
                     ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
                     ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '') OR
                     ISNULL(target.siteeui, '') <> ISNULL(source.siteeui, '') OR
+                    ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
                     ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
                     ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
                     ISNULL(target.energylessthan12months, '') <> ISNULL(source.energylessthan12months, '') OR
@@ -535,14 +554,15 @@ try:
                         usetype = source.usetype,
                         yearbuilt = source.yearbuilt,
                         siteeui = source.siteeui,
+                        wui = source.wui,
                         hasenergygaps = source.hasenergygaps,
                         haswatergaps = source.haswatergaps,
                         energylessthan12months = source.energylessthan12months,
                         waterlessthan12months = source.waterlessthan12months,
                         pmparentid = source.pmparentid
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.wui, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
         cursor.execute(merge_query)
