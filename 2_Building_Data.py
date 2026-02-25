@@ -125,17 +125,17 @@ this_building_query = f"""
 this_building_df = conn.query(this_building_query)
 
 # Now you can use the data
-# if not this_building_df.empty:
-#     most_current_data = this_building_df.iloc[0]
-#     most_current_year = most_current_data['datayear']
+if not this_building_df.empty:
+    most_current_data = this_building_df.iloc[0]
+    most_current_year = most_current_data['datayear']
     
-#     st.write(f"Most current data is from: {most_current_year}")
-#     st.write(f"Site EUI: {most_current_data['siteeui']}")
-#     st.write(f"WUI: {most_current_data['wui']}")
+    st.write(f"Most current data is from: {most_current_year}")
+    st.write(f"Site EUI: {most_current_data['siteeui']}")
+    st.write(f"WUI: {most_current_data['wui']}")
     
-#     # Continue with your meter data functions...
-#     building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
-#     baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
+    # Continue with your meter data functions...
+    building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
+    baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
 
 
 # buildings_query = """
