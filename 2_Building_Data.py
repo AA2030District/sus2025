@@ -103,7 +103,10 @@ selected_building = st.selectbox(
 # Get building info
 
 selected_espmid = buildings_df.query("buildingname == @selected_building")['espmid'].values[0]
-st.write(selected_espmid)
+result = buildings_df.loc[buildings_df['buildingname'] == selected_building, 'espmid']
+st.write(f"Type: {type(result)}")
+st.write(f"Value: {result}")
+st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
 this_building_query = """
     SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
