@@ -43,7 +43,7 @@ ORDER BY espmid;
 
 buildings_df = conn.query(buildings_query)
 st.dataframe(buildings_df, height = 1000)
-selected_indices = st.selectbox('Select rows:', buildings_df.index)
+selected_indices = st.multiselect('Select rows:', buildings_df.index)
 
 # Subset the dataframe with the selected indices
 selected_rows = buildings_df.loc[selected_indices]
