@@ -110,7 +110,7 @@ st.write(f"First value: {result.iloc[0] if len(result) > 0 else 'No matches'}")
 this_building_query = """
     SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] = '{selected_espmid}'
+    WHERE [espmid] = '{result.iloc[0]}'
     ORDER BY [datayear] DESC
 """
 this_building_df = conn.query(this_building_query)
