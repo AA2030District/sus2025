@@ -201,7 +201,23 @@ def errordbhandling():
     CREATE INDEX ix_espmid_datayear
     ON ESPMFIRSTTEST (espmid, datayear DESC);
     """
-
+    try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD has_issue bit")
+                print("Added 'has_issue' column to ESPMFIRSTTEST table.")
+                connection.commit()
+    except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'has_issue' column: {e}")
+    try:
+        cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
+        connection.commit()
+        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1;")
+        connection.commit()
+    except pyodbc.Error as e:
+        print(e)
+    
 
 try:
     connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
@@ -230,7 +246,6 @@ try:
         energylessthan12months NVARCHAR(100),
         waterlessthan12months NVARCHAR(100),
         pmparentid INT,
-        has_errors BIT,
         CONSTRAINT PK_ESPMFIRSTTEST PRIMARY KEY (espmid, datayear)
     )
     """ 
@@ -569,6 +584,7 @@ try:
         connection.commit()
         print("MERGE committed to ESPMFIRSTTEST.")
         cursor.execute("DROP TABLE #ESPMFIRSTTESTTEMP")
+        errordbhandling()
 
 
     ## Figure out how to get water and energy data for individual years.

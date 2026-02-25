@@ -12,20 +12,33 @@ conn = st.connection("sql", type="sql")
 
 
 buildings_query = """
-    SELECT *
-FROM (
-    SELECT *,
-           ROW_NUMBER() OVER (
-               PARTITION BY espmid
-               ORDER BY datayear DESC
-           ) AS rn
+    ;WITH ranked AS (
+    SELECT
+        espmid,
+        buildingname,
+        datayear,
+        hasenergygaps,
+        haswatergaps,
+        energylessthan12months,
+        waterlessthan12months,
+        ROW_NUMBER() OVER (
+            PARTITION BY espmid
+            ORDER BY datayear DESC
+        ) AS rn
     FROM ESPMFIRSTTEST
-    WHERE hasenergygaps = 'Possible Issue'
-       OR haswatergaps = 'Possible Issue'
-       OR energylessthan12months = 'Possible Issue'
-       OR waterlessthan12months = 'Possible Issue'
-) t
-WHERE rn = 1;
+    WHERE has_issue = 1
+)
+SELECT
+    espmid,
+    buildingname,
+    datayear,
+    hasenergygaps,
+    haswatergaps,
+    energylessthan12months,
+    waterlessthan12months
+FROM ranked
+WHERE rn = 1
+ORDER BY espmid;
 """
 
 buildings_df = conn.query(buildings_query)
