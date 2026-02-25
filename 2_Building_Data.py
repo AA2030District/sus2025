@@ -87,10 +87,10 @@ buildings_query = """
         [usetype],
         [sqfootage],
         [siteeui],
-        [wui]
+        [wui],
+        [datayear]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
-        AND [datayear] IN (2023, 2024, 2025)
     AND [espmid] IS NOT NULL
     ORDER BY [buildingname]
 """
