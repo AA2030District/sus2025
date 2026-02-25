@@ -434,14 +434,18 @@ fig_eui = px.line(
     y='avg_siteeui',
     title='Average Site EUI by Year',
     labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
-    markers=True,
-    category_orders={"datayear": [2021, 2022, 2023, 2024, 2025]}
+    markers=True
 )
 fig_eui.update_traces(
     text=df_yearly['avg_siteeui'].round(1),
     textposition='top center',
     line=dict(color='red', width=3),
-    marker=dict(size=10, color='red')
+    marker=dict(size=10, color='red'),
+    xaxis=dict(
+        tickmode='linear',  # Force linear spacing
+        tick0=2021,         # Start tick at 2021
+        dtick=1             # Tick every 1 year
+    )
 )
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
@@ -453,14 +457,18 @@ fig_wui = px.line(
     y='avg_wui',
     title='Average WUI by Year',
     labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ft²)'},
-    markers=True,
-    category_orders={"datayear": [2021, 2022, 2023, 2024, 2025]}
+    markers=True
 )
 fig_wui.update_traces(
     text=df_yearly['avg_wui'].round(1),
     textposition='top center',
     line=dict(color='red', width=3),
-    marker=dict(size=10, color='red')
+    marker=dict(size=10, color='red'),
+    xaxis=dict(
+        tickmode='linear',  # Force linear spacing
+        tick0=2021,         # Start tick at 2021
+        dtick=1             # Tick every 1 year
+    )
 )
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
