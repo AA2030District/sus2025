@@ -119,10 +119,10 @@ building_info = buildings_df.loc[buildings_df['buildingname'] == selected_buildi
 this_building_query = """
     SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [espmid] = ?
+    WHERE [buildingname] = ?
     ORDER BY [datayear] DESC
 """
-this_building_df = conn.query(this_building_query, params=(selected_espmid,))
+this_building_df = conn.query(this_building_query, params=(selected_building,))
 
 # Now you can use the data
 if not this_building_df.empty:
