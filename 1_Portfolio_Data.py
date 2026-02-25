@@ -11,33 +11,29 @@ st.title("Portfolio Data")
 
 conn = st.connection("sql", type="sql")
 
-# CHANGE THIS TO 2025
-current_query = """
+summary_query = """
 SELECT 
-    [usetype],
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-    COUNT(*) as building_count
+    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
 FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2024
-GROUP BY [usetype]
-HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
-"""
-
-df = conn.query(current_query)
+WHERE [datayear] = 2025
+    AND ISNULL(pmparentid,espmid)=espmid 
+HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
+summary_df = conn.query(summary_query)
 
 # Summary stats
 col1, col2 = st.columns(2)
 with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
-    st.metric("Total Buildings", f"{df['building_count'].sum():,}")
+    st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
 with col2:
-    st.metric("Total Sq Ft", f"{df['total_sqft'].sum():,.0f}")
+    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
 
 # Categorize each use type into simpler
-# Residential, Commercial, Industrial, Transportation, Solid Waste
+# City-Owned, Residential, Commercial, Industrial
 use_type_mapping = {
-    # CITY-OWNED (public facilities, government buildings, infrastructure)
+    # CITY-OWNED
     'Fire Station': 'City-Owned',
     'Police Station': 'City-Owned',
     'Library': 'City-Owned',
@@ -65,7 +61,7 @@ use_type_mapping = {
     'Residential Care Facility': 'Residential',
     'Other - Lodging/Residential': 'Residential',
     
-    # COMMERCIAL (private businesses, retail, offices)
+    # COMMERCIAL
     'Other - Mall': 'Commercial',
     'Vehicle Dealership': 'Commercial',
     'Adult Education': 'Commercial',  
@@ -108,13 +104,27 @@ use_type_mapping = {
     'Drinking Water Treatment & Distribution': 'Industrial',  
 }
 
+# CHANGE THIS TO 2025
+current_query = """
+SELECT 
+    [usetype],
+    COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
+    AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
+    COUNT(*) as building_count
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE [datayear] = 2024
+GROUP BY [usetype]
+HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
+"""
+
+df = conn.query(current_query)
 graph_df = df.copy()
 graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
 
 category_summary = graph_df.groupby('category').agg({
     'total_sqft': 'sum',
     'building_count': 'sum',
-    'avg_siteeui': 'mean'  # Weighted average would be better, but this is simple
+    'avg_siteeui': 'mean'
 }).round(2).reset_index()
 
 # Bar Chart
