@@ -50,19 +50,11 @@ column_configuration = {
         "espmid", help="The name of the user", max_chars=100, width="medium"
     ),
 }
-event = st.dataframe(
-    buildings_df,
-    column_config=column_configuration,
-    use_container_width=True,
-    hide_index=True,
-    on_select="rerun",
-    selection_mode="single-row",
-)
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 with select: # Add select tab #############################################
     st.header("All Buildings With Errors")
 
-    df = buildings_df()
+    df = buildings_df
 
     event = st.dataframe(
         df,
