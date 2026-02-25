@@ -2,18 +2,28 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
+from requests.auth import HTTPBasicAuth 
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from auth_helper import require_login
+
+user=st.secrets["espm"]['username']
+pw=st.secrets["espm"]['password']
+
 st.set_page_config(layout="wide")
 require_login() 
-
+session = requests.session()
 st.title("Error Finder")
 
 conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-    st.write("hello")
-    st.write(selection['espmid'])
+    if selection['hasenergygaps'] == 'Possible Issue':
+        espmid=selection['espmid']
+        response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
+        st.write(response)
     
 
 
