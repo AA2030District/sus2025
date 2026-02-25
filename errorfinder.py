@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
-
+st.set_page_config(layout="wide")
 require_login() 
 
 st.title("Error Finder")
@@ -58,3 +58,28 @@ event = st.dataframe(
     on_select="rerun",
     selection_mode="single-row",
 )
+select, errors = st.tabs(["Select Buildings", "Identify Errors"])
+with select: # Add select tab #############################################
+    st.header("All Buildings With Errors")
+
+    df = buildings_df()
+
+    event = st.dataframe(
+        df,
+        column_config=column_configuration,
+        use_container_width=True,
+        hide_index=True,
+        on_select="rerun",
+        selection_mode="multi-row",
+    )
+
+    st.header("Selected members")
+    people = event.selection.rows
+    filtered_df = df.iloc[people]
+    st.dataframe(
+        filtered_df,
+        column_config=column_configuration,
+        use_container_width=True,
+    )
+with errors:
+    st.header("Empty Right Now")
