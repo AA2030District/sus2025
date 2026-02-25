@@ -115,13 +115,13 @@ building_info = buildings_df.loc[buildings_df['buildingname'] == selected_buildi
 # st.write(building_info)
 # st.write(building_info['this_espmid'])
 
-# this_building_query = """
-#     SELECT *
-#     FROM [dbo].[ESPMFIRSTTEST]
-#     WHERE [espmid] = {this_espmid}
-#     ORDER BY [datayear] DESC
-# """
-# this_building_df = conn.query(this_building_query)
+this_building_query = """
+    SELECT *
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE [espmid] = {selected_espmid}
+    ORDER BY [datayear] DESC
+"""
+this_building_df = conn.query(this_building_query)
 
 
 # buildings_query = """
