@@ -20,7 +20,6 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-    if selection['hasenergygaps'] == 'Possible Issue':
         espmid=selection['espmid']
         response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
         st.write(response)
