@@ -15,48 +15,68 @@ conn = st.connection("sql", type="sql")
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU
 THERM_TO_KBTU = 100  # 1 therm = 100 kBTU (also ~1 CCF = 100 kBTU)
 
-# Baseline EUI lookup dictionary (in kBTU/sq ft)
-baseline_eui = {
-    "Adult Education": 60,
-    "Bar/Nightclub": 150,
-    "College/University": 100,
-    "Courthouse": 79,
-    "Distribution Center": 50,
-    "Drinking Water Treatment & Distribution": 300,
-    "Energy/Power Station": 100,
-    "Financial Office": 100,
-    "Fire Station": 79,
-    "Fitness Center/Health Club/Gym": 55,
-    "Heated Swimming Pool": 354,
-    "Hotel": 88,
-    "Ice/Curling Rink": 150,
-    "K-12 School": 80,
-    "Laboratory": 50,
-    "Library": 50,
-    "Manufacturing/Industrial Plant": 50,
-    "Mixed Use Property": 50,
-    "Multifamily Housing": 55,
-    "Museum": 50,
-    "Non-Refrigerated Warehouse": 50,
-    "Office": 80,
-    "Other": 40,
-    "Other - Education": 40,
-    "Other - Entertainment/Public Assembly": 40,
-    "Other - Mall": 40,
-    "Other - Public Services": 40,
-    "Other - Recreation": 50,
-    "Other - Restaurant/Bar": 231,
-    "Other - Technology/Science": 50,
-    "Other - Utility": 50,
-    "Personal Services (Health/Beauty, Dry Cleaning, etc.)": 50,
-    "Residence Hall/Dormitory": 125,
-    "Restaurant": 200,
-    "Retail Store": 105,
-    "Single-Family Home": 39,
-    "Social/Meeting Hall": 100,
-    "Strip Mall": 110,
-    "Transportation Terminal/Station": 150,
-    "Worship Facility": 50
+# National Median Site EUI for each Use Type 
+# reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
+site_eui_benchmark = {
+    'Other - Mall': 101.6,
+    'Vehicle Dealership': 71.9,
+    'Prison/Incarceration': 69.9,
+    'Senior Living Community': 99.0,
+    'Adult Education': 52.4,
+    'Other - Lodging/Residential': 63.6,
+    'Bar/Nightclub': 130.7,
+    'Non-Refrigerated Warehouse': 22.7,
+    'Other - Technology/Science': 40.1,
+    'Fire Station': 63.5,
+    'Other - Services': 47.9,
+    'Mixed Use Property': 40.1,
+    'Ice/Curling Rink': 50.8,
+    'Other - Public Services': 40.1,
+    'Library': 71.6,
+    'Courthouse': 101.2,
+    'Residence Hall/Dormitory': 57.9,
+    'Other - Entertainment/Public Assembly': 56.2,
+    'Multifamily Housing': 59.6,
+    'K-12 School': 48.5,
+    'Hotel': 63.0,
+    'Other - Utility': 40.1,
+    'Laboratory': 115.3,
+    'Other - Education': 52.4,
+    'Social/Meeting Hall': 56.1,
+    'Wastewater Treatment Plant': 2.89,
+    'Swimming Pool': 50.8,
+    'Food Service': 270.3,
+    'Drinking Water Treatment & Distribution': 2.27,
+    'Retail Store': 51.4,
+    'Museum': 56.2,
+    'Medical Office': 97.7,
+    'Office': 52.9,
+    'Other - Recreation': 50.8,
+    'Police Station': 63.5,
+    'Financial Office': 52.9,
+    'Other - Restaurant/Bar': 325.6,
+    'Residential Care Facility': 99.0,
+    'College/University': 84.3,
+    'Worship Facility': 30.5,
+    'Bowling Alley': 56.2,
+    'Distribution Center': 22.7,
+    'Supermarket/Grocery Store': 196.0,
+    'Other': 40.1,
+    'Strip Mall': 103.5,
+    'Self-Storage Facility': 20.2,
+    'Wholesale Club/Supercenter': 51.4,
+    'Fitness Center/Health Club/Gym': 50.8,
+    'Vehicle Repair Services': 47.9,
+    'Energy/Power Station': 40.1,
+    'Convenience Store without Gas Station': 350.9,
+    'Personal Services (Health/Beauty, Dry Cleaning, etc)': 47.9,
+    'Transportation Terminal/Station': 56.2,
+    'Restaurant': 325.6,
+    # Excluding following usetypes
+    # 'Single Family Home': None,
+    # 'Manufacturing/Industrial Plant': None,
+    # 'Parking': None,
+
 }
 
 # Get all buildings for dropdown
@@ -66,9 +86,11 @@ buildings_query = """
         [buildingname],
         [usetype],
         [sqfootage],
-        [address]
+        [siteeui],
+        [wui]
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [buildingname] IS NOT NULL
+        AND [datayear] IN (2023, 2024, 2025)
     AND [espmid] IS NOT NULL
     ORDER BY [buildingname]
 """
@@ -89,24 +111,41 @@ selected_espmid = buildings_df.loc[
     buildings_df['buildingname'] == selected_building, 'espmid'
 ].iloc[0]
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
+current_year = 0
 
 # Display building info
-building_info_df = pd.DataFrame({
-    'Attribute': ['Address', 'Use Type', 'Square Footage', 'ESPM ID'],
-    'Value': [
-        str(building_info.get('address', 'Not Available')) if pd.notna(building_info.get('address')) else 'Not Available',
-        str(building_info['usetype']) if pd.notna(building_info['usetype']) else 'Not Available',
-        f"{float(building_info['sqfootage']):,.0f}" if pd.notna(building_info['sqfootage']) and str(building_info['sqfootage']).replace('.', '').isdigit() else str(building_info['sqfootage']) if pd.notna(building_info['sqfootage']) else 'Not Available',
-        selected_espmid
-    ]
-})
+col1, col2 = st.columns(2)
+with col1:
+    st.write("Use Type")
+    st.write("Square Footage")
+    st.write("Current Year")
+with col2:
+    st.write(str(building_info['usetype']) if pd.notna(building_info['usetype']) else 'Not Available')
+    
+    # Fixed the square footage formatting
+    if pd.notna(building_info['sqfootage']) and str(building_info['sqfootage']).replace('.', '').isdigit():
+        st.write(f"{float(building_info['sqfootage']):,.0f}")
+    elif pd.notna(building_info['sqfootage']):
+        st.write(str(building_info['sqfootage']))
+    else:
+        st.write('Not Available')
 
-# Display as a small, clean table
-st.table(building_info_df.set_index('Attribute'))
-
+    # Check for Year
+    if 2025 in building_info['datayear'].values:
+        st.write('2025')
+        current_year = 2025
+    elif 2024 in building_info['datayear'].values:
+        st.write('2024')
+        current_year = 2024
+    elif 2023 in building_info['datayear'].values:
+        st.write('2023')
+        current_year = 2023
+    else:
+        st.write('No current Data Available')
+    
 # Get baseline EUI
 building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
-baseline_eui_value = baseline_eui.get(building_use_type, None)
+baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
 
 # Function to get meter data
 def get_meter_data(table_name, espmid, energy_type):
@@ -142,94 +181,8 @@ solar_df = get_meter_data('solar', selected_espmid, 'Solar')
 # Combine all data for display
 all_meter_data = pd.concat([electric_df, gas_df, solar_df], ignore_index=True)
 
-# 1. Calculate EUI for MOST RECENT YEAR ONLY
-if pd.notna(building_info['sqfootage']):
-    try:
-        sqft_value = float(building_info['sqfootage'])
-        
-        if not all_meter_data.empty:
-            # Find the most recent year with data
-            years_with_data = sorted(all_meter_data['year'].unique())
-            
-            if years_with_data:
-                latest_year = years_with_data[-1]
-                latest_year = 2024
-                
-                # Calculate total kBTU for the most recent year only
-                total_kbtu = 0
-                
+# Calculate EUI for MOST RECENT YEAR ONLY
 
-                # Electric for most recent year
-                electric_recent = electric_df[electric_df['year'] == latest_year]
-                if not electric_recent.empty and 'usage' in electric_recent.columns:
-                    electric_kwh = electric_recent['usage'].sum()
-                    one = electric_kwh * KWH_TO_KBTU
-                    st.subheader(str(electric_kwh))
-                    st.subheader(str(one))
-                    total_kbtu += electric_kwh * KWH_TO_KBTU
-                
-                # Natural Gas for most recent year
-                gas_recent = gas_df[gas_df['year'] == latest_year]
-                if not gas_recent.empty and 'usage' in gas_recent.columns:
-                    gas_therms = gas_recent['usage'].sum()
-                    total_kbtu += gas_therms * THERM_TO_KBTU
-                
-                # Solar for most recent year (subtract since it reduces energy use)
-                solar_recent = solar_df[solar_df['year'] == latest_year]
-                if not solar_recent.empty and 'usage' in solar_recent.columns:
-                    solar_kwh = solar_recent['usage'].sum()
-                    one = electric_kwh * KWH_TO_KBTU
-                    st.subheader(str(solar_kwh))
-                    st.subheader(str(one))
-                    total_kbtu -= solar_kwh * KWH_TO_KBTU
-                
-                # Calculate EUI for most recent year
-                
-                if sqft_value > 0 and total_kbtu > 0:
-                    current_eui = total_kbtu / sqft_value
-                    st.subheader(f"total kbtu: {current_eui}")
-                    st.subheader(f"year: {latest_year}")
-                    
-                    # Bar chart comparing current vs baseline
-                    if baseline_eui_value:
-                        st.write("### EUI Comparison")
-                        comparison_df = pd.DataFrame({
-                            'Metric': ['Current EUI', 'Baseline EUI'],
-                            'Value': [current_eui, baseline_eui_value],
-                            'Year': [f'{latest_year}', 'Benchmark']
-                        })
-                        
-                        fig_bar = px.bar(
-                            comparison_df,
-                            x='Metric',
-                            y='Value',
-                            color='Metric',
-                            text='Value',
-                            title=f"Energy Use Intensity Comparison (kBTU/sq ft)"
-                        )
-                        fig_bar.update_traces(texttemplate='%{y:.1f}', textposition='outside')
-                        fig_bar.update_layout(
-                            showlegend=False, 
-                            yaxis_title="kBTU/sq ft",
-                            xaxis_title=f"Most Recent Year: {latest_year}"
-                        )
-                        st.plotly_chart(fig_bar, use_container_width=True)
-                        
-                        # Show the difference
-                        diff = current_eui - baseline_eui_value
-                        diff_pct = (diff / baseline_eui_value * 100) if baseline_eui_value > 0 else 0
-                        
-                        if diff > 0:
-                            st.warning(f"⚠️ Current EUI is **{diff:.1f} kBTU/sq ft higher** than baseline ({diff_pct:+.1f}%)")
-                        else:
-                            st.success(f"✅ Current EUI is **{abs(diff):.1f} kBTU/sq ft lower** than baseline ({diff_pct:+.1f}%)")
-                        
-                    else:
-                        st.info(f"Current EUI ({latest_year}): **{current_eui:.1f} kBTU/sq ft**")
-                        st.warning("No baseline EUI available for this building type.")
-                    
-    except (ValueError, TypeError) as e:
-        st.info(f"Cannot calculate EUI: {e}")
 
 # 2. Stepped line graphs for each energy type
 
