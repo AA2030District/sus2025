@@ -145,11 +145,6 @@ if not this_building_df.empty:
     # Get the use type (should be consistent across years, but we'll get it from most current)
     use_type = most_current_data['usetype']
     
-    st.write(f"Most current data is from: {most_current_year}")
-    st.write(f"Building Use Type: {use_type}")
-    
-    # Optional: Show all available years
-    
     
     # Display the data in columns
     col1, col2 = st.columns(2)
@@ -177,6 +172,27 @@ if not this_building_df.empty:
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
 col1, col2 = st.columns(2)
+
+
+usetype_averages_query = f"""
+    SELECT 
+    [usetype],
+    AVG(TRY_CAST([siteeui] AS FLOAT)) as avg_eui,
+    AVG(TRY_CAST([wui] AS FLOAT)) as avg_wui,
+    COUNT(DISTINCT [espmid]) as building_count,
+    COUNT(*) as row_count
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE [usetype] = '{use_type}'
+    AND [siteeui] IS NOT NULL 
+    AND [wui] IS NOT NULL
+GROUP BY [usetype]
+"""
+use_type_df = conn.query(usetype_averages_query)
+st.write(use_type_df)
+
+baseline_eui_value = site_eui_benchmark.get(use_type, None)
+st.write(baseline_eui_value)
+
 
 # with col1:
 #     st.write("Use Type")
@@ -207,8 +223,6 @@ col1, col2 = st.columns(2)
 #         st.write('No current Data Available')
     
 # Get baseline EUI
-building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
-baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
 
 # Function to get meter data
 def get_meter_data(table_name, espmid, energy_type):
