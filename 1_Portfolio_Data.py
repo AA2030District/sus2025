@@ -409,7 +409,7 @@ yearly_query = """
         [datayear],
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui,
+        AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
         AND ISNULL(pmparentid,espmid)=espmid 
