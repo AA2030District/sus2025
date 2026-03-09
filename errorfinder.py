@@ -62,7 +62,11 @@ def findgaps(selection):
                             f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
+                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    if not meter_consumption:
+                        st.write("meter is empty")
+                        continue
+                    df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     df = df.sort_values("startDate").reset_index(drop=True)
