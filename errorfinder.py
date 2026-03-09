@@ -37,7 +37,7 @@ def findgaps(selection):
                 results2=response.content
                 dict_data2= xmltodict.parse(response.content)
                 st.write(dict_data2)
-                firstdate=dict_data2['firstBillDate']
+                firstdate=dict_data2['meter']['firstBillDate']
                 st.write(firstdate)
                 # response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
                 # results3=response.content
