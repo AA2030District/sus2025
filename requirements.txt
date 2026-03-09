@@ -10,3 +10,4 @@ pymssql>=2.2.0
 sqlalchemy>=2.0.0
 geopy>=2.4.0
 statsmodels>=0.14.0
+xmltodict
