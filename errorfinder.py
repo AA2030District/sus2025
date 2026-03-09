@@ -46,7 +46,7 @@ def findgaps(selection):
                 st.write(firstdate)
                 response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
                 if dict_data2['meter']['inUse'] == 'false':
-                    if datetime.strptime(dict_data2['meter']['inactivedate'],"%Y-%m-%d")<date2:
+                    if datetime.strptime(dict_data2['meter']['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
                     else:
                         errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
