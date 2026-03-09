@@ -39,12 +39,12 @@ def findgaps(selection):
                 st.write(dict_data2)
                 firstdate=dict_data2['meter']['firstBillDate']
                 st.write(firstdate)
-                # response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
-                # results3=response.content
-                # dict_data3=xmltodict.parse(response.content)
-                # st.write(dict_data3)
-                # df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
-                # st.write(df)
+                response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
+                results3=response.content
+                dict_data3=xmltodict.parse(response.content)
+                st.write(dict_data3)
+                df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
+                st.write(df)
 
                     
                 
