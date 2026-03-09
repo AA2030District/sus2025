@@ -10,6 +10,7 @@ from urllib3.util.retry import Retry
 from auth_helper import require_login
 import xmltodict
 from datetime import datetime
+from xml.parsers.expat import ExpatError
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
@@ -44,36 +45,38 @@ def findgaps(selection):
                 st.write(dict_data2)
                 firstdate=dict_data2['meter']['firstBillDate']
                 st.write(firstdate)
-                response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
+                response = session.get(
+                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01",
+                    auth=HTTPBasicAuth(user, pw),
+                    timeout=60,
+                )
                 if dict_data2['meter']['inUse'] == 'false':
                     if datetime.strptime(dict_data2['meter']['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
                     else:
                         errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.content: 
+                elif response.ok and response.content:
                     results3=response.content
-                    dict_data3=xmltodict.parse(response.content)
+                    try:
+                        dict_data3=xmltodict.parse(response.content)
+                    except ExpatError:
+                        errorlist.append(
+                            f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
+                        )
+                        continue
                     st.write(dict_data3)
                     df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
                     st.write(df)
+                else:
+                    errorlist.append(
+                        f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
+                    )
                     
 
                 
 
                     
-                
-
-
-                
-                
-                
-
-
-
-
-
-
-
+        
 buildings_query = """
     ;WITH ranked AS (
     SELECT
