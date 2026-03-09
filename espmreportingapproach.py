@@ -189,7 +189,7 @@ def generatereport(espmidlist):
     results=response.content
     print(results)
     try:
-        time.sleep(500)
+        time.sleep(100)
         response =session.get("https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",auth=HTTPBasicAuth(user, pw),timeout=60)
         results=response.content
         dict_data = xmltodict.parse(response.content)
@@ -212,9 +212,10 @@ def errordbhandling():
                 else:
                     print(f"Warning: Could not add 'has_issue' column: {e}")
     try:
+        cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 0")
         cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
         connection.commit()
-        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1;")
+        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1; WITH DROP_EXISTING=ON")
         connection.commit()
     except pyodbc.Error as e:
         print(e)

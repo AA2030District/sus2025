@@ -72,7 +72,7 @@ def findgaps(selection):
                     df = df.sort_values("endDate").reset_index(drop=True)
                     df["gap_days"] = (df["startDate"] - df["endDate"].shift(1)).dt.days
                     gaps = df[df["gap_days"] > 1]
-                    overlaps = df[df["gap_days"] <= 0]
+                    overlaps = df[df["gap_days"] <= -1]
                     st.write(gaps)
                     st.write(overlaps)
                     lastdayinyear=datetime(int(datayear),12,31)
