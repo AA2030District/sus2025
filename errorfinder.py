@@ -64,8 +64,8 @@ def findgaps(selection):
                         continue
                     st.write(dict_data3)
                     df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
-                    df['startDate'] = pd.to_datetime(df['startDate'],"%Y-%m-%d")
-                    df['endDate'] = pd.to_datetime(df['endDate'],"%Y-%m-%d")
+                    df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
+                    df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     st.write(df)
                     
                 else:
