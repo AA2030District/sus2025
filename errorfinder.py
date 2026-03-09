@@ -44,7 +44,7 @@ def findgaps(selection):
                 dict_data2= xmltodict.parse(response.content)
                 firstdate=dict_data2['meter']['firstBillDate']
                 response = session.get(
-                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01",
+                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate=2020-01-01",
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
@@ -64,7 +64,6 @@ def findgaps(selection):
                         continue
                     meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
                     if not meter_consumption:
-                        st.write("meter is empty")
                         continue
                     df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
