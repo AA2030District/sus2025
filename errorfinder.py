@@ -50,7 +50,7 @@ def findgaps(selection):
                         pass
                     else:
                         errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.content(): 
+                elif response.content: 
                     results3=response.content
                     dict_data3=xmltodict.parse(response.content)
                     st.write(dict_data3)
