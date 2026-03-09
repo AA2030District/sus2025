@@ -1,3 +1,4 @@
+from pyarrow import null
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -8,6 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from auth_helper import require_login
 import xmltodict
+import datetime
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
@@ -21,6 +23,7 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
+        errorlist=[]
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
         hasenergygaps = selection["hasenergygaps"].iloc[0]
@@ -32,6 +35,8 @@ def findgaps(selection):
         dict_data= xmltodict.parse(response.content)
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
+                date1=''
+                date2=datetime.datetime(datayear,1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
                 results2=response.content
@@ -40,11 +45,20 @@ def findgaps(selection):
                 firstdate=dict_data2['meter']['firstBillDate']
                 st.write(firstdate)
                 response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
-                results3=response.content
-                dict_data3=xmltodict.parse(response.content)
-                st.write(dict_data3)
-                df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
-                st.write(df)
+                if dict_data2['meter']['inUse'] == 'false':
+                    if datetime.strptime(dict_data2['meter']['inactivedate'],"%Y-%m-%d")<date2:
+                        pass
+                    else:
+                        errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
+                elif response.content(): 
+                    results3=response.content
+                    dict_data3=xmltodict.parse(response.content)
+                    st.write(dict_data3)
+                    df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
+                    st.write(df)
+                    
+
+                
 
                     
                 
