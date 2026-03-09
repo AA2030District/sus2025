@@ -167,7 +167,7 @@ def generatereport(espmidlist):
         "                    <year>2021</year>\n"
         "               </fromPeriodEndingDate>\n"
         "               <toPeriodEndingDate>\n"
-        "                     <month>12</month>\n"
+        "                     <month>11</month>\n"
         f"                    <year>{currentyear}</year>\n"
         "               </toPeriodEndingDate>\n"
         "                <interval>YEARLY</interval>\n"
@@ -187,8 +187,9 @@ def generatereport(espmidlist):
     ).content
     response =session.post("https://portfoliomanager.energystar.gov/ws/reports/21829340/generate",auth=HTTPBasicAuth(user, pw),timeout=60)
     results=response.content
+    print(results)
     try:
-        time.sleep(60)
+        time.sleep(500)
         response =session.get("https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",auth=HTTPBasicAuth(user, pw),timeout=60)
         results=response.content
         dict_data = xmltodict.parse(response.content)
@@ -472,6 +473,7 @@ try:
     cursor.execute(create_temp_table_query)
     print("Temp table '#ESPMFIRSTTESTTEMP' created successfully.")
     report_output = generatereport(idlist)
+    print(report_output)
 
     ##create a list of tuples of all building data
     buildingdatalist=[]

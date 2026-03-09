@@ -7,6 +7,7 @@ from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from auth_helper import require_login
+import xmltodict
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
@@ -21,8 +22,38 @@ conn = st.connection("sql", type="sql")
 def findgaps(selection):
     ###Finding the gaps
         espmid = selection["espmid"].iloc[0]
-        response =requests.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
-        st.write(response.text)
+        datayear = selection['datayear'].iloc[0]
+        hasenergygaps = selection["hasenergygaps"].iloc[0]
+        haswatergaps = selection["haswatergaps"].iloc[0]
+        energylessthan12months = selection["energylessthan12months"].iloc[0]
+        waterlessthan12months = selection["waterlessthan12months"].iloc[0]
+        response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
+        results=response.content
+        dict_data= xmltodict.parse(response.content)
+        if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
+            for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']:
+                meterid=meter
+                response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                results2=response.content
+                dict_data2= xmltodict.parse(response.content)
+                firstdate=dict_data2['meter']['firstBillDate']
+                response = session.get(f'https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01')
+                results3=response.content
+                dict_data3=xmltodict.parse(response.content)
+                df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
+                st.write(df)
+
+                    
+                
+
+
+                
+                
+                
+
+
+
+
 
 
 
