@@ -42,9 +42,7 @@ def findgaps(selection):
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
                 results2=response.content
                 dict_data2= xmltodict.parse(response.content)
-                st.write(dict_data2)
                 firstdate=dict_data2['meter']['firstBillDate']
-                st.write(firstdate)
                 response = session.get(
                     f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate={datayear}-01-01",
                     auth=HTTPBasicAuth(user, pw),
@@ -66,17 +64,14 @@ def findgaps(selection):
                         continue
                     st.write(dict_data3)
                     df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
+                    df['startDate'] = pd.to_datetime(df['Mycol'],"%Y-%m-%d")
+                    df['endDate'] = pd.to_datetime(df['Mycol'],"%Y-%m-%d")
                     st.write(df)
+                    
                 else:
                     errorlist.append(
                         f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
-                    
-
-                
-
-                    
-        
 buildings_query = """
     ;WITH ranked AS (
     SELECT
