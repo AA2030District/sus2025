@@ -62,11 +62,18 @@ def findgaps(selection):
                             f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    st.write(dict_data3)
                     df = pd.json_normalize(dict_data3["meterData"]["meterConsumption"])
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
-                    st.write(df)
+                    df = df.sort_values("startDate").reset_index(drop=True)
+                    df = df.sort_values("endDate").reset_index(drop=True)
+                    df["gap_days"] = (df["startDate"] - df["endDate"].shift(1)).dt.days
+                    gaps = df[df["gap_days"] > 1]
+                    overlaps = df[df["gap_days"] <= 0]
+                    st.write(gaps)
+                    st.write(overlaps)
+
+                        
                     
                 else:
                     errorlist.append(
