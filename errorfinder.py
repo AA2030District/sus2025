@@ -33,7 +33,7 @@ def findgaps(selection):
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']:
                 meterid=meter
-                st.write(meterid)
+                st.write(meter)
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
                 results2=response.content
                 dict_data2= xmltodict.parse(response.content)
