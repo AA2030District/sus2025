@@ -9,7 +9,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from auth_helper import require_login
 import xmltodict
-import datetime
+from datetime import datetime
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
