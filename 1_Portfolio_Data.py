@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
+st.set_page_config(layout="wide")
 require_login()
 
 st.title("Portfolio Data")
@@ -364,9 +365,9 @@ fig.update_layout(
         'xanchor': 'center',
         'font': {'size': 20}
     },
-    width=1000,
-    height=600,
-    margin=dict(t=50, l=25, r=25, b=25),
+    autosize=True,
+    height=900,
+    margin=dict(t=50, l=10, r=10, b=10),
     hoverlabel=dict(
         bgcolor="white",
         font_size=12,
@@ -400,7 +401,7 @@ for i, (label, color) in enumerate(legend_items):
         borderpad=4
     )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
 
 
 
