@@ -333,7 +333,7 @@ for idx, row in df.iterrows():
     text = f"<b>{row['usetype']}</b><br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
-    text += f"Baseline EUI: {row['benchmark_eui']:.2f}<br>"
+    text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
 
     hover_text.append(text)
 
@@ -343,8 +343,8 @@ fig = go.Figure(go.Treemap(
     parents=[''] * len(df),  # All at root level
     values=df['total_sqft'],
     text=df['usetype'],
-    textinfo="label+value+percent root",
-    texttemplate="<b>%{label}</b><br>%{value:,.0f} sq ft<br>%{percentRoot:.1%}",
+    textinfo="label+value",
+    texttemplate="<b>%{label}</b><br>%{value:,.0f} sq ft<br>",
     hovertext=hover_text,
     hoverinfo="text",
     marker=dict(
@@ -474,7 +474,7 @@ SELECT DISTINCT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
     AND [siteeui] IS NOT NULL
-    and [usetype] = 'Multifamily Housing'
+    AND [usetype] = 'Multifamily'
 """
 
 df_scatter = conn.query(scatter_query)
@@ -491,7 +491,7 @@ df_scatter = df_scatter[
     (df_scatter['siteeui'] <= 500)
 ]
 
-# Create the scatterplot    
+# Create the scatterplot
 fig_scatter = px.scatter(
     df_scatter,
     x='yearbuilt',
