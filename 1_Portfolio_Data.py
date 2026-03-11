@@ -447,23 +447,22 @@ fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
 
-# EUI bar chart (x-axis = average EUI, y-axis = data year)
+# EUI bar chart (x-axis = data year, y-axis = average EUI)
 df_eui_bar = df_yearly.copy().sort_values('datayear')
 df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
 
 fig_eui_bar = px.bar(
     df_eui_bar,
-    x='avg_siteeui',
-    y='datayear',
-    orientation='h',
+    x='datayear',
+    y='avg_siteeui',
+    orientation='v',
     title='Average Site EUI by Data Year (Bar Chart)',
     labels={'avg_siteeui': 'Avg Site EUI (kBtu/ft²)', 'datayear': 'Data Year'},
     text='avg_siteeui'
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(
-    height=450,
-    yaxis=dict(autorange='reversed')
+    height=450
 )
 st.plotly_chart(fig_eui_bar, use_container_width=True)
 
