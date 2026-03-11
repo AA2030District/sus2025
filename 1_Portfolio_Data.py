@@ -88,35 +88,38 @@ fig.update_layout(
 st.plotly_chart(fig, use_container_width=True)
 
 # Categorize each use type into simpler
-# City-Owned, Residential, Commercial, Industrial
+# Municipal, Multifamily, Commercial, Industrial
 use_type_mapping = {
-    # CITY-OWNED
-    'Fire Station': 'City-Owned',
-    'Police Station': 'City-Owned',
-    'Library': 'City-Owned',
-    'Courthouse': 'City-Owned',
-    'Prison/Incarceration': 'City-Owned',
-    'K-12 School': 'City-Owned', 
-    'Drinking Water Treatment & Distribution': 'City-Owned',
-    'Wastewater Treatment Plant': 'City-Owned',
-    'Parking': 'City-Owned',  
-    'Transportation Terminal/Station': 'City-Owned', 
-    'Other - Public Services': 'City-Owned',
-    'Social/Meeting Hall': 'City-Owned',  
-    'Other - Recreation': 'City-Owned',  
-    'Swimming Pool': 'City-Owned',  
-    'Ice/Curling Rink': 'City-Owned',  
-    'Bowling Alley': 'City-Owned',  
-    'Museum': 'City-Owned',  
-    'Convention Center': 'City-Owned',  
+    # MUNICIPAL
+    'Fire Station': 'Municipal',
+    'Police Station': 'Municipal',
+    'Library': 'Municipal',
+    'Courthouse': 'Municipal',
+    'Prison/Incarceration': 'Municipal',
+    'K-12 School': 'Municipal', 
+    'Drinking Water Treatment & Distribution': 'Municipal',
+    'Wastewater Treatment Plant': 'Municipal',
+    'Parking': 'Municipal',  
+    'Transportation Terminal/Station': 'Municipal', 
+    'Other - Public Services': 'Municipal',
+    'Social/Meeting Hall': 'Municipal',  
+    'Other - Recreation': 'Municipal',  
+    'Swimming Pool': 'Municipal',  
+    'Ice/Curling Rink': 'Municipal',  
+    'Bowling Alley': 'Municipal',  
+    'Museum': 'Municipal',  
+    'Convention Center': 'Municipal',
+    'Other - Entertainment/Public Assembly': 'Municipal',  
+    'Other - Utility': 'Municipal',  
+    'Other - Recreation': 'Municipal',   
     
-    # RESIDENTIAL
-    'Single Family Home': 'Residential',
-    'Senior Living Community': 'Residential',
-    'Multifamily Housing': 'Residential',
-    'Residence Hall/Dormitory': 'Residential',
-    'Residential Care Facility': 'Residential',
-    'Other - Lodging/Residential': 'Residential',
+    # MULTIFAMILY
+    'Single Family Home': 'Multifamily',
+    'Senior Living Community': 'Multifamily',
+    'Multifamily Housing': 'Multifamily',
+    'Residence Hall/Dormitory': 'Multifamily',
+    'Residential Care Facility': 'Multifamily',
+    'Other - Lodging/Residential': 'Multifamily',
     
     # COMMERCIAL
     'Other - Mall': 'Commercial',
@@ -147,10 +150,7 @@ use_type_mapping = {
     'Vehicle Repair Services': 'Commercial',
     'Convenience Store without Gas Station': 'Commercial',
     'Personal Services (Health/Beauty, Dry Cleaning, etc)': 'Commercial',
-    'Restaurant': 'Commercial',
-    'Other - Entertainment/Public Assembly': 'Commercial',  
-    'Other - Utility': 'Commercial',  
-    'Other - Recreation': 'Commercial',  
+    'Restaurant': 'Commercial', 
     'Other': 'Commercial',  
     
     # INDUSTRIAL
@@ -169,7 +169,7 @@ SELECT
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COUNT(*) as building_count
 FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2024
+WHERE [datayear] = 2025
 GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
@@ -465,15 +465,16 @@ fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
 
-# SQL query to get unique buildings with year built and site EUI for 2024
+# SQL query to get unique buildings with year built and site EUI for 2025
 scatter_query = """
 SELECT DISTINCT 
     [espmid],
     [yearbuilt],
     [siteeui]
 FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2024
+WHERE [datayear] = 2025
     AND [siteeui] IS NOT NULL
+    AND [usetype] = 'Multifamily'
 """
 
 df_scatter = conn.query(scatter_query)
@@ -495,7 +496,7 @@ fig_scatter = px.scatter(
     df_scatter,
     x='yearbuilt',
     y='siteeui',
-    title='Building Age vs. Energy Use Intensity (2024)',
+    title='Multifamily Building Age vs. Energy Use Intensity (2024)',
     labels={
         'yearbuilt': 'Year Built',
         'siteeui': 'Site EUI (kBtu/ft²)'
