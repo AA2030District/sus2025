@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -434,7 +434,7 @@ fig_eui = px.line(
     x='datayear',
     y='avg_siteeui',
     title='Average Site EUI by Year',
-    labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ft²)'},
+    labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ftÂ²)'},
     markers=True
 )
 fig_eui.update_traces(
@@ -447,13 +447,33 @@ fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_eui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_eui, use_container_width=True)
 
+# EUI bar chart (x-axis = average EUI, y-axis = data year)
+df_eui_bar = df_yearly.copy().sort_values('datayear')
+df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
+
+fig_eui_bar = px.bar(
+    df_eui_bar,
+    x='avg_siteeui',
+    y='datayear',
+    orientation='h',
+    title='Average Site EUI by Data Year (Bar Chart)',
+    labels={'avg_siteeui': 'Avg Site EUI (kBtu/ft²)', 'datayear': 'Data Year'},
+    text='avg_siteeui'
+)
+fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+fig_eui_bar.update_layout(
+    height=450,
+    yaxis=dict(autorange='reversed')
+)
+st.plotly_chart(fig_eui_bar, use_container_width=True)
+
 # WUI line graph
 fig_wui = px.line(
     df_yearly,
     x='datayear',
     y='avg_wui',
     title='Average WUI by Year',
-    labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ft²)'},
+    labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ftÂ²)'},
     markers=True
 )
 fig_wui.update_traces(
@@ -501,7 +521,7 @@ fig_scatter = px.scatter(
     title='Multifamily Building Age vs. Energy Use Intensity (2025)',
     labels={
         'yearbuilt': 'Year Built',
-        'siteeui': 'Site EUI (kBtu/ft²)'
+        'siteeui': 'Site EUI (kBtu/ftÂ²)'
     },
     opacity=0.6,
     # Trendline? 
@@ -516,7 +536,7 @@ fig_scatter.update_layout(
         dtick=25
     ),
     yaxis=dict(
-        title='Site EUI (kBtu/ft²)'
+        title='Site EUI (kBtu/ftÂ²)'
     )
 )
 
