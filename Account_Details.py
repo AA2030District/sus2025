@@ -9,17 +9,12 @@ import pydeck as pdk
 
 require_login()
 st.title("Account Details")
-st.write("Home page content here.")
 
 conn = st.connection("sql", type="sql")
 
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """
-    SELECT [buildingname]
-        , [usetype]
-        , [occupancy]
-        , [numbuildings]
-        , [sqfootage]
+    SELECT *
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE ISNULL(pmparentid,espmid)=espmid 
         AND hasenergygaps = 'OK' 

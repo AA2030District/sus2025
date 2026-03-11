@@ -53,7 +53,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Number of Buildings",
     title={
-        'text': "Ann Arbor 2030 Buildings By Year",
+        'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
     }
 )
@@ -82,7 +82,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Square Footage",
     title={
-        'text': "Ann Arbor 2030 Square Footage By Year",
+        'text': "Washtenaw 2030 Square Footage By Year",
         'font': {'size': 20}
     }
 )
@@ -475,7 +475,8 @@ SELECT DISTINCT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
     AND [siteeui] IS NOT NULL
-    AND [usetype] = 'Multifamily'
+    AND [usetype] = 'Multifamily Housing'
+    AND [sqfootage]<30000
 """
 
 df_scatter = conn.query(scatter_query)
