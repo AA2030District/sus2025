@@ -22,7 +22,7 @@ base_list_query = """
         AND energylessthan12months = 'OK' 
         AND waterlessthan12months='OK' 
         AND siteeui is not NULL 
-        AND datayear = 2024
+        AND datayear = 2025
 """ 
 base_list = conn.query(base_list_query)
 st.dataframe(base_list, height = 1000)
