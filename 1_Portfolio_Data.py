@@ -221,8 +221,8 @@ fig_pie = px.pie(
 # Improve pie chart layout
 fig_pie.update_traces(
     textposition='outside',
-    textinfo='percent+label',
-    hoverinfo='label+percent+value',
+    textinfo='label',
+    hoverinfo='label+value',
     hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br><extra></extra>'
 )
 
