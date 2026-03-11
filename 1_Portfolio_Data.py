@@ -405,6 +405,13 @@ st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
 
 
 
+eui_data = {
+    "years": [2018, 2019, 2021, 2022, 2023, 2024],
+    "baseline": [94.5, 78.33, 54.32, 80, 74.14, 64.2],
+    "actual": [113.08, 74.15, 50.91, 79.68, 70.3, 63.3],
+    "target": [64.3, 53.3, 36.9, 54.4, 50.4, 43.7]
+}
+
 yearly_query = """
     SELECT 
         TRY_CAST([datayear] AS INT) as datayear,
@@ -449,6 +456,10 @@ st.plotly_chart(fig_eui, use_container_width=True)
 
 # EUI bar chart (x-axis = data year, y-axis = average EUI)
 df_eui_bar = df_yearly.copy().sort_values('datayear')
+eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline', 'target']].rename(
+    columns={'years': 'datayear'}
+)
+df_eui_bar = df_eui_bar.merge(eui_reference_df, on='datayear', how='left')
 df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
 
 fig_eui_bar = px.bar(
@@ -461,8 +472,25 @@ fig_eui_bar = px.bar(
     text='avg_siteeui'
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+fig_eui_bar.add_scatter(
+    x=df_eui_bar['datayear'],
+    y=df_eui_bar['baseline'],
+    mode='lines+markers',
+    name='Baseline EUI',
+    line=dict(color='#1f77b4', dash='dash', width=2),
+    marker=dict(size=7)
+)
+fig_eui_bar.add_scatter(
+    x=df_eui_bar['datayear'],
+    y=df_eui_bar['target'],
+    mode='lines+markers',
+    name='Target EUI',
+    line=dict(color='#2ca02c', dash='dot', width=2),
+    marker=dict(size=7)
+)
 fig_eui_bar.update_layout(
-    height=450
+    height=450,
+    legend_title_text=''
 )
 st.plotly_chart(fig_eui_bar, use_container_width=True)
 
@@ -544,14 +572,6 @@ st.plotly_chart(fig_scatter, use_container_width=True)
 
 
 
-
-# Hardcoded data
-eui_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024],
-    "baseline": [94.5, 78.33, 54.32, 80, 74.14, 64.2],
-    "actual": [113.08, 74.15, 50.91, 79.68, 70.3, 63.3],
-    "target": [64.3, 53.3, 36.9, 54.4, 50.4, 43.7]
-}
 
 # Create dataframe and reshape for Plotly
 df = pd.DataFrame(eui_data)
