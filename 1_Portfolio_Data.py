@@ -23,6 +23,62 @@ WHERE [datayear] = 2025
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
 
+fig_eui = px.line(
+    df_yearly,
+    x='datayear',
+    y='avg_siteeui',
+    title='Average Site EUI by Year',
+    labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ftÂ²)'},
+    markers=True
+)
+fig_eui.update_traces(
+    text=df_yearly['avg_siteeui'].round(1),
+    textposition='top center',
+    line=dict(color='red', width=3),
+    marker=dict(size=10, color='red')
+)
+fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
+fig_eui.update_layout(height=400, showlegend=False)
+st.plotly_chart(fig_eui, use_container_width=True)
+
+# EUI bar chart (x-axis = data year, y-axis = average EUI)
+df_eui_bar = df_yearly.copy().sort_values('datayear')
+eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline', 'target']].rename(
+    columns={'years': 'datayear'}
+)
+df_eui_bar = df_eui_bar.merge(eui_reference_df, on='datayear', how='left')
+df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
+
+df_eui_bar_melted = df_eui_bar.melt(
+    id_vars=['datayear'],
+    value_vars=['avg_siteeui', 'baseline', 'target'],
+    var_name='series',
+    value_name='eui'
+).dropna(subset=['eui'])
+df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
+    'avg_siteeui': 'Actual EUI',
+    'baseline': 'Baseline EUI',
+    'target': 'Target EUI'
+})
+
+fig_eui_bar = px.bar(
+    df_eui_bar_melted,
+    x='datayear',
+    y='eui',
+    color='series',
+    barmode='group',
+    title='Average Site EUI by Data Year (Bar Chart)',
+    labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
+    category_orders={'series': ['Actual EUI', 'Baseline EUI', 'Target EUI']},
+    text='eui'
+)
+fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+fig_eui_bar.update_layout(
+    height=450,
+    legend_title_text=''
+)
+st.plotly_chart(fig_eui_bar, use_container_width=True)
+
 # Summary stats
 col1, col2 = st.columns(2)
 with col1:
@@ -434,63 +490,6 @@ yearly_query = """
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 
-
-# EUI line graph
-fig_eui = px.line(
-    df_yearly,
-    x='datayear',
-    y='avg_siteeui',
-    title='Average Site EUI by Year',
-    labels={'datayear': 'Year', 'avg_siteeui': 'Avg Site EUI (kBtu/ftÂ²)'},
-    markers=True
-)
-fig_eui.update_traces(
-    text=df_yearly['avg_siteeui'].round(1),
-    textposition='top center',
-    line=dict(color='red', width=3),
-    marker=dict(size=10, color='red')
-)
-fig_eui.update_xaxes(dtick="M12", tickformat="%Y")
-fig_eui.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_eui, use_container_width=True)
-
-# EUI bar chart (x-axis = data year, y-axis = average EUI)
-df_eui_bar = df_yearly.copy().sort_values('datayear')
-eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline', 'target']].rename(
-    columns={'years': 'datayear'}
-)
-df_eui_bar = df_eui_bar.merge(eui_reference_df, on='datayear', how='left')
-df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
-
-df_eui_bar_melted = df_eui_bar.melt(
-    id_vars=['datayear'],
-    value_vars=['avg_siteeui', 'baseline', 'target'],
-    var_name='series',
-    value_name='eui'
-).dropna(subset=['eui'])
-df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
-    'avg_siteeui': 'Actual EUI',
-    'baseline': 'Baseline EUI',
-    'target': 'Target EUI'
-})
-
-fig_eui_bar = px.bar(
-    df_eui_bar_melted,
-    x='datayear',
-    y='eui',
-    color='series',
-    barmode='group',
-    title='Average Site EUI by Data Year (Bar Chart)',
-    labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
-    category_orders={'series': ['Actual EUI', 'Baseline EUI', 'Target EUI']},
-    text='eui'
-)
-fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
-fig_eui_bar.update_layout(
-    height=450,
-    legend_title_text=''
-)
-st.plotly_chart(fig_eui_bar, use_container_width=True)
 
 # WUI line graph
 fig_wui = px.line(
