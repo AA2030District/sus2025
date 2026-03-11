@@ -462,32 +462,30 @@ eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline', 'target']].renam
 df_eui_bar = df_eui_bar.merge(eui_reference_df, on='datayear', how='left')
 df_eui_bar['datayear'] = df_eui_bar['datayear'].astype(str)
 
+df_eui_bar_melted = df_eui_bar.melt(
+    id_vars=['datayear'],
+    value_vars=['avg_siteeui', 'baseline', 'target'],
+    var_name='series',
+    value_name='eui'
+).dropna(subset=['eui'])
+df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
+    'avg_siteeui': 'Actual EUI',
+    'baseline': 'Baseline EUI',
+    'target': 'Target EUI'
+})
+
 fig_eui_bar = px.bar(
-    df_eui_bar,
+    df_eui_bar_melted,
     x='datayear',
-    y='avg_siteeui',
-    orientation='v',
+    y='eui',
+    color='series',
+    barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
-    labels={'avg_siteeui': 'Avg Site EUI (kBtu/ft²)', 'datayear': 'Data Year'},
-    text='avg_siteeui'
+    labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
+    category_orders={'series': ['Actual EUI', 'Baseline EUI', 'Target EUI']},
+    text='eui'
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
-fig_eui_bar.add_scatter(
-    x=df_eui_bar['datayear'],
-    y=df_eui_bar['baseline'],
-    mode='lines+markers',
-    name='Baseline EUI',
-    line=dict(color='#1f77b4', dash='dash', width=2),
-    marker=dict(size=7)
-)
-fig_eui_bar.add_scatter(
-    x=df_eui_bar['datayear'],
-    y=df_eui_bar['target'],
-    mode='lines+markers',
-    name='Target EUI',
-    line=dict(color='#2ca02c', dash='dot', width=2),
-    marker=dict(size=7)
-)
 fig_eui_bar.update_layout(
     height=450,
     legend_title_text=''
