@@ -474,7 +474,7 @@ SELECT DISTINCT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
     AND [siteeui] IS NOT NULL
-    AND [usetype] = 'Multifamily'
+    AND [usetype] = 'multifamily'
 """
 
 df_scatter = conn.query(scatter_query)
@@ -491,7 +491,7 @@ df_scatter = df_scatter[
     (df_scatter['siteeui'] <= 500)
 ]
 
-# Create the scatterplot
+# Create the scatterplot    
 fig_scatter = px.scatter(
     df_scatter,
     x='yearbuilt',
