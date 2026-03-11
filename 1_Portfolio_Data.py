@@ -470,13 +470,13 @@ st.plotly_chart(fig_wui, use_container_width=True)
 scatter_query = """
 SELECT DISTINCT 
     [espmid],
-    [yearbuilt],
-    [siteeui]
+    TRY_CAST([yearbuilt] AS INT) AS [yearbuilt],
+    TRY_CAST([siteeui] AS FLOAT) AS [siteeui]
 FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2025
-    AND [siteeui] IS NOT NULL
+WHERE TRY_CAST([datayear] AS INT) = 2025
+    AND TRY_CAST([siteeui] AS FLOAT) IS NOT NULL
     AND [usetype] = 'Multifamily Housing'
-    AND [sqfootage]<30000
+    AND TRY_CAST([sqfootage] AS FLOAT) < 30000
 """
 
 df_scatter = conn.query(scatter_query)
@@ -498,7 +498,7 @@ fig_scatter = px.scatter(
     df_scatter,
     x='yearbuilt',
     y='siteeui',
-    title='Multifamily Building Age vs. Energy Use Intensity (2024)',
+    title='Multifamily Building Age vs. Energy Use Intensity (2025)',
     labels={
         'yearbuilt': 'Year Built',
         'siteeui': 'Site EUI (kBtu/ft²)'
