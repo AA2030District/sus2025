@@ -223,7 +223,7 @@ fig_pie.update_traces(
     textposition='outside',
     textinfo='percent+label',
     hoverinfo='label+percent+value',
-    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br><extra></extra>'
 )
 
 fig_pie.update_layout(
@@ -333,7 +333,7 @@ for idx, row in df.iterrows():
     text = f"<b>{row['usetype']}</b><br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
-    text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
+    text += f"Baseline EUI: {row['benchmark_eui']:.2f}<br>"
 
     hover_text.append(text)
 
@@ -474,7 +474,7 @@ SELECT DISTINCT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
     AND [siteeui] IS NOT NULL
-    AND [usetype] = 'multifamily'
+    and [usetype] = 'Multifamily Housing'
 """
 
 df_scatter = conn.query(scatter_query)

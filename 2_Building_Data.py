@@ -211,7 +211,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
     
     # Add baseline EUI (if available)
     if baseline_eui_value is not None:
-        chart_data['Category'].append(f'Benchmark')
+        chart_data['Category'].append(f'Baseline')
         chart_data['EUI Value'].append(baseline_eui_value)
     
     # Create DataFrame for plotting
