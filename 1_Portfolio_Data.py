@@ -591,6 +591,55 @@ fig_wui_bar.update_layout(
 )
 st.plotly_chart(fig_wui_bar, use_container_width=True)
 
+# District Water Performance Against Baseline Over Time
+df_wui_diff = df_yearly.copy().sort_values('datayear')
+
+# Merge with baseline data from wui_data
+wui_baseline_df = pd.DataFrame(wui_data)[['years', 'baseline']].rename(
+    columns={'years': 'datayear'}
+)
+df_wui_diff = df_wui_diff.merge(wui_baseline_df, on='datayear', how='left')
+df_wui_diff['pct_diff_from_baseline'] = ((df_wui_diff['avg_wui'] - df_wui_diff['baseline']) / df_wui_diff['baseline']) * 100
+df_wui_diff['datayear'] = df_wui_diff['datayear'].astype(str)
+
+fig_wui_pct_diff = px.bar(
+    df_wui_diff,
+    x='datayear',
+    y='pct_diff_from_baseline',
+    title='District Water Performance Against Baseline Over Time',
+    text='pct_diff_from_baseline',
+    labels={
+        'datayear': 'Data Year', 
+        'pct_diff_from_baseline': '% Difference from Baseline'
+    },
+)
+
+fig_wui_pct_diff.update_traces(
+    texttemplate='%{text:.1f}%', 
+    textposition='outside',
+)
+
+# Add a horizontal line at 0% for reference
+fig_wui_pct_diff.add_hline(
+    y=0, 
+    line_dash="dash", 
+    line_color="black",
+    annotation_text="Baseline",
+    annotation_position="bottom right"
+)
+
+fig_wui_pct_diff.update_layout(
+    height=450,
+    showlegend=False,
+    yaxis=dict(
+        ticksuffix='%',
+        zeroline=True,
+        zerolinecolor='black',
+        zerolinewidth=1
+    )
+)
+st.plotly_chart(fig_wui_pct_diff, use_container_width=True)
+
 # SQL query to get unique buildings with year built and site EUI for 2025
 scatter_query = """
 SELECT DISTINCT 
