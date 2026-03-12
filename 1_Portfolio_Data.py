@@ -472,6 +472,56 @@ fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
 site_eui_first_slot.plotly_chart(fig_eui_bar, use_container_width=True)
 
+# Percent Difference between Actual EUI and Baseline EUI by Year
+df_diff = df_yearly.copy().sort_values('datayear')
+eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline']].rename(
+    columns={'years': 'datayear'}
+)
+df_diff = df_diff.merge(eui_reference_df, on='datayear', how='left')
+
+# Calculate percent difference from baseline
+df_diff['pct_diff_from_baseline'] = ((df_diff['avg_siteeui'] - df_diff['baseline']) / df_diff['baseline']) * 100
+df_diff['datayear'] = df_diff['datayear'].astype(str)
+
+fig_pct_diff = px.bar(
+    df_diff,
+    x='datayear',
+    y='pct_diff_from_baseline',
+    title='District Energy Performance Against Baseline Over Time',
+    labels={
+        'datayear': 'Data Year', 
+        'pct_diff_from_baseline': '% Difference from Baseline'
+    }
+)
+
+# # Customize the chart
+# fig_pct_diff.update_traces(
+#     texttemplate='%{text:.1f}%', 
+#     textposition='outside',
+#     marker_line_color='rgb(8,48,107)',
+#     marker_line_width=1.5
+# )
+
+# Add a horizontal line at 0% for reference
+fig_pct_diff.add_hline(
+    y=0, 
+    line_dash="dash", 
+    line_color="black",
+    annotation_text="Baseline",
+    annotation_position="bottom right"
+)
+
+fig_pct_diff.update_layout(
+    height=450,
+    showlegend=False,
+    yaxis=dict(
+        ticksuffix='%',
+        zeroline=True,
+        zerolinecolor='black',
+        zerolinewidth=1
+    )
+)
+st.plotly_chart(fig_pct_diff, use_container_width=True)
 
 # WUI line graph
 fig_wui = px.line(
