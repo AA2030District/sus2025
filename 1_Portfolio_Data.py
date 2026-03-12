@@ -522,6 +522,7 @@ fig_pct_diff.update_layout(
 st.plotly_chart(fig_pct_diff, use_container_width=True)
 
 # WUI line graph
+
 fig_wui = px.line(
     df_yearly,
     x='datayear',
@@ -540,10 +541,15 @@ fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
 
-# Water WUI bar chart
-df_wui_bar = df_yearly.copy().sort_values('datayear')
 
-# Create reference DataFrame from wui_data
+# Water WUI bar chart, using preexisting data
+wui_data = {
+    "years": [2021, 2022, 2023, 2024],
+    "baseline": [52, 38, 22.4, 30.73],
+    "actual": [42, 33.06, 22.91, 27.04],
+    "target": [35.36, 25.84, 15.23, 20.90]
+}
+df_wui_bar = df_yearly.copy().sort_values('datayear')
 wui_reference_df = pd.DataFrame(wui_data)[['years', 'baseline', 'target']].rename(
     columns={'years': 'datayear'}
 )
@@ -551,23 +557,18 @@ wui_reference_df = pd.DataFrame(wui_data)[['years', 'baseline', 'target']].renam
 # Merge with yearly data
 df_wui_bar = df_wui_bar.merge(wui_reference_df, on='datayear', how='left')
 df_wui_bar['datayear'] = df_wui_bar['datayear'].astype(str)
-
-# Melt the dataframe for plotting
 df_wui_bar_melted = df_wui_bar.melt(
     id_vars=['datayear'],
     value_vars=['avg_wui', 'baseline', 'target'],
     var_name='series',
     value_name='wui'
 ).dropna(subset=['wui'])
-
-# Rename series for better legend labels
 df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
     'avg_wui': 'Actual WUI',
     'baseline': 'Baseline WUI',
     'target': 'Target WUI'
 })
 
-# Create bar chart
 fig_wui_bar = px.bar(
     df_wui_bar_melted,
     x='datayear',
@@ -580,7 +581,6 @@ fig_wui_bar = px.bar(
     text='wui'
 )
 
-# Customize the chart
 fig_wui_bar.update_traces(
     texttemplate='%{text:.1f}', 
     textposition='outside'
