@@ -488,11 +488,11 @@ fig_pct_diff = px.bar(
     x='datayear',
     y='pct_diff_from_baseline',
     title='District Energy Performance Against Baseline Over Time',
+    text='pct_diff_from_baseline',
     labels={
         'datayear': 'Data Year', 
         'pct_diff_from_baseline': '% Difference from Baseline'
     }
-    text='pct_diff_from_baseline'
 )
 fig_pct_diff.update_traces(
     texttemplate='%{text:.1f}%', 
