@@ -480,6 +480,7 @@ eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline']].rename(
 df_diff = df_diff.merge(eui_reference_df, on='datayear', how='left')
 
 # Calculate percent difference from baseline
+# SHOULDN'T THIS BE NEGATIVE?? AVG_EUI < BASELINE
 df_diff['pct_diff_from_baseline'] = ((df_diff['avg_siteeui'] - df_diff['baseline']) / df_diff['baseline']) * 100
 df_diff['datayear'] = df_diff['datayear'].astype(str)
 
@@ -538,6 +539,57 @@ fig_wui.update_traces(
 fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
 st.plotly_chart(fig_wui, use_container_width=True)
+
+# Water WUI bar chart
+df_wui_bar = df_yearly.copy().sort_values('datayear')
+
+# Create reference DataFrame from wui_data
+wui_reference_df = pd.DataFrame(wui_data)[['years', 'baseline', 'target']].rename(
+    columns={'years': 'datayear'}
+)
+
+# Merge with yearly data
+df_wui_bar = df_wui_bar.merge(wui_reference_df, on='datayear', how='left')
+df_wui_bar['datayear'] = df_wui_bar['datayear'].astype(str)
+
+# Melt the dataframe for plotting
+df_wui_bar_melted = df_wui_bar.melt(
+    id_vars=['datayear'],
+    value_vars=['avg_wui', 'baseline', 'target'],
+    var_name='series',
+    value_name='wui'
+).dropna(subset=['wui'])
+
+# Rename series for better legend labels
+df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
+    'avg_wui': 'Actual WUI',
+    'baseline': 'Baseline WUI',
+    'target': 'Target WUI'
+})
+
+# Create bar chart
+fig_wui_bar = px.bar(
+    df_wui_bar_melted,
+    x='datayear',
+    y='wui',
+    color='series',
+    barmode='group',
+    title='Average Water Use Intensity (WUI) by Data Year',
+    labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Data Year', 'series': ''},
+    category_orders={'series': ['Actual WUI', 'Baseline WUI', 'Target WUI']},
+    text='wui'
+)
+
+# Customize the chart
+fig_wui_bar.update_traces(
+    texttemplate='%{text:.1f}', 
+    textposition='outside'
+)
+fig_wui_bar.update_layout(
+    height=450, 
+    legend_title_text=''
+)
+st.plotly_chart(fig_wui_bar, use_container_width=True)
 
 # SQL query to get unique buildings with year built and site EUI for 2025
 scatter_query = """
