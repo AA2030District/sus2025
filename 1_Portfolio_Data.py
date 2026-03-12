@@ -493,14 +493,12 @@ fig_pct_diff = px.bar(
         'pct_diff_from_baseline': '% Difference from Baseline'
     }
 )
-
-# # Customize the chart
-# fig_pct_diff.update_traces(
-#     texttemplate='%{text:.1f}%', 
-#     textposition='outside',
-#     marker_line_color='rgb(8,48,107)',
-#     marker_line_width=1.5
-# )
+fig_pct_diff.update_traces(
+    texttemplate='%{text:.1f}%', 
+    textposition='outside',
+    marker_line_color='rgb(8,48,107)',
+    marker_line_width=1.5
+)
 
 # Add a horizontal line at 0% for reference
 fig_pct_diff.add_hline(
