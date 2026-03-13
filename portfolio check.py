@@ -160,7 +160,7 @@ fig = go.Figure(go.Treemap(
 # Update layout
 fig.update_layout(
     title={
-        'text': "Building EUI Compared to National Median (2024)",
+        'text': "Portfolio EUI Compared to Baseline (2024)",
         'x': 0.5,
         'xanchor': 'center',
         'font': {'size': 20}
