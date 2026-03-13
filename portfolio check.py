@@ -46,9 +46,7 @@ INNER JOIN portfolios p
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
   AND TRY_CAST(e.datayear AS INT) IS NOT NULL
   AND e.hasenergygaps = 'OK'
-  AND e.haswatergaps = 'OK'
   AND e.energylessthan12months = 'OK'
-  AND e.waterlessthan12months = 'OK'
   AND TRY_CAST(e.siteeui AS DECIMAL(10,2)) IS NOT NULL
   AND TRY_CAST(e.sqfootage AS DECIMAL(10,2)) > 0;
 """
