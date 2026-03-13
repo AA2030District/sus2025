@@ -486,9 +486,6 @@ pie_df = pd.DataFrame({
         pie_energy_metrics['solar_usage']
     ]
 })
-st.write(pie_energy_metrics['electric_usage'])
-st.write(pie_energy_metrics['natural_gas_usage'])
-st.write(pie_energy_metrics['solar_usage'])
 
 # Filter out zero values if you don't want empty slices
 pie_df = pie_df[pie_df['Usage (kBtu)'] > 0]
@@ -498,20 +495,16 @@ if not pie_df.empty:
         values='Usage (kBtu)',
         names='Energy Source',
         title='Energy Mix Distribution (2025)',
-        color_discrete_sequence=px.colors.qualitative.Set3,
+        color_discrete_sequence=px.colors.qualitative.Set2,
     )
-    
-    # Update trace to show percentage and value
     fig_pie.update_traces(
-        textposition='inside',
+        textposition='outside',
         textinfo='percent+label',
+        hoverinfo='label+percent+value',
         hovertemplate='<b>%{label}</b><br>Usage: %{value:,.0f} kBtu<br>Percentage: %{percent}<extra></extra>'
     )
-    
     fig_pie.update_layout(
-        height=450,
-        showlegend=True,
-        legend_title="Energy Sources"
+        margin=dict(l=50, r=50, t=80, b=50)
     )
     
     st.plotly_chart(fig_pie, use_container_width=True)
