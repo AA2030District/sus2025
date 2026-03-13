@@ -418,7 +418,7 @@ if not electric_df.empty:
     st.plotly_chart(fig_electric, use_container_width=True)
 
     # For pie chart, add electric values of most current year
-    electric_2025 = electric_sorted[electric_sorted['enddate'].dt.year == most_current_year]
+    electric_2025 = electric_sorted[electric_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['electric_usage'] = electric_2025['usage'].sum() * 3.412
 
 
@@ -446,7 +446,7 @@ if not gas_df.empty:
 
     # For pie chart, add gas values of most current year
     # CHECK IF CORRECT: MULTIPLY BY 100??
-    gas_2025 = gas_sorted[gas_sorted['enddate'].dt.year == most_current_year]
+    gas_2025 = gas_sorted[gas_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['natural_gas_usage'] = gas_2025['usage'].sum() * 100
 
 # Solar stepped line graph
@@ -472,7 +472,7 @@ if not solar_df.empty:
     st.plotly_chart(fig_solar, use_container_width=True)
 
     # For pie chart, add solar values of most current year
-    solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == most_current_year]
+    solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['solar_usage'] = solar_2025['usage'].sum() * 3.412
     
 
