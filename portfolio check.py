@@ -11,19 +11,29 @@ st.title("Portfolio Analysis")
 conn = st.connection("sql", type="sql")
 
 new_query = """
-SELECT *
+SELECT
+    e.espmid,
+    e.buildingname,
+    e.usetype,
+    TRY_CAST(e.sqfootage AS DECIMAL(10,2)) AS total_sqft,
+    TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui
 FROM espmfirsttest e
-RIGHT JOIN portfolios p 
+INNER JOIN portfolios p
     ON e.espmid = p.espmid
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+  AND TRY_CAST(e.datayear AS INT) = 2024
   AND e.hasenergygaps = 'OK'
   AND e.haswatergaps = 'OK'
   AND e.energylessthan12months = 'OK'
   AND e.waterlessthan12months = 'OK'
-  AND e.siteeui IS NOT NULL;
+  AND TRY_CAST(e.siteeui AS DECIMAL(10,2)) IS NOT NULL
+  AND TRY_CAST(e.sqfootage AS DECIMAL(10,2)) > 0;
 """
 
 df = conn.query(new_query)
+df['building_label'] = df['buildingname'].fillna('Unknown Building').astype(str).str.strip()
+df.loc[df['building_label'] == '', 'building_label'] = 'Unknown Building'
+df['building_label'] = df['building_label'] + " (ID " + df['espmid'].astype(str) + ")"
 
 
 site_eui_benchmark = {
@@ -121,7 +131,8 @@ df = df.sort_values('total_sqft', ascending=False).reset_index(drop=True)
 # Create custom hover text
 hover_text = []
 for idx, row in df.iterrows():
-    text = f"<b>{row['usetype']}</b><br>"
+    text = f"<b>{row['building_label']}</b><br>"
+    text += f"Use Type: {row['usetype']}<br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
     text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
@@ -130,10 +141,11 @@ for idx, row in df.iterrows():
 
 # Create the treemap
 fig = go.Figure(go.Treemap(
-    labels=df['usetype'],
+    ids=df['espmid'].astype(str),
+    labels=df['building_label'],
     parents=[''] * len(df),  # All at root level
     values=df['total_sqft'],
-    text=df['usetype'],
+    text=df['building_label'],
     textinfo="label+value",
     texttemplate="<b>%{label}</b><br>%{value:,.0f} sq ft<br>",
     hovertext=hover_text,
@@ -150,7 +162,7 @@ fig = go.Figure(go.Treemap(
 # Update layout
 fig.update_layout(
     title={
-        'text': "Building Type EUI Compared to National Median",
+        'text': "Building EUI Compared to National Median (2024)",
         'x': 0.5,
         'xanchor': 'center',
         'font': {'size': 20}
