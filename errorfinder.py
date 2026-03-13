@@ -35,6 +35,7 @@ def findgaps(selection):
         results=response.content
         dict_data= xmltodict.parse(response.content)
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
+            totalmetererrors={}
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
                 date1=''
                 date2=datetime(int(datayear),1,1)
@@ -69,9 +70,14 @@ def findgaps(selection):
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     df = df.sort_values("startDate").reset_index(drop=True)
-                    df = df.sort_values("endDate").reset_index(drop=True)
-                    df["gap_days"] = (df["startDate"] - df["endDate"].shift(1)).dt.days
-                    gaps = df[df["gap_days"] > 1]
+                    df["prev_endDate"] = df["endDate"].shift(1)
+                    df["gap_days"] = (df["startDate"] - df["prev_endDate"]).dt.days
+                    gaps = df[df["gap_days"] > 1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "gap_start_endDate",
+                            "startDate": "gap_end_startDate"
+                        }
+                    )
                     overlaps = df[df["gap_days"] <= -1]
                     st.write(gaps)
                     st.write(overlaps)
@@ -117,9 +123,14 @@ def findgaps(selection):
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     df = df.sort_values("startDate").reset_index(drop=True)
-                    df = df.sort_values("endDate").reset_index(drop=True)
-                    df["gap_days"] = (df["startDate"] - df["endDate"].shift(1)).dt.days
-                    gaps = df[df["gap_days"] > 1]
+                    df["prev_endDate"] = df["endDate"].shift(1)
+                    df["gap_days"] = (df["startDate"] - df["prev_endDate"]).dt.days
+                    gaps = df[df["gap_days"] > 1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "gap_start_endDate",
+                            "startDate": "gap_end_startDate"
+                        }
+                    )
                     overlaps = df[df["gap_days"] <= -1]
                     st.write(gaps)
                     st.write(overlaps)
@@ -130,6 +141,7 @@ def findgaps(selection):
                     errorlist.append(
                         f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
+            
 buildings_query = """
     ;WITH ranked AS (
     SELECT
