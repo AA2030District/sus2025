@@ -45,8 +45,7 @@ df = pd.DataFrame(buildings_data)
 fig = px.bar(
     df,
     x='years',
-    y='buildings',
-    markers=True
+    y='buildings'
 )
 fig.update_layout(
     height=500,
@@ -71,8 +70,7 @@ df = pd.DataFrame(sqft_data)
 fig = px.bar(
     df,
     x='years',
-    y='square_footage',
-    markers=True
+    y='square_footage'
 )
 fig.update_layout(
     height=500,
