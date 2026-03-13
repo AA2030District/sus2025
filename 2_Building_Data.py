@@ -494,7 +494,7 @@ if not pie_df.empty:
         pie_df,
         values='Usage (kBtu)',
         names='Energy Source',
-        title= most_current_year + 'Energy Mix Distribution',
+        title= most_current_year + ' Fuel Mix Breakdown',
         color_discrete_sequence=px.colors.qualitative.Set2,
     )
     fig_pie.update_traces(
