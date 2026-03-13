@@ -387,11 +387,14 @@ solar_df = get_meter_data('solar', selected_espmid, 'Solar')
 # Combine all data for display
 all_meter_data = pd.concat([electric_df, gas_df, solar_df], ignore_index=True)
 
-# Calculate EUI for MOST RECENT YEAR ONLY
-
+# 3. Pie chart creation
+pie_energy_metrics = {
+    "electric_usage": 0,
+    "natural_gas_usage": 0, 
+    "solar_usage": 0
+}
 
 # 2. Stepped line graphs for each energy type
-
 # Electric stepped line graph
 if not electric_df.empty:
     electric_sorted = electric_df.sort_values('startdate')
@@ -413,6 +416,10 @@ if not electric_df.empty:
         height=400
     )
     st.plotly_chart(fig_electric, use_container_width=True)
+
+    # For pie chart, add electric values of most current year
+    pie_energy_metrics['electric_usage'] = electric_sorted[electric_sorted['enddate'].dt.year == most_current_year].sum() * 3.412
+
 
 # Natural Gas stepped line graph
 if not gas_df.empty:
@@ -436,6 +443,10 @@ if not gas_df.empty:
     )
     st.plotly_chart(fig_gas, use_container_width=True)
 
+    # For pie chart, add gas values of most current year
+    # CHECK IF CORRECT: MULTIPLY BY 100??
+    pie_energy_metrics['gas_usage'] = gas_sorted[gas_sorted['enddate'].dt.year == most_current_year].sum() * 100
+
 # Solar stepped line graph
 if not solar_df.empty:
     solar_sorted = solar_df.sort_values('startdate')
@@ -458,7 +469,49 @@ if not solar_df.empty:
     )
     st.plotly_chart(fig_solar, use_container_width=True)
 
-# 3. Combined meter data table
+    # For pie chart, add solar values of most current year
+    pie_energy_metrics['solar_usage'] = solar_sorted[solar_sorted['enddate'].dt.year == most_current_year].sum() * 3.412
+
+
+# 3. Pie chart:
+pie_df = pd.DataFrame({
+    'Energy Source': ['Electric', 'Natural Gas', 'Solar'],
+    'Usage (kBtu)': [
+        pie_energy_metrics['electric_usage'],
+        pie_energy_metrics['natural_gas_usage'],
+        pie_energy_metrics['solar_usage']
+    ]
+})
+
+# Filter out zero values if you don't want empty slices
+pie_df = pie_df[pie_df['Usage (kBtu)'] > 0]
+if not pie_df.empty:
+    fig_pie = px.pie(
+        pie_df,
+        values='Usage (kBtu)',
+        names='Energy Source',
+        title='Energy Mix Distribution (2025)',
+        color_discrete_sequence=px.colors.qualitative.Set3,
+    )
+    
+    # Update trace to show percentage and value
+    fig_pie.update_traces(
+        textposition='inside',
+        textinfo='percent+label',
+        hovertemplate='<b>%{label}</b><br>Usage: %{value:,.0f} kBtu<br>Percentage: %{percent}<extra></extra>'
+    )
+    
+    fig_pie.update_layout(
+        height=450,
+        showlegend=True,
+        legend_title="Energy Sources"
+    )
+    
+    st.plotly_chart(fig_pie, use_container_width=True)
+else:
+    st.warning("No energy data available for 2025 to display pie chart")
+
+# 4. Combined meter data table
 st.subheader("All Meter Data")
 if not all_meter_data.empty:
     # Sort by date
