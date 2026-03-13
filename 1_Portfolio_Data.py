@@ -865,14 +865,14 @@ for year in ghg_emissions:
             SELECT 
                 COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_electric_energy,
             FROM [dbo].[electric]
-            WHERE YEAR([enddate]) = '{year}'
+            WHERE YEAR([enddate]) = {year}
         """
     
     total_gas_energy_query = f"""
             SELECT 
                 COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_gas_energy,
             FROM [dbo].[naturalgas]
-            WHERE YEAR([enddate]) = '{year}'
+            WHERE YEAR([enddate]) = {year}
         """
     
     edf = conn.query(total_electric_energy_query)
