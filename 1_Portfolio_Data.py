@@ -807,8 +807,11 @@ wui_saved = df_wui_diff['avg_wui'].sum() - df_wui_diff['baseline'].sum()
 total_gallons = wui_saved * summary_df['total_sqft'].sum()
 total_bottles = total_gallons * 7.57
 
-print(f"💧 Total Water Saved: {total_gallons:,.0f} gallons")
-print(f"🚰 Equivalent to: {total_bottles:,.0f} plastic water bottles")
+col1, col2 = st.columns(2)
+with col1:
+    st.metric("💧 Total Gallons of Water Saved", f"{total_gallons:,}")
+with col2:
+    st.metric("🚰 Total Water Bottles Saved", f"{total_bottles:,.0f}")
 
 
 # Total EUI Saved 2021 - 2024
@@ -818,5 +821,9 @@ eui_saved = (df_diff['avg_siteeui'].sum() - df_diff['baseline'].sum())
 total_kwh_saved = (eui_saved * summary_df['total_sqft'].sum()) / 3.413
 total_lightbulbs_saved = total_kwh_saved / 29.2
 
-print(f"⚡ Total Energy Saved: {total_kwh_saved:,.0f} kWh")
-print(f"💡 Equivalent to: {total_lightbulbs_saved:,.0f} years of powering a 10W lightbulb continuously")
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
+with col2:
+    st.metric("💡 Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+
