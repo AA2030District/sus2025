@@ -486,9 +486,9 @@ pie_df = pd.DataFrame({
         pie_energy_metrics['solar_usage']
     ]
 })
-st.metric(pie_energy_metrics['electric_usage'])
-st.metric(pie_energy_metrics['natural_gas_usage'])
-st.metric(pie_energy_metrics['solar_usage'])
+st.write(pie_energy_metrics['electric_usage'])
+st.write(pie_energy_metrics['natural_gas_usage'])
+st.write(pie_energy_metrics['solar_usage'])
 
 # Filter out zero values if you don't want empty slices
 pie_df = pie_df[pie_df['Usage (kBtu)'] > 0]
