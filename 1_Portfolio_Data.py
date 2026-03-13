@@ -260,7 +260,7 @@ fig_usetype = px.bar(
         'usetype': 'Building Type'
     },
     text='avg_siteeui',
-    color='avg_siteeui',
+    color_discrete_sequence=px.colors.qualitative.Set2,
     hover_data=['building_count', 'total_sqft'] 
 )
 
