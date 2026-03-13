@@ -840,6 +840,66 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
+# GHG Emissions
+# Electric Emissions Factor MT CO2e/kWh
+electric_emission_factor = {
+    "2021": 0.000596,
+    "2022": 0.000663, 
+    "2023": 0.000628,
+    "2024" : 0.000565,
+    "2025" : 0.000506,
+}
+# Natural Gas Emissions Factor kgco2eq/mbtu
+natural_gas_emission_factor = 53.1148
+
+ghg_emissions = {
+    "2021": 0,
+    "2022": 0,
+    "2023": 0,
+    "2024": 0,
+    "2025": 0
+}
+
+for year in ghg_emissions:
+    total_electric_energy_query = f"""
+            SELECT 
+                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_electric_energy
+            FROM [dbo].[electric]
+            WHERE YEAR([enddate]) = {year}
+        """
+    
+    total_gas_energy_query = f"""
+            SELECT 
+                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_gas_energy
+            FROM [dbo].[naturalgas]
+            WHERE YEAR([enddate]) = {year}
+        """
+    
+    edf = conn.query(total_electric_energy_query)
+    gdf = conn.query(total_gas_energy_query)
+
+
+    ghg_emissions[year] = (edf['total_electric_energy'].iloc[0] * electric_emission_factor[year]) + (gdf['total_gas_energy'].iloc[0] * natural_gas_emission_factor)
+
+ghg_df = pd.DataFrame(list(ghg_emissions.items()), columns=['year', 'ghg_emissions_mt'])
+fig = px.bar(
+    ghg_df,
+    x='year',
+    y='ghg_emissions_mt'
+)
+fig.update_layout(
+    height=500,
+    xaxis_title="Year",
+    yaxis_title="GHG ekWh/m^2",
+    title={
+        'text': "District Green House Gas Emissions Over Time",
+        'font': {'size': 20}
+    }
+)
+st.plotly_chart(fig, use_container_width=True)
+
+
+
 # Total WUI Saved 2021 - 2024
 wui_saved = df_wui_diff['avg_wui'].sum() - df_wui_diff['baseline'].sum()
 
