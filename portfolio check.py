@@ -66,6 +66,26 @@ df['datayear'] = pd.to_numeric(df['datayear'], errors='coerce')
 df = df[df['datayear'].notna()].copy()
 df['datayear'] = df['datayear'].astype(int)
 
+# Building-level EUI bar chart across all years for selected portfolio
+df_building_eui = df.copy()
+df_building_eui['building_label'] = df_building_eui['buildingname'].fillna('Unknown Building').astype(str).str.strip()
+df_building_eui.loc[df_building_eui['building_label'] == '', 'building_label'] = 'Unknown Building'
+df_building_eui['building_label'] = df_building_eui['building_label'] + " (ID " + df_building_eui['espmid'].astype(str) + ")"
+df_building_eui = df_building_eui.sort_values(['datayear', 'building_label'])
+
+fig_building_eui = px.bar(
+    df_building_eui,
+    x='datayear',
+    y='avg_siteeui',
+    color='building_label',
+    barmode='group',
+    title=f"{selected_portfolio} Building EUI by Year",
+    labels={'datayear': 'Year', 'avg_siteeui': 'Site EUI (kBtu/ft²)', 'building_label': 'Building'},
+    hover_data={'usetype': True, 'total_sqft': ':,.0f', 'building_label': False}
+)
+fig_building_eui.update_layout(height=650, xaxis=dict(type='category'))
+st.plotly_chart(fig_building_eui, use_container_width=True)
+
 year_options = sorted(df['datayear'].unique().tolist(), reverse=True)
 if not year_options:
     st.warning("No years available for the selected portfolio.")
