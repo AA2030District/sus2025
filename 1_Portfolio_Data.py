@@ -93,6 +93,7 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Categorize each use type into simpler
 # Municipal, Multifamily, Commercial, Industrial
+
 use_type_mapping = {
     # MUNICIPAL
     'Fire Station': 'Municipal',
@@ -235,6 +236,52 @@ fig_pie.update_layout(
     margin=dict(l=50, r=50, t=80, b=50)
 )
 st.plotly_chart(fig_pie, use_container_width=True)
+
+# Filter to only include the target use types
+target_usetypes = [
+    'Residential Multifamily',
+    'Office', 
+    'K-12 School',
+    'Other - Entertainment/Public Assembly',
+    'Other - Recreation',
+    'Hotel'
+]
+df_filtered = df[df['usetype'].isin(target_usetypes)].copy()
+df_filtered = df_filtered.sort_values('avg_siteeui', ascending=True)
+
+fig_usetype = px.bar(
+    df_filtered,
+    x='avg_siteeui',
+    y='usetype',
+    orientation='h',  # Horizontal bar chart for better label readability
+    title='Average Site EUI by Building Type (2025)',
+    labels={
+        'avg_siteeui': 'Average Site EUI (kBtu/ft²)',
+        'usetype': 'Building Type'
+    },
+    text='avg_siteeui',
+    color='avg_siteeui',
+    color_continuous_scale='viridis',  # Choose a color scale
+    hover_data=['building_count', 'total_sqft']  # Show additional info on hover
+)
+
+# Customize the chart
+fig_usetype.update_traces(
+    texttemplate='%{text:.1f} kBtu/ft²', 
+    textposition='outside',
+    marker_line_color='rgb(8,48,107)',
+    marker_line_width=1.5
+)
+
+fig_usetype.update_layout(
+    height=500,
+    xaxis=dict(title='Average Site EUI (kBtu/ft²)'),
+    yaxis=dict(title=''),
+    coloraxis_showscale=False  # Hide color scale if not needed
+)
+
+# Display the chart
+st.plotly_chart(fig_usetype, use_container_width=True)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
