@@ -41,11 +41,8 @@ buildings_data = {
     "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
 }
 
-# Create dataframe
 df = pd.DataFrame(buildings_data)
-
-# Line graph
-fig = px.line(
+fig = px.bar(
     df,
     x='years',
     y='buildings',
@@ -70,11 +67,8 @@ sqft_data = {
     "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
 }
 
-# Create dataframe
 df = pd.DataFrame(sqft_data)
-
-# Line graph
-fig = px.line(
+fig = px.bar(
     df,
     x='years',
     y='square_footage',
