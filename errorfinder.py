@@ -79,7 +79,9 @@ def findgaps(selection):
                         }
                     )
                     overlaps = df[df["gap_days"] <= -1]
+                    st.write("gaps")
                     st.write(gaps)
+                    st.write("overlaps")
                     st.write(overlaps)
                     lastdayinyear=datetime(int(datayear),12,31)
                     if df['endDate'].iloc[-1] < lastdayinyear:
