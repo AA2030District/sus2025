@@ -800,3 +800,23 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# Total WUI Saved 2021 - 2024
+wui_saved = df_wui_diff['avg_wui'].sum() - df_wui_diff['baseline'].sum()
+
+total_gallons = wui_saved * summary_df['total_sqft'].sum()
+total_bottles = total_gallons * 7.57
+
+print(f"💧 Total Water Saved: {total_gallons:,.0f} gallons")
+print(f"🚰 Equivalent to: {total_bottles:,.0f} plastic water bottles")
+
+
+# Total EUI Saved 2021 - 2024
+eui_saved = (df_diff['avg_siteeui'].sum() - df_diff['baseline'].sum())
+
+# Total Annual 10W LED Lightbulb = (EUI * Total sq. ft) / 3.413 (kbtu --> kwH) / 29.2 (kwh/year)
+total_kwh_saved = (eui_saved * summary_df['total_sqft'].sum()) / 3.413
+total_lightbulbs_saved = total_kwh_saved / 29.2
+
+print(f"⚡ Total Energy Saved: {total_kwh_saved:,.0f} kWh")
+print(f"💡 Equivalent to: {total_lightbulbs_saved:,.0f} years of powering a 10W lightbulb continuously")
