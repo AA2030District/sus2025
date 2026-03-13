@@ -10,18 +10,40 @@ require_login()
 st.title("Portfolio Analysis")
 conn = st.connection("sql", type="sql")
 
-new_query = """
+portfolio_col_query = """
+SELECT TOP 1 COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'portfolios'
+  AND LOWER(COLUMN_NAME) LIKE '%portfolio%'
+ORDER BY
+  CASE
+    WHEN LOWER(COLUMN_NAME) IN ('portfolio', 'portfolio_name', 'portfolioname') THEN 0
+    ELSE 1
+  END,
+  COLUMN_NAME
+"""
+portfolio_col_df = conn.query(portfolio_col_query)
+if portfolio_col_df.empty:
+    st.error("No portfolio column found in the portfolios table.")
+    st.stop()
+portfolio_column = portfolio_col_df.iloc[0]["COLUMN_NAME"]
+
+
+
+new_query = f"""
 SELECT
     e.espmid,
     e.buildingname,
     e.usetype,
+    TRY_CAST(e.datayear AS INT) AS datayear,
     TRY_CAST(e.sqfootage AS DECIMAL(10,2)) AS total_sqft,
-    TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui
+    TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui,
+    CAST(p.[{portfolio_column}] AS NVARCHAR(255)) AS portfolio_name
 FROM espmfirsttest e
 INNER JOIN portfolios p
     ON e.espmid = p.espmid
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-  AND TRY_CAST(e.datayear AS INT) = 2024
+  AND TRY_CAST(e.datayear AS INT) IS NOT NULL
   AND e.hasenergygaps = 'OK'
   AND e.haswatergaps = 'OK'
   AND e.energylessthan12months = 'OK'
@@ -31,6 +53,29 @@ WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
 """
 
 df = conn.query(new_query)
+portfolio_options = sorted(df['portfolio_name'].dropna().astype(str).unique().tolist())
+if not portfolio_options:
+    st.error("No portfolios found in query results.")
+    st.stop()
+
+selected_portfolio = st.selectbox("Select Portfolio", portfolio_options)
+df = df[df['portfolio_name'].astype(str) == selected_portfolio].copy()
+
+df['datayear'] = pd.to_numeric(df['datayear'], errors='coerce')
+df = df[df['datayear'].notna()].copy()
+df['datayear'] = df['datayear'].astype(int)
+
+year_options = sorted(df['datayear'].unique().tolist(), reverse=True)
+if not year_options:
+    st.warning("No years available for the selected portfolio.")
+    st.stop()
+
+selected_year = st.selectbox("Select Year", year_options)
+df = df[df['datayear'] == selected_year].copy()
+if df.empty:
+    st.warning("No building records found for the selected portfolio/year.")
+    st.stop()
+
 df['building_label'] = df['buildingname']
 
 
@@ -160,7 +205,7 @@ fig = go.Figure(go.Treemap(
 # Update layout
 fig.update_layout(
     title={
-        'text': "Portfolio EUI Compared to Baseline (2024)",
+        'text': f"{selected_portfolio} EUI Compared to Baseline ({selected_year})",
         'x': 0.5,
         'xanchor': 'center',
         'font': {'size': 20}
