@@ -56,10 +56,7 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
-fig.update_xaxes(
-    categoryorder='array',
-    categoryarray=['2018', '2019', '2021', '2022', '2023', '2024', '2025']  # No 2020
-)
+fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(fig, use_container_width=True)
 
 
