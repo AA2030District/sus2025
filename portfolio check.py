@@ -33,7 +33,7 @@ WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
 df = conn.query(new_query)
 df['building_label'] = df['buildingname'].fillna('Unknown Building').astype(str).str.strip()
 df.loc[df['building_label'] == '', 'building_label'] = 'Unknown Building'
-df['building_label'] = df['building_label'] + " (ID " + df['espmid'].astype(str) + ")"
+df['building_label'] = df['building_label']
 
 
 site_eui_benchmark = {
