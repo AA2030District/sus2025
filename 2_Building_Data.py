@@ -447,7 +447,7 @@ if not gas_df.empty:
     # For pie chart, add gas values of most current year
     # CHECK IF CORRECT: MULTIPLY BY 100??
     gas_2025 = gas_sorted[gas_sorted['enddate'].dt.year == most_current_year]
-    pie_energy_metrics['gas_usage'] = gas_2025['usage'].sum() * 100
+    pie_energy_metrics['natural_gas_usage'] = gas_2025['usage'].sum() * 100
 
 # Solar stepped line graph
 if not solar_df.empty:
@@ -474,6 +474,7 @@ if not solar_df.empty:
     # For pie chart, add solar values of most current year
     solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == most_current_year]
     pie_energy_metrics['solar_usage'] = solar_2025['usage'].sum() * 3.412
+    
 
 
 # 3. Pie chart:
@@ -485,6 +486,9 @@ pie_df = pd.DataFrame({
         pie_energy_metrics['solar_usage']
     ]
 })
+st.metric(pie_energy_metrics['electric_usage'])
+st.metric(pie_energy_metrics['natural_gas_usage'])
+st.metric(pie_energy_metrics['solar_usage'])
 
 # Filter out zero values if you don't want empty slices
 pie_df = pie_df[pie_df['Usage (kBtu)'] > 0]
