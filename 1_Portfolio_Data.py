@@ -37,11 +37,12 @@ site_eui_first_slot = st.empty()
 
 # Manually inserted data, not taken from SQL/Energy Star
 buildings_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
+    "years": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    "buildings": [25, 36, 0, 99, 274, 415, 1154, summary_df['building_count'].sum()]
 }
 
 df = pd.DataFrame(buildings_data)
+df_filtered = df[df['years'] != '2020']
 fig = px.bar(
     df,
     x='years',
@@ -56,21 +57,19 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
-fig.update_xaxes(
-    categoryorder='array',
-    categoryarray=['2018', '2019', '2021', '2022', '2023', '2024', '2025']  # No 2020
-)
+# fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(fig, use_container_width=True)
 
 
 
 # Manually inserted data, not taken from SQL/Energy Star
 sqft_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024, 2025],
-    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
+    "years": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+    "square_footage": [859321, 1023938, 0, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
 }
 
 df = pd.DataFrame(sqft_data)
+df_filtered = df[df['years'] != '2020']
 fig = px.bar(
     df,
     x='years',
