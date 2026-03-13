@@ -261,23 +261,20 @@ fig_usetype = px.bar(
     },
     text='avg_siteeui',
     color='avg_siteeui',
-    color_continuous_scale='viridis',  # Choose a color scale
-    hover_data=['building_count', 'total_sqft']  # Show additional info on hover
+    hover_data=['building_count', 'total_sqft'] 
 )
 
 # Customize the chart
 fig_usetype.update_traces(
     texttemplate='%{text:.1f} kBtu/ft²', 
     textposition='outside',
-    marker_line_color='rgb(8,48,107)',
-    marker_line_width=1.5
 )
 
 fig_usetype.update_layout(
     height=500,
     xaxis=dict(title='Average Site EUI (kBtu/ft²)'),
     yaxis=dict(title=''),
-    coloraxis_showscale=False  # Hide color scale if not needed
+    coloraxis_showscale=False 
 )
 
 # Display the chart
