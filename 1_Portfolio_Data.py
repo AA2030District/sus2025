@@ -882,12 +882,12 @@ for year in ghg_emissions:
     ghg_emissions[year] = (edf['total_electric_energy'].iloc[0] * electric_emission_factor[year]) + (gdf['total_gas_energy'].iloc[0] * natural_gas_emission_factor)
 
 ghg_df = pd.DataFrame(list(ghg_emissions.items()), columns=['year', 'ghg_emissions_mt'])
-fig = px.bar(
+fig_ghg = px.bar(
     ghg_df,
     x='year',
     y='ghg_emissions_mt'
 )
-fig.update_layout(
+fig_ghg.update_layout(
     height=500,
     xaxis_title="Year",
     yaxis_title="GHG ekWh/m^2",
@@ -896,7 +896,7 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig_ghg, use_container_width=True)
 
 
 
