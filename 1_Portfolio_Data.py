@@ -863,14 +863,14 @@ ghg_emissions = {
 for year in ghg_emissions:
     total_electric_energy_query = f"""
             SELECT 
-                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_electric_energy,
+                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_electric_energy
             FROM [dbo].[electric]
             WHERE YEAR([enddate]) = {year}
         """
     
     total_gas_energy_query = f"""
             SELECT 
-                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_gas_energy,
+                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_gas_energy
             FROM [dbo].[naturalgas]
             WHERE YEAR([enddate]) = {year}
         """
