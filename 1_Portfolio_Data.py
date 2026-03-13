@@ -885,7 +885,7 @@ ghg_df = pd.DataFrame(list(ghg_emissions.items()), columns=['year', 'ghg_emissio
 fig = px.bar(
     ghg_df,
     x='year',
-    y='ghg'
+    y='ghg_emissions_mt'
 )
 fig.update_layout(
     height=500,
