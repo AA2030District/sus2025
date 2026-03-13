@@ -6,6 +6,6 @@ page2 = st.Page("2_Building_Data.py", title="Building Data")
 page3 = st.Page("errorfinder.py", title="Error Finder")
 page4 = st.Page("portfolio check.py", title="Portfolio Analysis")
 
-pg = st.navigation([home, page1,page2,page3])
+pg = st.navigation([home, page1,page2,page3,page4])
 
 pg.run()
