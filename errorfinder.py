@@ -82,6 +82,54 @@ def findgaps(selection):
                     errorlist.append(
                         f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
+        if haswatergaps == "Possible Issue" or waterlessthan12months == "Possible Issue":
+            for meter in dict_data['meterPropertyAssociationList']['waterMeterAssociation']['meters']['meterId']:
+                date1=''
+                date2=datetime(int(datayear),1,1)
+                meterid=meter
+                response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                results2=response.content
+                dict_data2= xmltodict.parse(response.content)
+                firstdate=dict_data2['meter']['firstBillDate']
+                response = session.get(
+                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate=2020-01-01",
+                    auth=HTTPBasicAuth(user, pw),
+                    timeout=60,
+                )
+                if dict_data2['meter']['inUse'] == 'false':
+                    if datetime.strptime(dict_data2['meter']['inactiveDate'],"%Y-%m-%d")<date2:
+                        pass
+                    else:
+                        errorlist.append(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
+                elif response.ok and response.content:
+                    results3=response.content
+                    try:
+                        dict_data3=xmltodict.parse(response.content)
+                    except ExpatError:
+                        errorlist.append(
+                            f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
+                        )
+                        continue
+                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    if not meter_consumption:
+                        continue
+                    df = pd.json_normalize(meter_consumption)
+                    df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
+                    df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
+                    df = df.sort_values("startDate").reset_index(drop=True)
+                    df = df.sort_values("endDate").reset_index(drop=True)
+                    df["gap_days"] = (df["startDate"] - df["endDate"].shift(1)).dt.days
+                    gaps = df[df["gap_days"] > 1]
+                    overlaps = df[df["gap_days"] <= -1]
+                    st.write(gaps)
+                    st.write(overlaps)
+                    lastdayinyear=datetime(int(datayear),12,31)
+                    if df['endDate'].iloc[-1] < lastdayinyear:
+                        st.write(f"Water meter {meterid} data ends at {df['endDate'].iloc[-1]}, mark as inactive or add more data!")
+                else:
+                    errorlist.append(
+                        f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
+                    )
 buildings_query = """
     ;WITH ranked AS (
     SELECT
