@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
 
+st.set_page_config(layout="wide")
 
 require_login()
 
