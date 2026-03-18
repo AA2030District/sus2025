@@ -210,7 +210,8 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
         y='EUI Value',
         title=f'EUI Comparison: {building_info["buildingname"]}',
         labels={'EUI Value': 'Site EUI (kBtu/ft²)', 'Category': ''},
-        height=500
+        height=500,
+        color_discrete_sequence=px.colors.qualitative.Set2
     )
     
     # Display the chart
@@ -251,7 +252,8 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
         y='WUI Value',
         title=f'WUI Comparison: {building_info["buildingname"]}',
         labels={'WUI Value': 'WUI (gal/ft²)', 'Category': ''},
-        height=500
+        height=500,
+        color_discrete_sequence=px.colors.qualitative.Set2
     )
     
     # Display the chart
