@@ -279,7 +279,8 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
             title=f'EUI by Year: {building_info["buildingname"]}',
             labels={'siteeui': 'Site EUI (kBtu/ft²)', 'datayear': 'Year'},
             height=500,
-            text='siteeui' 
+            text='siteeui',
+            category_orders={"datayear": sorted(eui_by_year_df['datayear'].unique())}
         )
         
         # Customize the chart
@@ -310,7 +311,8 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             title=f'WUI by Year: {building_info["buildingname"]}',
             labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Year'},
             height=500,
-            text='wui'  
+            text='wui',
+            category_orders={"datayear": sorted(wui_by_year_df['datayear'].unique())}  
         )
         
         fig_wui.update_traces(
