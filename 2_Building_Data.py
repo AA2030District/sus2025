@@ -116,19 +116,6 @@ this_building_query = f"""
 """
 this_building_df = conn.query(this_building_query)
 
-# Now you can use the data
-# if not this_building_df.empty:
-#     most_current_data = this_building_df.iloc[0]
-#     most_current_year = most_current_data['datayear']
-    
-#     st.write(f"Most current data is from: {most_current_year}")
-#     st.write(f"Site EUI: {most_current_data['siteeui']}")
-#     st.write(f"WUI: {most_current_data['wui']}")
-    
-#     # Continue with your meter data functions...
-#     building_use_type = str(building_info['usetype']) if pd.notna(building_info['usetype']) else ""
-#     baseline_eui_value = site_eui_benchmark.get(building_use_type, None)
-
 # Display building info
 # Get the most current year's data (first row since we ordered DESC)
 if not this_building_df.empty:
@@ -217,38 +204,13 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
     # Create DataFrame for plotting
     chart_df = pd.DataFrame(chart_data)
     
-    
     fig = px.bar(
         chart_df,
         x='Category',
         y='EUI Value',
         title=f'EUI Comparison: {building_info["buildingname"]}',
         labels={'EUI Value': 'Site EUI (kBtu/ft²)', 'Category': ''},
-        text='EUI Value',
-        color='Category',
-        color_discrete_sequence=['#1f77b4', '#ff7f0e', '#2ca02c']
-    )
-    
-    # Customize the chart
-    fig.update_traces(
-        texttemplate='%{text:.1f}',
-        textposition='outside',
-        marker_line_width=1.5,
-        marker_line_color='black'
-    )
-    
-    fig.update_layout(
-        height=500,
-        showlegend=False,
-        yaxis=dict(
-            title='Site EUI (kBtu/ft²)',
-            gridcolor='lightgray',
-            rangemode='nonnegative'
-        ),
-        xaxis=dict(
-            tickangle=0
-        ),
-        plot_bgcolor='white'
+        height=500
     )
     
     # Display the chart
@@ -283,38 +245,13 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
     # Create DataFrame for plotting
     chart_df = pd.DataFrame(chart_data)
     
-    
     fig = px.bar(
         chart_df,
         x='Category',
         y='WUI Value',
         title=f'WUI Comparison: {building_info["buildingname"]}',
-        labels={'WUI Value': 'Water Usage Intensity (WUI)', 'Category': ''},
-        text='WUI Value',
-        color='Category',
-        color_discrete_sequence=['#1f77b4', '#ff7f0e']
-    )
-    
-    # Customize the chart
-    fig.update_traces(
-        texttemplate='%{text:.2f}',
-        textposition='outside',
-        marker_line_width=1.5,
-        marker_line_color='black'
-    )
-    
-    fig.update_layout(
-        height=500,
-        showlegend=False,
-        yaxis=dict(
-            title='Water Usage Intensity (WUI)',
-            gridcolor='lightgray',
-            rangemode='nonnegative'
-        ),
-        xaxis=dict(
-            tickangle=0
-        ),
-        plot_bgcolor='white'
+        labels={'WUI Value': 'WUI (gal/ft²)', 'Category': ''},
+        height=500
     )
     
     # Display the chart
@@ -323,36 +260,65 @@ else:
     st.warning("No WUI data available")
 
 
-# with col1:
-#     st.write("Use Type")
-#     st.write("Square Footage")
-#     st.write("Current Year")
-# with col2:
-#     st.write(str(building_info['usetype']) if pd.notna(building_info['usetype']) else 'Not Available')
+# EUI bar chart by year
+if not this_building_df.empty and this_building_df['siteeui'].notna().any():
+    # Filter out rows with null EUI values
+    eui_by_year_df = this_building_df[this_building_df['siteeui'].notna()].copy()
     
-#     # Fixed the square footage formatting
-#     if pd.notna(building_info['sqfootage']) and str(building_info['sqfootage']).replace('.', '').isdigit():
-#         st.write(f"{float(building_info['sqfootage']):,.0f}")
-#     elif pd.notna(building_info['sqfootage']):
-#         st.write(str(building_info['sqfootage']))
-#     else:
-#         st.write('Not Available')
+    if not eui_by_year_df.empty:
+        eui_by_year_df = eui_by_year_df.sort_values('datayear')
+        
+        fig_eui = px.bar(
+            eui_by_year_df,
+            x='datayear',
+            y='siteeui',
+            title=f'EUI by Year: {building_info["buildingname"]}',
+            labels={'siteeui': 'Site EUI (kBtu/ft²)', 'datayear': 'Year'},
+            height=500,
+            text='siteeui' 
+        )
+        
+        # Customize the chart
+        fig_eui.update_traces(
+            texttemplate='%{text:.1f}', 
+            textposition='outside'
+        )
+        
+        st.plotly_chart(fig_eui, use_container_width=True)
+    else:
+        st.warning("No EUI data available for any year")
+else:
+    st.warning("No EUI data available")
 
-#     # Check for Year
-#     if 2025 in building_info['datayear'].values:
-#         st.write('2025')
-#         current_year = 2025
-#     elif 2024 in building_info['datayear'].values:
-#         st.write('2024')
-#         current_year = 2024
-#     elif 2023 in building_info['datayear'].values:
-#         st.write('2023')
-#         current_year = 2023
-#     else:
-#         st.write('No current Data Available')
+# WUI bar chart by year
+if not this_building_df.empty and this_building_df['wui'].notna().any():
+    # Filter out rows with null WUI values
+    wui_by_year_df = this_building_df[this_building_df['wui'].notna()].copy()
     
-# Get baseline EUI
-
+    if not wui_by_year_df.empty:
+        # Sort by year for better visualization
+        wui_by_year_df = wui_by_year_df.sort_values('datayear')
+        
+        fig_wui = px.bar(
+            wui_by_year_df,
+            x='datayear',
+            y='wui',
+            title=f'WUI by Year: {building_info["buildingname"]}',
+            labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Year'},
+            height=500,
+            text='wui'  
+        )
+        
+        fig_wui.update_traces(
+            texttemplate='%{text:.2f}', 
+            textposition='outside'
+        )
+        
+        st.plotly_chart(fig_wui, use_container_width=True)
+    else:
+        st.warning("No WUI data available for any year")
+else:
+    st.warning("No WUI data available")
 # Function to get meter data
 def get_meter_data(table_name, espmid, energy_type):
     query = f"""

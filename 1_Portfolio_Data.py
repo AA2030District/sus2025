@@ -850,7 +850,7 @@ electric_emission_factor = {
     "2025" : 0.000506,
 }
 # Natural Gas Emissions Factor kgco2eq/mbtu
-natural_gas_emission_factor = 53.1148
+natural_gas_emission_factor = 53.1148 
 
 ghg_emissions = {
     "2021": 0,
