@@ -289,6 +289,15 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
             textposition='outside'
         )
         
+        if baseline_eui_value is not None:
+            fig_eui.add_hline(
+                y=baseline_eui_value,
+                line_dash='dash',
+                line_color='red',
+                annotation_text=f'Baseline EUI: {baseline_eui_value:.1f}',
+                annotation_position='top right'
+            )
+        
         st.plotly_chart(fig_eui, use_container_width=True)
     else:
         st.warning("No EUI data available for any year")
