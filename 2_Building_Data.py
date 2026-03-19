@@ -187,6 +187,11 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
         'EUI Value': []
     }
     
+    # Add baseline EUI (if available)
+    if baseline_eui_value is not None:
+        chart_data['Category'].append(f'Baseline')
+        chart_data['EUI Value'].append(baseline_eui_value)
+    
     # Add current building's EUI
     chart_data['Category'].append('This Building')
     chart_data['EUI Value'].append(most_current_eui)
@@ -195,11 +200,6 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
     if avg_eui is not None:
         chart_data['Category'].append(f'Average {use_type}')
         chart_data['EUI Value'].append(avg_eui)
-    
-    # Add baseline EUI (if available)
-    if baseline_eui_value is not None:
-        chart_data['Category'].append(f'Baseline')
-        chart_data['EUI Value'].append(baseline_eui_value)
     
     # Create DataFrame for plotting
     chart_df = pd.DataFrame(chart_data)
@@ -212,6 +212,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
         labels={'EUI Value': 'Site EUI (kBtu/ft²)', 'Category': ''},
         height=500,
         color='Category',
+        category_orders={'Category': chart_data['Category']},
         color_discrete_sequence=px.colors.qualitative.Set2
     )
     
