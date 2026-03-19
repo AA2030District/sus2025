@@ -56,7 +56,7 @@ site_eui_benchmark = {
     'Other - Restaurant/Bar': 325.6,
     'Residential Care Facility': 99.0,
     'College/University': 84.3,
-    'Worship Facility': 30.5,
+    'Worship Facility': 72.1,
     'Bowling Alley': 56.2,
     'Distribution Center': 22.7,
     'Supermarket/Grocery Store': 196.0,
