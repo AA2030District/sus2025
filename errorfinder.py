@@ -202,8 +202,10 @@ with errors:
         findgaps(filtered_df)
         datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         finishedstring=" to ".join(datetupletest)
+        datelist=[finishedstring,finishedstring,finishedstring]
+        datelist = "\n".join(datelist)
         data = {"Name": ["John Doe", "Jane Smith", "Bob Johnson"],
-        "Gaps": [finishedstring,
+        "Gaps": [datelist,
         "line 3 \n line 4",
         "line 5 \n line 6",
         ]}
