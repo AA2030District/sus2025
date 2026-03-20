@@ -206,7 +206,7 @@ with select: # Add select tab #############################################
     filtered_df = df.iloc[building]
 with errors:
     if building:
-        df = findgaps(filtered_df['energyerrordf'])
+        findgaps(filtered_df)
         # Replace \n with HTML line breaks (string cells only)
         df = df.map(lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x)
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
