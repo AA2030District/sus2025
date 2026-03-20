@@ -24,7 +24,8 @@ conn = st.connection("sql", type="sql")
 
 def findgaps(selection):
     ###Finding the gaps
-        errorlist=[]
+    ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
+        errordict={}
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
         hasenergygaps = selection["hasenergygaps"].iloc[0]
@@ -35,8 +36,8 @@ def findgaps(selection):
         results=response.content
         dict_data= xmltodict.parse(response.content)
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
-            totalmetererrors={}
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
+                errorlist=[]
                 date1=''
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
@@ -86,9 +87,9 @@ def findgaps(selection):
                     lastdayinyear=datetime(int(datayear),12,31)
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
+                    # errordict{meterid}={"gaps":}
                 else:
-                    errorlist.append(
-                        f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
+                        st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
         if haswatergaps == "Possible Issue" or waterlessthan12months == "Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['waterMeterAssociation']['meters']['meterId']:
@@ -108,14 +109,13 @@ def findgaps(selection):
                     if datetime.strptime(dict_data2['meter']['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
                     else:
-                        errorlist.append(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
+                        st.write(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
                 elif response.ok and response.content:
                     results3=response.content
                     try:
                         dict_data3=xmltodict.parse(response.content)
                     except ExpatError:
-                        errorlist.append(
-                            f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
+                        st.write(f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
                     meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
@@ -140,8 +140,7 @@ def findgaps(selection):
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"Water meter {meterid} data ends at {df['endDate'].iloc[-1]}, mark as inactive or add more data!")
                 else:
-                    errorlist.append(
-                        f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
+                    st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
             
 buildings_query = """
