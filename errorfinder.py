@@ -26,9 +26,9 @@ def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
         errorlist=[]
-        lastdayinyear=datetime(int(datayear),12,31)
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
+        lastdayinyear=datetime(int(datayear),12,31)
         hasenergygaps = selection["hasenergygaps"].iloc[0]
         haswatergaps = selection["haswatergaps"].iloc[0]
         energylessthan12months = selection["energylessthan12months"].iloc[0]
