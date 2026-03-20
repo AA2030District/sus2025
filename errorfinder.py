@@ -213,6 +213,5 @@ with errors:
 
         # Show as a static table
         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
-        st.table(df)
     else:
         st.write("No Building Selected")
