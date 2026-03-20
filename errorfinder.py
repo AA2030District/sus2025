@@ -200,8 +200,10 @@ with select: # Add select tab #############################################
 with errors:
     if building:
         findgaps(filtered_df)
+        datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
+        finishedstring=" to ".join(datetupletest)
         data = {"Name": ["John Doe", "Jane Smith", "Bob Johnson"],
-        "Description": ["line 1 \n line 2",
+        "Gaps": [finishedstring,
         "line 3 \n line 4",
         "line 5 \n line 6",
         ]}
