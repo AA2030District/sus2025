@@ -85,10 +85,9 @@ def findgaps(selection):
                     overlaps = df[df["gap_days"] <= -1]
                     st.write('gap thing new')
                     for row in gaps.itertuples(index=False):
+                        st.write(row)
                         gapdates.append((row.gap_start_endDate,row.gap_end_startDate))
                         gapdays.append(row.gap_days)
-                        st.write(gapdates)
-                        st.write(gapdays)
                     st.write("overlaps")
                     st.write(overlaps)
 
