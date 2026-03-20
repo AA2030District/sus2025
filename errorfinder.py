@@ -36,6 +36,7 @@ def findgaps(selection):
         response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
         results=response.content
         dict_data= xmltodict.parse(response.content)
+        ##get all the fail data, put it all together, and make it a dictionary in errorlist, then convert that to a DF for electric and a DF for water
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
                 date1=''
@@ -79,18 +80,17 @@ def findgaps(selection):
                             "startDate": "gap_end_startDate"
                         }
                     )
-                    overlaps = df[df["gap_days"] <= -1]
-
-
                     gapdates=[]
                     gapdays=[]
+                    overlaps = df[df["gap_days"] <= -1]
                     for row in gaps.itertuples(index=False):
                         gapdates.append((row.gap_start_endDate,row.gap_end_startDate))
                         gapdays.append(row.gap_days)
+                        st.write(gapdates)
+                        st.write(gapdays)
                     st.write("overlaps")
                     st.write(overlaps)
-                    st.write(gapdates)
-                    st.write(gapdays)
+
                     
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
