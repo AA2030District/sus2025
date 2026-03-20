@@ -209,6 +209,7 @@ with errors:
         "line 3 \n line 4",
         "line 5 \n line 6",
         ],
+        "Gap Days":["1 \n", "1 \n","1 \n"],
         "Link": [
             '<a href="https://portfoliomanager.energystar.gov/pm/meter/usage/27588473#176285725" target="_blank">Link to Meter</a>',
             '<a href="https://google.com" target="_blank">Google</a>',
