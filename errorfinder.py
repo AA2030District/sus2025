@@ -25,8 +25,8 @@ conn = st.connection("sql", type="sql")
 def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
-        errordict={}
         errorlist=[]
+        lastdayinyear=datetime(int(datayear),12,31)
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
         hasenergygaps = selection["hasenergygaps"].iloc[0]
@@ -80,10 +80,18 @@ def findgaps(selection):
                         }
                     )
                     overlaps = df[df["gap_days"] <= -1]
-                    st.write("gaps")
+
+
+                    gapdates=[]
+                    gapdays=[]
+                    for row in gaps.itertuples(index=False):
+                        gapdates.append((row.gap_start_endDate,row.gap_end_startDate))
+                        gapdays.append(row.gap_days)
                     st.write("overlaps")
                     st.write(overlaps)
-                    lastdayinyear=datetime(int(datayear),12,31)
+                    st.write(gapdates)
+                    st.write(gapdays)
+                    
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
                     # errordict{meterid}={"gaps":}
@@ -141,7 +149,6 @@ def findgaps(selection):
                 else:
                     st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
-            
 buildings_query = """
     ;WITH ranked AS (
     SELECT
@@ -199,28 +206,13 @@ with select: # Add select tab #############################################
     filtered_df = df.iloc[building]
 with errors:
     if building:
-        findgaps(filtered_df)
-        datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
-        finishedstring=" to ".join(datetupletest)
-        datelist=[finishedstring,finishedstring,finishedstring]
-        datelist = "\n".join(datelist)
-        data = {"Name": ["John Doe", "Jane Smith", "Bob Johnson"],
-        "Gaps": [datelist,
-        "line 3 \n line 4",
-        "line 5 \n line 6",
-        ],
-        "Gap Days":["1 \n 1 \n 1 \n","1","1"],
-        "Link": [
-            '<a href="https://portfoliomanager.energystar.gov/pm/meter/usage/27588473#176285725" target="_blank">Link to Meter</a>',
-            '<a href="https://google.com" target="_blank">Google</a>',
-            '<a href="https://google.com" target="_blank">Google</a>',
-        ]}
-
-        df = pd.DataFrame(data)
-
+        df = findgaps(filtered_df['energyerrordf'])
         # Replace \n with HTML line breaks (string cells only)
         df = df.map(lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x)
-
+        # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
+        # finishedstring=" to ".join(datetupletest)
+        # datelist=[finishedstring,finishedstring,finishedstring]
+        # datelist = "\n".join(datelist)
         # Center values in the Gap Days column
         if "Gap Days" in df.columns:
             df["Gap Days"] = df["Gap Days"].map(
