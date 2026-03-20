@@ -218,10 +218,16 @@ with errors:
 
         df = pd.DataFrame(data)
 
-        # Replace the \n with an HTML linebreak
-        df = df.applymap(lambda x: x.replace('\n', '<br>'))
+        # Replace \n with HTML line breaks (string cells only)
+        df = df.map(lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x)
+
+        # Center values in the Gap Days column
+        if "Gap Days" in df.columns:
+            df["Gap Days"] = df["Gap Days"].map(
+                lambda x: f'<div style="text-align:center;">{x}</div>' if pd.notna(x) else x
+            )
 
         # Show as a static table
-        st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
+        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
     else:
         st.write("No Building Selected")
