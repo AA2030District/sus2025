@@ -224,7 +224,7 @@ with errors:
         # Center values in the Gap Days column
         if "Gap Days" in df.columns:
             df["Gap Days"] = df["Gap Days"].map(
-                lambda x: f'<div style="text-align:center;">{x}</div>' if pd.notna(x) else x
+                lambda x: f'<div style="text-align:right;">{x}</div>' if pd.notna(x) else x
             )
 
         # Show as a static table
