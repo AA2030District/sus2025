@@ -26,6 +26,7 @@ def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
         errordict={}
+        errorlist=[]
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
         hasenergygaps = selection["hasenergygaps"].iloc[0]
@@ -37,7 +38,6 @@ def findgaps(selection):
         dict_data= xmltodict.parse(response.content)
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
-                errorlist=[]
                 date1=''
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
@@ -81,7 +81,6 @@ def findgaps(selection):
                     )
                     overlaps = df[df["gap_days"] <= -1]
                     st.write("gaps")
-                    st.write(gaps)
                     st.write("overlaps")
                     st.write(overlaps)
                     lastdayinyear=datetime(int(datayear),12,31)
@@ -201,5 +200,19 @@ with select: # Add select tab #############################################
 with errors:
     if building:
         findgaps(filtered_df)
+        data = {"Name": ["John Doe", "Jane Smith", "Bob Johnson"],
+        "Description": ["line 1 \n line 2",
+        "line 3 \n line 4",
+        "line 5 \n line 6",
+        ]}
+
+        df = pd.DataFrame(data)
+
+        # Replace the \n with an HTML linebreak
+        df = df.applymap(lambda x: x.replace('\n', '<br>'))
+
+        # Show as a static table
+        st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
+        st.table(df)
     else:
         st.write("No Building Selected")
