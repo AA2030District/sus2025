@@ -26,6 +26,7 @@ def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
         errorlist=[]
+        errordict={}
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
         lastdayinyear=datetime(int(datayear),12,31)
@@ -91,13 +92,12 @@ def findgaps(selection):
                     st.write("overlaps")
                     st.write(overlaps)
                     gapdates = "<br>".join(gapdates)
-                    st.write(gapdates)
-                    st.write(gapdays)
+
 
                     
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
-                    # errordict{meterid:{"gaps":gapdates,"gapdays":gapdays,"overlaps":overlapdates,"overlapdays":overlapdays}
+                    errordict.update{meterid:{"gaps":gapdates,"gapdays":gapdays}}
                 else:
                         st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
@@ -152,6 +152,8 @@ def findgaps(selection):
                 else:
                     st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
+        return errorlist
+        return errordict
 buildings_query = """
     ;WITH ranked AS (
     SELECT
@@ -209,9 +211,9 @@ with select: # Add select tab #############################################
     filtered_df = df.iloc[building]
 with errors:
     if building:
-        findgaps(filtered_df)
+        errordict=findgaps(filtered_df)
         # Replace \n with HTML line breaks (string cells only)
-        df = df.map(lambda x: x.replace('\n', '<br>') if isinstance(x, str) else x)
+        df = pd.DataFrame(errordict) if errordict else pd.DataFrame()
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         # finishedstring=" to ".join(datetupletest)
         # datelist=[finishedstring,finishedstring,finishedstring]
@@ -221,8 +223,10 @@ with errors:
             df["Gap Days"] = df["Gap Days"].map(
                 lambda x: f'<div style="text-align:right;">{x}</div>' if pd.notna(x) else x
             )
-
         # Show as a static table
-        st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+        if not df.empty:
+            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+        else:
+            st.write("No errors returned for this building.")
     else:
         st.write("No Building Selected")
