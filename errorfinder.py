@@ -210,19 +210,20 @@ with errors:
     if building:
         errordict=findgaps(filtered_df)
         # Replace \n with HTML line breaks (string cells only)
-        df = pd.DataFrame(errordict) if errordict else pd.DataFrame()
+        df = (
+            pd.DataFrame.from_dict(errordict, orient="index")
+            .rename(columns={"gaps": "Gap Dates", "gapdays": "Gap Duration"})
+            if errordict
+            else pd.DataFrame(columns=["Gap Dates", "Gap Duration"])
+        )
+        df.index.name = "Meter Number"
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         # finishedstring=" to ".join(datetupletest)
         # datelist=[finishedstring,finishedstring,finishedstring]
         # datelist = "\n".join(datelist)
-        # Center values in the Gap Days column
-        if "Gap Days" in df.columns:
-            df["Gap Days"] = df["Gap Days"].map(
-                lambda x: f'<div style="text-align:right;">{x}</div>' if pd.notna(x) else x
-            )
         # Show as a static table
         if not df.empty:
-            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            st.markdown(df.to_html(escape=False, index=True), unsafe_allow_html=True)
         else:
             st.write("No errors returned for this building.")
     else:
