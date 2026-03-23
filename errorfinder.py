@@ -102,8 +102,6 @@ def findgaps(selection):
                         overlapenddate = row.overlap_startDate.strftime("%Y-%m-%d")
                         overlapdates.append(f"{overlapstartdate} to {overlapenddate}")
                         overlapdays.append(f"{abs(row.overlap_days)}<br>")
-                    st.write("overlaps")
-                    st.write(overlaps)
                     gapdates = "<br>".join(gapdates)
                     gapdays ="<br>".join(gapdays)
                     overlapdates = "<br>".join(overlapdates)
