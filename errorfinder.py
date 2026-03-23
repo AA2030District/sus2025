@@ -82,6 +82,7 @@ def findgaps(selection):
         water_errordict={}
         espmid = selection["espmid"].iloc[0]
         datayear = selection['datayear'].iloc[0]
+        st.write(datayear)
         lastdayinyear=datetime(int(datayear),12,31)
         hasenergygaps = selection["hasenergygaps"].iloc[0]
         haswatergaps = selection["haswatergaps"].iloc[0]
