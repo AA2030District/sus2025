@@ -12,6 +12,7 @@ import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
 import streamlit.components.v1 as components
+import datetime
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
@@ -81,8 +82,8 @@ def findgaps(selection):
         energy_errordict={}
         water_errordict={}
         espmid = selection["espmid"].iloc[0]
-        datayear = selection['datayear'].iloc[0]
-        st.write(datayear)
+        datayear=datetime.date.today().year
+        datayear=datayear.year-1
         lastdayinyear=datetime(int(datayear),12,31)
         hasenergygaps = selection["hasenergygaps"].iloc[0]
         haswatergaps = selection["haswatergaps"].iloc[0]
