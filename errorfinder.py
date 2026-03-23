@@ -158,7 +158,6 @@ def findgaps(selection):
                     overlapdays = "<br>".join(overlapdays)
                     failedenddate = ""
                     last_end_date = df["endDate"].dropna().max()
-                    st.write(last_end_date)
                     inactive_date = pd.to_datetime(
                         meter_info.get("inactiveDate"),
                         format="%Y-%m-%d",
@@ -260,13 +259,13 @@ def findgaps(selection):
                         format="%Y-%m-%d",
                         errors="coerce",
                     )
-                    # comparison_date = inactive_date if pd.notna(inactive_date) else lastdayinyear
-                    # if (
-                    #     meter_info.get("inUse") != "false"
-                    #     and pd.notna(last_end_date)
-                    #     and last_end_date < comparison_date
-                    # ):
-                    failedenddate = last_end_date.strftime("%Y-%m-%d")
+                    comparison_date = inactive_date if pd.notna(inactive_date) else lastdayinyear
+                    if (
+                        meter_info.get("inUse") != "false"
+                        and pd.notna(last_end_date)
+                        and last_end_date < comparison_date
+                    ):
+                        failedenddate = last_end_date.strftime("%Y-%m-%d")
                     
                     water_errordict.update(
                         {
