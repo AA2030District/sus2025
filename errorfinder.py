@@ -370,10 +370,6 @@ with select: # Add select tab #############################################
 with errors:
     selected_row_index = st.session_state.get("selected_row_index")
     if selected_row_index is not None and 0 <= selected_row_index < len(df):
-        if st.button("Next Building"):
-            st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
-            st.rerun()
-
         selected_row_index = st.session_state.selected_row_index
         filtered_df = df.iloc[[selected_row_index]]
         st.caption(
@@ -394,5 +390,15 @@ with errors:
 
         if energy_df.empty and water_df.empty:
             st.write("No errors returned for this building.")
+
+        col_prev, col_next = st.columns(2)
+        with col_prev:
+            if st.button("Previous Building"):
+                st.session_state.selected_row_index = (selected_row_index - 1) % len(df)
+                st.rerun()
+        with col_next:
+            if st.button("Next Building"):
+                st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
+                st.rerun()
     else:
         st.write("No Building Selected")
