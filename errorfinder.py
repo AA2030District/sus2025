@@ -344,6 +344,8 @@ column_configuration = {
     ),
 }
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
+if "selected_row_index" not in st.session_state:
+    st.session_state.selected_row_index = None
 with select: # Add select tab #############################################
     st.header("All Buildings With Errors")
 
@@ -358,9 +360,21 @@ with select: # Add select tab #############################################
     )
 
     building = event.selection.rows
-    filtered_df = df.iloc[building]
-with errors:
     if building:
+        st.session_state.selected_row_index = building[0]
+with errors:
+    selected_row_index = st.session_state.get("selected_row_index")
+    if selected_row_index is not None and 0 <= selected_row_index < len(df):
+        if st.button("Next Building"):
+            st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
+            st.rerun()
+
+        selected_row_index = st.session_state.selected_row_index
+        filtered_df = df.iloc[[selected_row_index]]
+        st.caption(
+            f"Selected: {filtered_df['buildingname'].iloc[0]} "
+            f"({selected_row_index + 1}/{len(df)})"
+        )
         errordicts = findgaps(filtered_df)
         energy_df = _build_meter_df(errordicts.get("energy", {}))
         water_df = _build_meter_df(errordicts.get("water", {}))
