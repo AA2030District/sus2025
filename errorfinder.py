@@ -182,8 +182,6 @@ def findgaps(selection):
                         }
                     )
                     overlaps = df[df["gap_days"] <= -1]
-                    st.write(gaps)
-                    st.write(overlaps)
                     lastdayinyear=datetime(int(datayear),12,31)
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"Water meter {meterid} data ends at {df['endDate'].iloc[-1]}, mark as inactive or add more data!")
