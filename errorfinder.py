@@ -108,6 +108,11 @@ def findgaps(selection):
                     gapdays ="<br>".join(gapdays)
                     overlapdates = "<br>".join(overlapdates)
                     overlapdays = "<br>".join(overlapdays)
+                    last_meter_data_date = df["endDate"].max()
+                    if pd.notna(last_meter_data_date):
+                        last_meter_data_date = last_meter_data_date.strftime("%Y-%m-%d")
+                    else:
+                        last_meter_data_date = ""
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
                     errordict.update(
@@ -117,6 +122,7 @@ def findgaps(selection):
                                 "gapdays": gapdays,
                                 "overlaps": overlapdates,
                                 "overlapdays": overlapdays,
+                                "lastmeterdate": last_meter_data_date,
                             }
                         }
                     )
@@ -243,12 +249,18 @@ with errors:
                     "gapdays": "Gap Duration",
                     "overlaps": "Overlap Dates",
                     "overlapdays": "Overlap Duration",
+                    "lastmeterdate": "Last Meter Data Date",
                 }
             )
             if errordict
-            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration"])
+            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration", "Last Meter Data Date"])
         )
         df = df.rename_axis("Meter Number").reset_index()
+        ordered_cols = ["Meter Number", "Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration", "Last Meter Data Date"]
+        for col in ordered_cols:
+            if col not in df.columns:
+                df[col] = ""
+        df = df[ordered_cols]
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         # finishedstring=" to ".join(datetupletest)
         # datelist=[finishedstring,finishedstring,finishedstring]
