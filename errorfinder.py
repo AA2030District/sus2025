@@ -12,7 +12,6 @@ import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
 import streamlit.components.v1 as components
-import datetime
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
