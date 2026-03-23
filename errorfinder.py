@@ -11,6 +11,7 @@ from auth_helper import require_login
 import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
+import streamlit.components.v1 as components
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
@@ -350,6 +351,7 @@ with errors:
         if not energy_df.empty:
             st.subheader("Energy Meter Errors")
             st.markdown(energy_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            components.iframe("https://portfoliomanager.energystar.gov/pm/meter/usage/5693#8619", height=600)
 
         if not water_df.empty:
             st.subheader("Water Meter Errors")
