@@ -81,7 +81,7 @@ def findgaps(selection):
         energy_errordict={}
         water_errordict={}
         espmid = selection["espmid"].iloc[0]
-        datayear = datetime.today().year - 1
+        datayear = datetime.now().year - 1
         lastdayinyear=datetime(int(datayear),12,31)
         hasenergygaps = selection["hasenergygaps"].iloc[0]
         haswatergaps = selection["haswatergaps"].iloc[0]
@@ -119,7 +119,6 @@ def findgaps(selection):
                     if not meter_consumption:
                         continue
                     df = pd.json_normalize(meter_consumption)
-                    st.write(df)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     df = df.sort_values("startDate").reset_index(drop=True)
