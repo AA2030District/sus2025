@@ -266,6 +266,7 @@ def findgaps(selection):
                     #     and last_end_date < comparison_date
                     # ):
                     failedenddate = last_end_date.strftime("%Y-%m-%d")
+                    st.write(failedenddate)
                     water_errordict.update(
                         {
                             meterid: {
