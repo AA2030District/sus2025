@@ -346,6 +346,8 @@ column_configuration = {
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 if "selected_row_index" not in st.session_state:
     st.session_state.selected_row_index = None
+if "last_table_selected_row" not in st.session_state:
+    st.session_state.last_table_selected_row = None
 with select: # Add select tab #############################################
     st.header("All Buildings With Errors")
 
@@ -361,7 +363,10 @@ with select: # Add select tab #############################################
 
     building = event.selection.rows
     if building:
-        st.session_state.selected_row_index = building[0]
+        table_selected_row = building[0]
+        if st.session_state.last_table_selected_row != table_selected_row:
+            st.session_state.selected_row_index = table_selected_row
+            st.session_state.last_table_selected_row = table_selected_row
 with errors:
     selected_row_index = st.session_state.get("selected_row_index")
     if selected_row_index is not None and 0 <= selected_row_index < len(df):
