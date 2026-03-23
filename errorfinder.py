@@ -83,22 +83,48 @@ def findgaps(selection):
                     )
                     gapdates=[]
                     gapdays=[]
-                    overlaps = df[df["gap_days"] <= -1]
+                    overlapdates=[]
+                    overlapdays=[]
+                    overlaps = df[df["gap_days"] <= -1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "overlap_prev_endDate",
+                            "startDate": "overlap_startDate",
+                            "gap_days": "overlap_days",
+                        }
+                    )
                     for row in gaps.itertuples(index=False):
                         gapstartenddate = row.gap_start_endDate.strftime("%Y-%m-%d")
                         gapendstartdate = row.gap_end_startDate.strftime("%Y-%m-%d")
                         gapdates.append(f"{gapstartenddate} to {gapendstartdate}")
                         gapdays.append(f"{row.gap_days}<br>")
+                    for row in overlaps.itertuples(index=False):
+                        overlapstartdate = row.overlap_prev_endDate.strftime("%Y-%m-%d")
+                        overlapenddate = row.overlap_startDate.strftime("%Y-%m-%d")
+                        overlapdates.append(f"{overlapstartdate} to {overlapenddate}")
+                        overlapdays.append(f"{abs(row.overlap_days)}<br>")
                     st.write("overlaps")
                     st.write(overlaps)
                     gapdates = "<br>".join(gapdates)
                     gapdays ="<br>".join(gapdays)
+                    overlapdates = "<br>".join(overlapdates)
+                    overlapdays = "<br>".join(overlapdays)
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
-                    errordict.update({meterid: {"gaps": gapdates, "gapdays": gapdays}})
+                    errordict.update(
+                        {
+                            meterid: {
+                                "gaps": gapdates,
+                                "gapdays": gapdays,
+                                "overlaps": overlapdates,
+                                "overlapdays": overlapdays,
+                            }
+                        }
+                    )
                 else:
                         st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
+
+                ####TODO - Add rows in the table for overlaps as well, exclude meters if they are empty. also add row if meter ends before current day and link to meter
         if haswatergaps == "Possible Issue" or waterlessthan12months == "Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['waterMeterAssociation']['meters']['meterId']:
                 date1=''
@@ -209,21 +235,27 @@ with select: # Add select tab #############################################
 with errors:
     if building:
         errordict=findgaps(filtered_df)
-        # Replace \n with HTML line breaks (string cells only)
         df = (
             pd.DataFrame.from_dict(errordict, orient="index")
-            .rename(columns={"gaps": "Gap Dates", "gapdays": "Gap Duration"})
+            .rename(
+                columns={
+                    "gaps": "Gap Dates",
+                    "gapdays": "Gap Duration",
+                    "overlaps": "Overlap Dates",
+                    "overlapdays": "Overlap Duration",
+                }
+            )
             if errordict
-            else pd.DataFrame(columns=["Gap Dates", "Gap Duration"])
+            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration"])
         )
-        df.index.name = "Meter Number"
+        df = df.rename_axis("Meter Number").reset_index()
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         # finishedstring=" to ".join(datetupletest)
         # datelist=[finishedstring,finishedstring,finishedstring]
         # datelist = "\n".join(datelist)
         # Show as a static table
         if not df.empty:
-            st.markdown(df.to_html(escape=False, index=True), unsafe_allow_html=True)
+            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
         else:
             st.write("No errors returned for this building.")
     else:
