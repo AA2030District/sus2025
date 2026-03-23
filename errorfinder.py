@@ -118,7 +118,8 @@ def findgaps(selection):
                                 "gapdays": gapdays,
                                 "overlaps": overlapdates,
                                 "overlapdays": overlapdays,
-                                "Last Meter Data Date":failedenddate
+                                "Last Meter Data Date":failedenddate,
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/meter/usage/{espmid}#{meterid}"
                             }
                         }
                     )
@@ -254,12 +255,19 @@ with errors:
                     "gapdays": "Gap Duration",
                     "overlaps": "Overlap Dates",
                     "overlapdays": "Overlap Duration",
+                    "meterlink": "Meter Link",
                 }
             )
             if errordict
-            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration"])
+            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration", "Meter Link"])
         )
         df = df.rename_axis("Meter Number").reset_index()
+        if "Meter Link" in df.columns:
+            df["Meter Link"] = df["Meter Link"].map(
+                lambda x: f'<a href="{x}" target="_blank" rel="noopener noreferrer">Open</a>'
+                if isinstance(x, str) and x.strip()
+                else ""
+            )
         # datetupletest=("2025-11-30 00:00:00","2026-01-01 00:00:00")
         # finishedstring=" to ".join(datetupletest)
         # datelist=[finishedstring,finishedstring,finishedstring]
