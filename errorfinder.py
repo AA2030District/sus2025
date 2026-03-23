@@ -92,9 +92,7 @@ def findgaps(selection):
                     st.write("overlaps")
                     st.write(overlaps)
                     gapdates = "<br>".join(gapdates)
-
-
-                    
+                    gapdays ="<br>".join(gapdays)
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
                     errordict.update({meterid: {"gaps": gapdates, "gapdays": gapdays}})
