@@ -108,9 +108,21 @@ def findgaps(selection):
                     gapdays ="<br>".join(gapdays)
                     overlapdates = "<br>".join(overlapdates)
                     overlapdays = "<br>".join(overlapdays)
-                    failedenddate=""
-                    if df['endDate'].iloc[-1] < lastdayinyear:
-                        failedenddate=df['endDate'].iloc[-1].strftime("%Y-%m-%d")
+                    failedenddate = ""
+                    meter_info = dict_data2.get("meter", {})
+                    last_end_date = df["endDate"].dropna().max()
+                    inactive_date = pd.to_datetime(
+                        meter_info.get("inactiveDate"),
+                        format="%Y-%m-%d",
+                        errors="coerce",
+                    )
+                    comparison_date = inactive_date if pd.notna(inactive_date) else lastdayinyear
+                    if (
+                        meter_info.get("inUse") != "false"
+                        and pd.notna(last_end_date)
+                        and last_end_date < comparison_date
+                    ):
+                        failedenddate = last_end_date.strftime("%Y-%m-%d")
                     errordict.update(
                         {
                             meterid: {
