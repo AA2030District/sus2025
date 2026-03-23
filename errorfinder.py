@@ -178,6 +178,11 @@ def findgaps(selection):
                 else:
                     st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
+        errordict = {
+            meter_id: details
+            for meter_id, details in errordict.items()
+            if details != {}
+        }
         return errordict
 buildings_query = """
     ;WITH ranked AS (
