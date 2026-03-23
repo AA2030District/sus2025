@@ -97,7 +97,7 @@ def findgaps(selection):
                     
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
-                    errordict.update{meterid:{"gaps":gapdates,"gapdays":gapdays}}
+                    errordict.update({meterid: {"gaps": gapdates, "gapdays": gapdays}})
                 else:
                         st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
@@ -152,7 +152,6 @@ def findgaps(selection):
                 else:
                     st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
                     )
-        return errorlist
         return errordict
 buildings_query = """
     ;WITH ranked AS (
