@@ -110,7 +110,7 @@ def findgaps(selection):
                     overlapdays = "<br>".join(overlapdays)
                     failedenddate=""
                     if df['endDate'].iloc[-1] < lastdayinyear:
-                        failedenddate=df['endDate'].iloc[-1]
+                        failedenddate=df['endDate'].iloc[-1].strftime("%Y-%m-%d")
                     errordict.update(
                         {
                             meterid: {
