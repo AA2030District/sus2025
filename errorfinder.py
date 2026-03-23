@@ -124,6 +124,7 @@ def findgaps(selection):
                     errordict.update(
                         {
                             meterid: {
+                                "name": dict_data2['meter']['name'],
                                 "gaps": gapdates,
                                 "gapdays": gapdays,
                                 "overlaps": overlapdates,
@@ -196,7 +197,7 @@ def findgaps(selection):
             and any(
                 pd.notna(value) and str(value).strip() != ""
                 for key, value in details.items()
-                if key != "meterlink"
+                if key not in {"meterlink", "name"}
             )
         }
         return errordict
@@ -262,6 +263,7 @@ with errors:
             pd.DataFrame.from_dict(errordict, orient="index")
             .rename(
                 columns={
+                    "name": "Name",
                     "gaps": "Gap Dates",
                     "gapdays": "Gap Duration",
                     "overlaps": "Overlap Dates",
@@ -270,7 +272,7 @@ with errors:
                 }
             )
             if errordict
-            else pd.DataFrame(columns=["Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration", "Meter Link"])
+            else pd.DataFrame(columns=["Name", "Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration", "Meter Link"])
         )
         df = df.rename_axis("Meter Number").reset_index()
         if "Meter Link" in df.columns:
