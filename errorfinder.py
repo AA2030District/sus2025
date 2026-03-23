@@ -18,7 +18,23 @@ pw=st.secrets["espm"]['password']
 
 st.set_page_config(layout="wide")
 require_login() 
-session = requests.session()
+session = requests.Session()
+retry_strategy = Retry(
+    total=3,
+    connect=3,
+    read=3,
+    backoff_factor=0.3,
+    status_forcelist=(429, 500, 502, 503, 504),
+    allowed_methods=frozenset(["GET"]),
+    raise_on_status=False,
+)
+adapter = HTTPAdapter(
+    max_retries=retry_strategy,
+    pool_connections=20,
+    pool_maxsize=20,
+)
+session.mount("https://", adapter)
+session.mount("http://", adapter)
 st.title("Error Finder")
 
 conn = st.connection("sql", type="sql")
