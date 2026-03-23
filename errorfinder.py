@@ -181,7 +181,11 @@ def findgaps(selection):
         errordict = {
             meter_id: details
             for meter_id, details in errordict.items()
-            if details != {}
+            if isinstance(details, dict)
+            and any(
+                pd.notna(value) and str(value).strip() != ""
+                for value in details.values()
+            )
         }
         return errordict
 buildings_query = """
