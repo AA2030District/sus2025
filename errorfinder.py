@@ -197,7 +197,8 @@ def findgaps(selection):
             if isinstance(details, dict)
             and any(
                 pd.notna(value) and str(value).strip() != ""
-                for value in details.values()
+                for key, value in details.items()
+                if key != "meterlink"
             )
         }
         return errordict
