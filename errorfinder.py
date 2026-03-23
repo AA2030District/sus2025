@@ -119,6 +119,7 @@ def findgaps(selection):
                     if not meter_consumption:
                         continue
                     df = pd.json_normalize(meter_consumption)
+                    st.write(df)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
                     df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
                     df = df.sort_values("startDate").reset_index(drop=True)
