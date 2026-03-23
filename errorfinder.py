@@ -84,16 +84,21 @@ def findgaps(selection):
                     gapdays=[]
                     overlaps = df[df["gap_days"] <= -1]
                     for row in gaps.itertuples(index=False):
-                        st.write(row)
-                        gapdates.append((row.gap_start_endDate,row.gap_end_startDate))
-                        gapdays.append(row.gap_days)
+                        gapstartenddate=row.gap_start_endDate.split()[0]   
+                        gapendstartdate=row.gap_end_startDate.split()[0]  
+                        gapdates.append(f"{gapstartenddate} to {gapendstartdate}")
+                        gapdays.append(f"{row.gap_days}<br>")
                     st.write("overlaps")
                     st.write(overlaps)
+
+                    gapdates=gapdates.join("<br>")
+                    st.write(gapdates)
+                    st.write(gapdays)
 
                     
                     if df['endDate'].iloc[-1] < lastdayinyear:
                         st.write(f"data ends at {df['endDate'].iloc[-1]},mark as inactive or add more data!")
-                    # errordict{meterid}={"gaps":}
+                    # errordict{meterid:{"gaps":gapdates,"gapdays":gapdays,"overlaps":overlapdates,"overlapdays":overlapdays}
                 else:
                         st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
