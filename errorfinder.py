@@ -353,7 +353,7 @@ with select: # Add select tab #############################################
 
     df = buildings_df
     replace_text = "Not Checked (See Possible Issues)"
-    df = df.replace(replace_text, "No Meter Selected")
+    df = df.replace(replace_text, "No Meters in Property Metrics")
 
 
     event = st.dataframe(
