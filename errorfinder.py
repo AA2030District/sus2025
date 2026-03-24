@@ -15,7 +15,6 @@ import streamlit.components.v1 as components
 
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
-
 st.set_page_config(layout="wide")
 require_login() 
 session = requests.Session()
@@ -38,6 +37,7 @@ session.mount("http://", adapter)
 st.title("Error Finder")
 
 conn = st.connection("sql", type="sql")
+
 
 def _build_meter_df(meter_dict):
     df = (
@@ -379,6 +379,9 @@ with errors:
         errordicts = findgaps(filtered_df)
         energy_df = _build_meter_df(errordicts.get("energy", {}))
         water_df = _build_meter_df(errordicts.get("water", {}))
+        replace_text = "Not Checked (See Possible Issues)"
+        energy_df = energy_df.replace(replace_text, "No Meter Selected")
+        water_df = water_df.replace(replace_text, "No Meter Selected")
 
         if not energy_df.empty:
             st.subheader("Energy Meter Errors")
