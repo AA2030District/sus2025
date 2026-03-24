@@ -352,6 +352,9 @@ with select: # Add select tab #############################################
     st.header("All Buildings With Errors")
 
     df = buildings_df
+    replace_text = "Not Checked (See Possible Issues)"
+    df = df.replace(replace_text, "No Meter Selected")
+
 
     event = st.dataframe(
         df,
@@ -379,9 +382,6 @@ with errors:
         errordicts = findgaps(filtered_df)
         energy_df = _build_meter_df(errordicts.get("energy", {}))
         water_df = _build_meter_df(errordicts.get("water", {}))
-        replace_text = "Not Checked (See Possible Issues)"
-        energy_df = energy_df.replace(replace_text, "No Meter Selected")
-        water_df = water_df.replace(replace_text, "No Meter Selected")
 
         if not energy_df.empty:
             st.subheader("Energy Meter Errors")
