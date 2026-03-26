@@ -167,6 +167,7 @@ if not this_building_df.empty:
         st.write("Use Type:")
         st.write("Square Footage:")
         st.write("Most Current Year:")
+        st.write("Energy Cost Intensity:")
         st.write("All recorded years:")
         st.write("Energy Star Score:")
         st.write("Energy Star Rank (Use Type):")
@@ -183,6 +184,17 @@ if not this_building_df.empty:
         
         # Year
         st.write(str(most_current_year))
+        
+        # Energy cost intensity formatting
+        current_eci = most_current_data.get('energycostintensity')
+        if pd.notna(current_eci):
+            try:
+                st.write(f"${float(current_eci):,.2f}/ft^2")
+            except (TypeError, ValueError):
+                st.write(str(current_eci))
+        else:
+            st.write('Not Available')
+
         available_years = this_building_df['datayear'].tolist()
         st.write(str(available_years))
         
