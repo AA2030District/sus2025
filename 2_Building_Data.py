@@ -183,8 +183,8 @@ if not this_building_df.empty:
     else:
         eci_display = 'Not Available'
 
-    available_years = this_building_df['datayear'].tolist()
-    years_display = str(available_years)
+    available_years = [str(y) for y in this_building_df['datayear'].tolist() if pd.notna(y)]
+    years_display = ", ".join(available_years) if available_years else "Not Available"
 
     current_score = most_current_data.get('energystarscore')
     if pd.notna(current_score):
@@ -205,13 +205,13 @@ if not this_building_df.empty:
         ("Square Footage", sqft_display),
         ("Most Current Year", year_display),
         ("Energy Cost Per Square Foot", eci_display),
-        ("All Recorded Years", years_display),
         ("Energy Star Score", energy_star_score_display),
         ("Energy Star Rank (Use Type)", energy_star_rank_display),
     ]
     with st.container(horizontal=True, gap="small"):
         for label, value in metric_items:
             st.metric(label, value, width="content")
+    st.metric("All Recorded Years", years_display, width="content")
 
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
