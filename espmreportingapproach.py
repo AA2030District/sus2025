@@ -220,7 +220,7 @@ def generatereport(espmidlist):
         time.sleep(100)
         max_download_attempts = 6
         response = None
-        dict_data = None
+        dict_data = None    
         for attempt in range(1, max_download_attempts + 1):
             response = session.get(
                 "https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",
@@ -264,7 +264,7 @@ def errordbhandling():
         cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 0")
         cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
         connection.commit()
-        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1; WITH DROP_EXISTING=ON")
+        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1 WITH (DROP_EXISTING = ON);")
         connection.commit()
     except pyodbc.Error as e:
         print(e)
@@ -761,7 +761,6 @@ try:
     cursor.execute(create_temp_table_query)
     print("Temp table '#ESPMFIRSTTESTTEMP' created successfully.")
     report_output = generatereport(idlist)
-    print(report_output)
 
     ##create a list of tuples of all building data
     buildingdatalist=[]
