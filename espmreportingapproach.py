@@ -215,6 +215,7 @@ def generatereport(espmidlist):
     ).content
     response =session.post("https://portfoliomanager.energystar.gov/ws/reports/21829340/generate",auth=HTTPBasicAuth(user, pw),timeout=60)
     results=response.content
+    print(results)
     try:
         time.sleep(100)
         max_download_attempts = 6
@@ -289,15 +290,15 @@ try:
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui DECIMAL(18,2),
-        weathernormalizedsiteeui DECIMAL(18,2),
+        siteeui FLOAT,
+        weathernormalizedsiteeui FLOAT,
         energystarscore INT,
         medianscore INT,
         wui NVARCHAR(100),
-        energycost DECIMAL(18,2),
-        energycostintensity DECIMAL(18,2),
-        energycostelectricitygridpurchase DECIMAL(18,2),
-        energycostnaturalgas DECIMAL(18,2),
+        energycost FLOAT,
+        energycostintensity FLOAT,
+        energycostelectricitygridpurchase FLOAT,
+        energycostnaturalgas FLOAT,
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -398,7 +399,7 @@ try:
                     print(f"Warning: Could not add 'yearbuilt' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui FLOAT")
                 print("Added 'siteeui' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -408,7 +409,7 @@ try:
                     print(f"Warning: Could not add 'siteeui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui FLOAT")
                 print("Added 'weathernormalizedsiteeui' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -448,7 +449,7 @@ try:
                     print(f"Warning: Could not add 'wui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycost DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycost FLOAT")
                 print("Added 'energycost' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -458,7 +459,7 @@ try:
                     print(f"Warning: Could not add 'energycost' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostintensity DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostintensity FLOAT")
                 print("Added 'energycostintensity' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -468,7 +469,7 @@ try:
                     print(f"Warning: Could not add 'energycostintensity' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostelectricitygridpurchase DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostelectricitygridpurchase FLOAT")
                 print("Added 'energycostelectricitygridpurchase' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -478,7 +479,7 @@ try:
                     print(f"Warning: Could not add 'energycostelectricitygridpurchase' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostnaturalgas DECIMAL(18,2)")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostnaturalgas FLOAT")
                 print("Added 'energycostnaturalgas' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -563,7 +564,7 @@ try:
                 cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'siteeui') IS NULL
                 BEGIN
-                    ALTER TABLE ESPMFIRSTTEST ADD siteeui DECIMAL(18,2) NULL;
+                    ALTER TABLE ESPMFIRSTTEST ADD siteeui FLOAT NULL;
                 END
                 ELSE IF EXISTS (
                     SELECT 1
@@ -571,55 +572,55 @@ try:
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
                     WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
                       AND c.name = 'siteeui'
-                      AND t.name NOT IN ('decimal', 'numeric')
+                      AND t.name <> 'float'
                 )
                 BEGIN
                     UPDATE ESPMFIRSTTEST
                     SET siteeui = NULL
                     WHERE siteeui IS NOT NULL
-                      AND TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
+                      AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
 
                     UPDATE ESPMFIRSTTEST
-                    SET siteeui = TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
+                    SET siteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
                     WHERE siteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui DECIMAL(18,2) NULL;
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui FLOAT NULL;
                 END
                 """)
-                print("Ensured 'siteeui' column exists as DECIMAL(18,2) on ESPMFIRSTTEST table.")
+                print("Ensured 'siteeui' column exists as FLOAT on ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
-                print(f"Warning: Could not ensure 'siteeui' DECIMAL(18,2) column: {e}")
+                print(f"Warning: Could not ensure 'siteeui' FLOAT column: {e}")
 
             try:
                 cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'weathernormalizedsiteeui') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui DECIMAL(18,2) NULL;
+                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui FLOAT NULL;
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
                     WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
                       AND c.name = 'weathernormalizedsiteeui'
-                      AND t.name NOT IN ('decimal', 'numeric')
+                      AND t.name <> 'float'
                 )
                 BEGIN
                     UPDATE ESPMFIRSTTEST
                     SET weathernormalizedsiteeui = NULL
                     WHERE weathernormalizedsiteeui IS NOT NULL
-                      AND TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
+                      AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
 
                     UPDATE ESPMFIRSTTEST
-                    SET weathernormalizedsiteeui = TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
+                    SET weathernormalizedsiteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
                     WHERE weathernormalizedsiteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui DECIMAL(18,2) NULL;
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui FLOAT NULL;
                 END
                 """)
-                print("Ensured 'weathernormalizedsiteeui' column exists as DECIMAL(18,2) on ESPMFIRSTTEST table.")
+                print("Ensured 'weathernormalizedsiteeui' column exists as FLOAT on ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
-                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' DECIMAL(18,2) column: {e}")
+                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' FLOAT column: {e}")
 
             try:
                 cursor.execute("""
@@ -740,15 +741,15 @@ try:
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui DECIMAL(18,2),
-        weathernormalizedsiteeui DECIMAL(18,2),
+        siteeui FLOAT,
+        weathernormalizedsiteeui FLOAT,
         energystarscore INT,
         medianscore INT,
         wui NVARCHAR(100),
-        energycost DECIMAL(18,2),
-        energycostintensity DECIMAL(18,2),
-        energycostelectricitygridpurchase DECIMAL(18,2),
-        energycostnaturalgas DECIMAL(18,2),
+        energycost FLOAT,
+        energycostintensity FLOAT,
+        energycostelectricitygridpurchase FLOAT,
+        energycostnaturalgas FLOAT,
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -760,6 +761,7 @@ try:
     cursor.execute(create_temp_table_query)
     print("Temp table '#ESPMFIRSTTESTTEMP' created successfully.")
     report_output = generatereport(idlist)
+    print(report_output)
 
     ##create a list of tuples of all building data
     buildingdatalist=[]
@@ -864,15 +866,15 @@ try:
                     ISNULL(target.numbuildings, '') <> ISNULL(source.numbuildings, '') OR
                     ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
                     ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '') OR
-                    ISNULL(target.siteeui, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.siteeui, CAST(-1.00 AS DECIMAL(18,2))) OR
-                    ISNULL(target.weathernormalizedsiteeui, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.weathernormalizedsiteeui, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.siteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.siteeui, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.energystarscore, -1) <> ISNULL(source.energystarscore, -1) OR
                     ISNULL(target.medianscore, -1) <> ISNULL(source.medianscore, -1) OR
                     ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
-                    ISNULL(target.energycost, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycost, CAST(-1.00 AS DECIMAL(18,2))) OR
-                    ISNULL(target.energycostintensity, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostintensity, CAST(-1.00 AS DECIMAL(18,2))) OR
-                    ISNULL(target.energycostelectricitygridpurchase, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostelectricitygridpurchase, CAST(-1.00 AS DECIMAL(18,2))) OR
-                    ISNULL(target.energycostnaturalgas, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostnaturalgas, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.energycost, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycost, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostintensity, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostintensity, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostnaturalgas, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostnaturalgas, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
                     ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
                     ISNULL(target.energylessthan12months, '') <> ISNULL(source.energylessthan12months, '') OR
