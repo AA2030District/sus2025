@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -232,58 +232,11 @@ WHERE [usetype] = '{use_type}'
 GROUP BY [usetype]
 """
 use_type_df = conn.query(usetype_averages_query)
+avg_eui = use_type_df['avg_eui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_eui'].iloc[0]) else None
+
 
 baseline_eui_value = site_eui_benchmark.get(use_type, None)
 
-# Check if EUI column has any non-null values
-if not this_building_df.empty and this_building_df['siteeui'].notna().any():
-    # Get the most current EUI value (still need to pick one, but won't display year)
-    most_current_data = this_building_df.iloc[0]
-    most_current_eui = most_current_data['siteeui']
-    
-    # Get the average EUI for the use type
-    avg_eui = use_type_df['avg_eui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_eui'].iloc[0]) else None
-    building_count = use_type_df['building_count'].iloc[0] if not use_type_df.empty else 0
-    
-    # Prepare data for the bar chart - NO YEARS
-    chart_data = {
-        'Category': [],
-        'EUI Value': []
-    }
-    
-    # Add baseline EUI (if available)
-    if baseline_eui_value is not None:
-        chart_data['Category'].append(f'Baseline')
-        chart_data['EUI Value'].append(baseline_eui_value)
-    
-    # Add current building's EUI
-    chart_data['Category'].append('This Building')
-    chart_data['EUI Value'].append(most_current_eui)
-    
-    # Add average EUI for same use type (if available)
-    if avg_eui is not None:
-        chart_data['Category'].append(f'Average {use_type}')
-        chart_data['EUI Value'].append(avg_eui)
-    
-    # Create DataFrame for plotting
-    chart_df = pd.DataFrame(chart_data)
-    
-    fig = px.bar(
-        chart_df,
-        x='Category',
-        y='EUI Value',
-        title=f'EUI Comparison: {building_info["buildingname"]}',
-        labels={'EUI Value': 'Site EUI (kBtu/ft²)', 'Category': ''},
-        height=500,
-        color='Category',
-        category_orders={'Category': chart_data['Category']},
-        color_discrete_sequence=px.colors.qualitative.Set2
-    )
-    
-    # Display the chart
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("No EUI data available")
 
 # Check if WUI column has any non-null values  
 if not this_building_df.empty and this_building_df['wui'].notna().any():
@@ -317,7 +270,7 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
         x='Category',
         y='WUI Value',
         title=f'WUI Comparison: {building_info["buildingname"]}',
-        labels={'WUI Value': 'WUI (gal/ft²)', 'Category': ''},
+        labels={'WUI Value': 'WUI (gal/ftÂ²)', 'Category': ''},
         height=500,
         color='Category',
         color_discrete_sequence=px.colors.qualitative.Set2
@@ -342,7 +295,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
             x='datayear',
             y='siteeui',
             title=f'EUI by Year: {building_info["buildingname"]}',
-            labels={'siteeui': 'Site EUI (kBtu/ft²)', 'datayear': 'Year'},
+            labels={'siteeui': 'Site EUI (kBtu/ftÂ²)', 'datayear': 'Year'},
             height=500,
             text='siteeui',
             category_orders={"datayear": sorted(eui_by_year_df['datayear'].unique())}
@@ -361,6 +314,15 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
                 line_color='red',
                 annotation_text=f'National Median Baseline EUI: {baseline_eui_value:.1f}',
                 annotation_position='top right'
+            )
+
+        if avg_eui is not None:
+            fig_eui.add_hline(
+                y=avg_eui,
+                line_dash='dot',
+                line_color='green',
+                annotation_text=f'Average {use_type} EUI: {avg_eui:.1f}',
+                annotation_position='top left'
             )
         
         st.plotly_chart(fig_eui, use_container_width=True)
@@ -383,7 +345,7 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             x='datayear',
             y='wui',
             title=f'WUI by Year: {building_info["buildingname"]}',
-            labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Year'},
+            labels={'wui': 'WUI (gal/ftÂ²)', 'datayear': 'Year'},
             height=500,
             text='wui',
             category_orders={"datayear": sorted(wui_by_year_df['datayear'].unique())}  
