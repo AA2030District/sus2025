@@ -293,7 +293,6 @@ try:
         siteeui FLOAT,
         weathernormalizedsiteeui FLOAT,
         energystarscore INT,
-        medianscore INT,
         wui NVARCHAR(100),
         energycost FLOAT,
         energycostintensity FLOAT,
@@ -427,16 +426,6 @@ try:
                     pass  # Column already exists
                 else:
                     print(f"Warning: Could not add 'energystarscore' column: {e}")
-
-            try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD medianscore INT")
-                print("Added 'medianscore' column to ESPMFIRSTTEST table.")
-                connection.commit()
-            except pyodbc.Error as e:
-                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
-                    pass  # Column already exists
-                else:
-                    print(f"Warning: Could not add 'medianscore' column: {e}")
 
             try:
                 cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD wui NVARCHAR(100)")
@@ -654,33 +643,29 @@ try:
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'medianscore') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD medianscore INT NULL;
-                ELSE IF EXISTS (
-                    SELECT 1
-                    FROM sys.columns c
-                    JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
-                      AND c.name = 'medianscore'
-                      AND t.name <> 'int'
-                )
+                IF COL_LENGTH('ESPMFIRSTTEST', 'medianscore') IS NOT NULL
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
-                    SET medianscore = NULL
-                    WHERE medianscore IS NOT NULL
-                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(medianscore, ',', ''))) IS NULL;
+                    DECLARE @drop_default_sql NVARCHAR(MAX) = N'';
 
-                    UPDATE ESPMFIRSTTEST
-                    SET medianscore = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(medianscore, ',', '')))
-                    WHERE medianscore IS NOT NULL;
+                    SELECT @drop_default_sql = @drop_default_sql +
+                        N'ALTER TABLE ESPMFIRSTTEST DROP CONSTRAINT [' + dc.name + N'];'
+                    FROM sys.default_constraints dc
+                    INNER JOIN sys.columns c
+                        ON dc.parent_object_id = c.object_id
+                       AND dc.parent_column_id = c.column_id
+                    WHERE dc.parent_object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'medianscore';
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN medianscore INT NULL;
+                    IF LEN(@drop_default_sql) > 0
+                        EXEC sp_executesql @drop_default_sql;
+
+                    ALTER TABLE ESPMFIRSTTEST DROP COLUMN medianscore;
                 END
                 """)
-                print("Ensured 'medianscore' column exists as INT on ESPMFIRSTTEST table.")
+                print("Removed 'medianscore' column from ESPMFIRSTTEST table (if it existed).")
                 connection.commit()
             except pyodbc.Error as e:
-                print(f"Warning: Could not ensure 'medianscore' INT column: {e}")
+                print(f"Warning: Could not remove 'medianscore' column: {e}")
 
             try:
                 cursor.execute("""
@@ -744,7 +729,6 @@ try:
         siteeui FLOAT,
         weathernormalizedsiteeui FLOAT,
         energystarscore INT,
-        medianscore INT,
         wui NVARCHAR(100),
         energycost FLOAT,
         energycostintensity FLOAT,
@@ -783,7 +767,6 @@ try:
         energylessthan12months=None
         waterlessthan12months=None
         energystarscore=None
-        medianscore=None
         weathernormalizedsiteeui=None
         energycost=None
         energycostintensity=None
@@ -834,8 +817,6 @@ try:
                     weathernormalizedsiteeui = None
             elif metric_name =='score':
                 energystarscore = metric_value
-            elif metric_name =='medianScore':
-                medianscore = safe_to_int(metric_value)
             elif metric_name == 'energyCost':
                 energycost = safe_to_decimal(metric_value)
             elif metric_name == 'energyCostIntensity':
@@ -844,10 +825,10 @@ try:
                 energycostelectricitygridpurchase = safe_to_decimal(metric_value)
             elif metric_name == 'energyCostNaturalGas':
                 energycostnaturalgas = safe_to_decimal(metric_value)
-        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,weathernormalizedsiteeui,energystarscore,medianscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
@@ -868,7 +849,6 @@ try:
                     ISNULL(target.siteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.siteeui, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.energystarscore, -1) <> ISNULL(source.energystarscore, -1) OR
-                    ISNULL(target.medianscore, -1) <> ISNULL(source.medianscore, -1) OR
                     ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
                     ISNULL(target.energycost, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycost, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.energycostintensity, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostintensity, CAST(-1.0 AS FLOAT)) OR
@@ -891,7 +871,6 @@ try:
                         siteeui = source.siteeui,
                         weathernormalizedsiteeui = source.weathernormalizedsiteeui,
                         energystarscore = source.energystarscore,
-                        medianscore = source.medianscore,
                         wui = source.wui,
                         energycost = source.energycost,
                         energycostintensity = source.energycostintensity,
@@ -903,8 +882,8 @@ try:
                         waterlessthan12months = source.waterlessthan12months,
                         pmparentid = source.pmparentid
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.medianscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
         cursor.execute(merge_query)
