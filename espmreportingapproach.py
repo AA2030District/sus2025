@@ -35,6 +35,21 @@ driver= '{ODBC Driver 18 for SQL Server}'
 connection = None
 cursor = None
 
+def safe_to_int(value):
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    text = str(value).replace(",", "").strip()
+    if text == "" or text.lower() in {"none", "nan"}:
+        return None
+    try:
+        return int(float(text))
+    except (TypeError, ValueError):
+        return None
+
 def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
     """
     Attempt to connect to SQL Server with retry logic for timeouts.
@@ -167,7 +182,7 @@ def generatereport(espmidlist):
         "                    <year>2021</year>\n"
         "               </fromPeriodEndingDate>\n"
         "               <toPeriodEndingDate>\n"
-        "                     <month>11</month>\n"
+        "                     <month>12</month>\n"
         f"                    <year>{currentyear}</year>\n"
         "               </toPeriodEndingDate>\n"
         "                <interval>YEARLY</interval>\n"
@@ -190,9 +205,30 @@ def generatereport(espmidlist):
     print(results)
     try:
         time.sleep(100)
-        response =session.get("https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",auth=HTTPBasicAuth(user, pw),timeout=60)
-        results=response.content
-        dict_data = xmltodict.parse(response.content)
+        max_download_attempts = 6
+        response = None
+        dict_data = None
+        for attempt in range(1, max_download_attempts + 1):
+            response = session.get(
+                "https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",
+                auth=HTTPBasicAuth(user, pw),
+                timeout=60,
+            )
+            if response.status_code == 200 and response.content:
+                results = response.content
+                dict_data = xmltodict.parse(response.content)
+                break
+            print(
+                f"Report download attempt {attempt}/{max_download_attempts} "
+                f"returned HTTP {response.status_code}. Retrying..."
+            )
+            if attempt < max_download_attempts:
+                time.sleep(20)
+        if dict_data is None:
+            raise RuntimeError(
+                f"Failed to download report after {max_download_attempts} attempts. "
+                f"Last HTTP status: {response.status_code if response else 'N/A'}"
+            )
     except Exception as e:
         print("The following exception occured, "+e)
     return dict_data
@@ -234,14 +270,17 @@ try:
     CREATE TABLE ESPMFIRSTTEST (
         espmid INT NOT NULL,
         buildingname NVARCHAR(100),
-        sqfootage NVARCHAR(100),
+        sqfootage INT,
         address NVARCHAR(100),
         occupancy NVARCHAR(100),
         numbuildings NVARCHAR(100),
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui NVARCHAR(100),
+        siteeui INT,
+        weathernormalizedsiteeui INT,
+        energystarscore INT,
+        medianscore INT,
         wui NVARCHAR(100),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
@@ -343,14 +382,44 @@ try:
                     print(f"Warning: Could not add 'yearbuilt' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui NVARCHAR(100)")
-                print("Added 'avgsiteeui' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui INT")
+                print("Added 'siteeui' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
-                    print(f"Warning: Could not add 'avgsiteeui' column: {e}")
+                    print(f"Warning: Could not add 'siteeui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui INT")
+                print("Added 'weathernormalizedsiteeui' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'weathernormalizedsiteeui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energystarscore INT")
+                print("Added 'energystarscore' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energystarscore' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD medianscore INT")
+                print("Added 'medianscore' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'medianscore' column: {e}")
 
             try:
                 cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD wui NVARCHAR(100)")
@@ -404,6 +473,160 @@ try:
             
             try:
                 cursor.execute("""
+                IF COL_LENGTH('ESPMFIRSTTEST', 'sqfootage') IS NULL
+                BEGIN
+                    ALTER TABLE ESPMFIRSTTEST ADD sqfootage INT NULL;
+                END
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'sqfootage'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE ESPMFIRSTTEST
+                    SET sqfootage = NULL
+                    WHERE sqfootage IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', ''))) IS NULL;
+
+                    UPDATE ESPMFIRSTTEST
+                    SET sqfootage = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', '')))
+                    WHERE sqfootage IS NOT NULL;
+
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN sqfootage INT NULL;
+                END
+                """)
+                print("Ensured 'sqfootage' column exists as INT on ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                print(f"Warning: Could not ensure 'sqfootage' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('ESPMFIRSTTEST', 'siteeui') IS NULL
+                BEGIN
+                    ALTER TABLE ESPMFIRSTTEST ADD siteeui INT NULL;
+                END
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'siteeui'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE ESPMFIRSTTEST
+                    SET siteeui = NULL
+                    WHERE siteeui IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
+
+                    UPDATE ESPMFIRSTTEST
+                    SET siteeui = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
+                    WHERE siteeui IS NOT NULL;
+
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui INT NULL;
+                END
+                """)
+                print("Ensured 'siteeui' column exists as INT on ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                print(f"Warning: Could not ensure 'siteeui' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('ESPMFIRSTTEST', 'weathernormalizedsiteeui') IS NULL
+                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui INT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'weathernormalizedsiteeui'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE ESPMFIRSTTEST
+                    SET weathernormalizedsiteeui = NULL
+                    WHERE weathernormalizedsiteeui IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
+
+                    UPDATE ESPMFIRSTTEST
+                    SET weathernormalizedsiteeui = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
+                    WHERE weathernormalizedsiteeui IS NOT NULL;
+
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui INT NULL;
+                END
+                """)
+                print("Ensured 'weathernormalizedsiteeui' column exists as INT on ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('ESPMFIRSTTEST', 'energystarscore') IS NULL
+                    ALTER TABLE ESPMFIRSTTEST ADD energystarscore INT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'energystarscore'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE ESPMFIRSTTEST
+                    SET energystarscore = NULL
+                    WHERE energystarscore IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', ''))) IS NULL;
+
+                    UPDATE ESPMFIRSTTEST
+                    SET energystarscore = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', '')))
+                    WHERE energystarscore IS NOT NULL;
+
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN energystarscore INT NULL;
+                END
+                """)
+                print("Ensured 'energystarscore' column exists as INT on ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                print(f"Warning: Could not ensure 'energystarscore' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('ESPMFIRSTTEST', 'medianscore') IS NULL
+                    ALTER TABLE ESPMFIRSTTEST ADD medianscore INT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                      AND c.name = 'medianscore'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE ESPMFIRSTTEST
+                    SET medianscore = NULL
+                    WHERE medianscore IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(medianscore, ',', ''))) IS NULL;
+
+                    UPDATE ESPMFIRSTTEST
+                    SET medianscore = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(medianscore, ',', '')))
+                    WHERE medianscore IS NOT NULL;
+
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN medianscore INT NULL;
+                END
+                """)
+                print("Ensured 'medianscore' column exists as INT on ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                print(f"Warning: Could not ensure 'medianscore' INT column: {e}")
+
+            try:
+                cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'pmparentid') IS NULL
                 BEGIN
                     ALTER TABLE ESPMFIRSTTEST ADD pmparentid INT NULL;
@@ -454,14 +677,17 @@ try:
     CREATE TABLE #ESPMFIRSTTESTTEMP (
         espmid INT NOT NULL,
         buildingname NVARCHAR(100),
-        sqfootage NVARCHAR(100),
+        sqfootage INT,
         address NVARCHAR(100),
         occupancy NVARCHAR(100),
         numbuildings NVARCHAR(100),
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui NVARCHAR(100),
+        siteeui INT,
+        weathernormalizedsiteeui INT,
+        energystarscore INT,
+        medianscore INT,
         wui NVARCHAR(100),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
@@ -496,6 +722,9 @@ try:
         pmparentid = None
         energylessthan12months=None
         waterlessthan12months=None
+        energystarscore=None
+        medianscore=None
+        weathernormalizedsiteeui=None
 
         datayear = building.get('@year')
         for buildingvalue in building['metric']:
@@ -506,7 +735,7 @@ try:
             if metric_name == 'propertyName':
                 buildingname = metric_value
             elif metric_name == 'propGrossFloorArea':
-                sqfootage = metric_value
+                sqfootage = safe_to_int(metric_value)
             elif metric_name == 'address1':
                 address = metric_value
             elif metric_name == 'numberOfBuildings':
@@ -516,7 +745,7 @@ try:
             elif metric_name == 'yearBuilt':
                 yearbuilt = metric_value
             elif metric_name == 'siteIntensity':
-                siteeui = metric_value
+                siteeui = safe_to_int(metric_value)
             elif metric_name == 'alertEnergyMeterGap':
                 hasenergygaps = metric_value
             elif metric_name == 'waterIntensityTotal':
@@ -534,10 +763,16 @@ try:
                     pmparentid = None
             elif metric_name == 'occupancy':
                 occupancy = metric_value
-        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,wui,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+            elif metric_name =='siteIntensityWN':
+                weathernormalizedsiteeui = safe_to_int(metric_value)
+            elif metric_name =='score':
+                energystarscore = safe_to_int(metric_value)
+            elif metric_name =='medianscore':
+                medianscore = safe_to_int(metric_value)
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,weathernormalizedsiteeui,energystarscore,medianscore,wui,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
@@ -549,13 +784,16 @@ try:
                    AND target.datayear = source.datayear
                 WHEN MATCHED AND (
                     ISNULL(target.buildingname, '') <> ISNULL(source.buildingname, '') OR
-                    ISNULL(target.sqfootage, '') <> ISNULL(source.sqfootage, '') OR
+                    ISNULL(target.sqfootage, -1) <> ISNULL(source.sqfootage, -1) OR
                     ISNULL(target.address, '') <> ISNULL(source.address, '') OR
                     ISNULL(target.occupancy, '') <> ISNULL(source.occupancy, '') OR
                     ISNULL(target.numbuildings, '') <> ISNULL(source.numbuildings, '') OR
                     ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
                     ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '') OR
-                    ISNULL(target.siteeui, '') <> ISNULL(source.siteeui, '') OR
+                    ISNULL(target.siteeui, -1) <> ISNULL(source.siteeui, -1) OR
+                    ISNULL(target.weathernormalizedsiteeui, -1) <> ISNULL(source.weathernormalizedsiteeui, -1) OR
+                    ISNULL(target.energystarscore, -1) <> ISNULL(source.energystarscore, -1) OR
+                    ISNULL(target.medianscore, -1) <> ISNULL(source.medianscore, -1) OR
                     ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
                     ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
                     ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
@@ -572,6 +810,9 @@ try:
                         usetype = source.usetype,
                         yearbuilt = source.yearbuilt,
                         siteeui = source.siteeui,
+                        weathernormalizedsiteeui = source.weathernormalizedsiteeui,
+                        energystarscore = source.energystarscore,
+                        medianscore = source.medianscore,
                         wui = source.wui,
                         hasenergygaps = source.hasenergygaps,
                         haswatergaps = source.haswatergaps,
@@ -579,8 +820,8 @@ try:
                         waterlessthan12months = source.waterlessthan12months,
                         pmparentid = source.pmparentid
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.wui, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.medianscore, source.wui, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
         cursor.execute(merge_query)

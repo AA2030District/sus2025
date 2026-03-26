@@ -124,6 +124,41 @@ if not this_building_df.empty:
     
     # Get the use type (should be consistent across years, but we'll get it from most current)
     use_type = most_current_data['usetype']
+    use_type_sql = str(use_type).replace("'", "''") if pd.notna(use_type) else None
+    selected_espmid_sql = str(selected_espmid).replace("'", "''")
+    most_current_year_sql = str(most_current_year).replace("'", "''")
+
+    energy_star_rank_df = pd.DataFrame()
+    if use_type_sql:
+        energy_star_rank_query = f"""
+            WITH use_type_scores AS (
+                SELECT
+                    [espmid],
+                    TRY_CAST([energystarscore] AS FLOAT) AS energystarscore
+                FROM [dbo].[ESPMFIRSTTEST]
+                WHERE [usetype] = '{use_type_sql}'
+                  AND [datayear] = '{most_current_year_sql}'
+                  AND TRY_CAST([energystarscore] AS FLOAT) IS NOT NULL
+            ),
+            ranked_scores AS (
+                SELECT
+                    [espmid],
+                    energystarscore,
+                    DENSE_RANK() OVER (ORDER BY energystarscore DESC) AS score_rank,
+                    COUNT(*) OVER () AS scored_buildings
+                FROM use_type_scores
+            )
+            SELECT
+                energystarscore,
+                score_rank,
+                scored_buildings
+            FROM ranked_scores
+            WHERE [espmid] = '{selected_espmid_sql}'
+        """
+        try:
+            energy_star_rank_df = conn.query(energy_star_rank_query)
+        except Exception:
+            energy_star_rank_df = pd.DataFrame()
     
     
     # Display the data in columns
@@ -133,6 +168,8 @@ if not this_building_df.empty:
         st.write("Square Footage:")
         st.write("Most Current Year:")
         st.write("All recorded years:")
+        st.write("Energy Star Score:")
+        st.write("Energy Star Rank (Use Type):")
     with col2:
         st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
         
@@ -148,6 +185,20 @@ if not this_building_df.empty:
         st.write(str(most_current_year))
         available_years = this_building_df['datayear'].tolist()
         st.write(str(available_years))
+        
+        # Energy Star score + rank in same use type/year
+        current_score = most_current_data.get('energystarscore')
+        if pd.notna(current_score):
+            st.write(f"{int(float(current_score))}")
+        else:
+            st.write('Not Available')
+
+        if not energy_star_rank_df.empty:
+            rank_value = energy_star_rank_df.iloc[0]['score_rank']
+            scored_buildings = energy_star_rank_df.iloc[0]['scored_buildings']
+            st.write(f"{int(rank_value)} of {int(scored_buildings)}")
+        else:
+            st.write('Not Available')
 
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
@@ -295,7 +346,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
                 y=baseline_eui_value,
                 line_dash='dash',
                 line_color='red',
-                annotation_text=f'Baseline EUI: {baseline_eui_value:.1f}',
+                annotation_text=f'National Median Baseline EUI: {baseline_eui_value:.1f}',
                 annotation_position='top right'
             )
         
