@@ -25,7 +25,17 @@ base_list_query = """
         AND energylessthan12months = 'OK' 
         AND waterlessthan12months='OK' 
         AND siteeui is not NULL 
-        AND datayear = 2025
+        AND TRY_CONVERT(INT, datayear) = (
+            SELECT MAX(TRY_CONVERT(INT, datayear))
+            FROM [dbo].[ESPMFIRSTTEST]
+            WHERE ISNULL(pmparentid,espmid)=espmid 
+                AND hasenergygaps = 'OK' 
+                AND haswatergaps = 'OK' 
+                AND energylessthan12months = 'OK' 
+                AND waterlessthan12months='OK' 
+                AND siteeui is not NULL
+                AND TRY_CONVERT(INT, datayear) IS NOT NULL
+        )
 """ 
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
