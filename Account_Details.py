@@ -25,17 +25,7 @@ base_list_query = """
         AND energylessthan12months = 'OK' 
         AND waterlessthan12months='OK' 
         AND siteeui is not NULL 
-        AND TRY_CONVERT(INT, datayear) = (
-            SELECT MAX(TRY_CONVERT(INT, datayear))
-            FROM [dbo].[ESPMFIRSTTEST]
-            WHERE ISNULL(pmparentid,espmid)=espmid 
-                AND hasenergygaps = 'OK' 
-                AND haswatergaps = 'OK' 
-                AND energylessthan12months = 'OK' 
-                AND waterlessthan12months='OK' 
-                AND siteeui is not NULL
-                AND TRY_CONVERT(INT, datayear) IS NOT NULL
-        )
+        AND datayear = 2025
 """ 
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
@@ -67,17 +57,17 @@ def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
 
     latitudes = []
     longitudes = []
-    
+
     # Add progress bar
     progress_bar = st.progress(0)
     status_text = st.empty()
-    
+
     for i, full_address in enumerate(address_list):
         status_text.text(f"Geocoding {i+1}/{len(address_list)}: {full_address}")
         progress_bar.progress((i + 1) / len(address_list))
-        
+
         full_address_with_state = f"{full_address}, {state}"
-        
+
         try:
             location = geocode_with_delay(full_address_with_state)
             if location:
@@ -90,10 +80,10 @@ def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
             latitudes.append(None)
             longitudes.append(None)
             time.sleep(1)
-    
+
     progress_bar.empty()
     status_text.empty()
-    
+
     return pd.DataFrame({
         'address': address_list,
         'lat': latitudes,
@@ -121,20 +111,20 @@ if st.button("Generate Building Map", type="primary"):
     # Geocode addresses only when button is pressed
     with st.spinner("Geocoding Ann Arbor addresses..."):
         df_geocoded = geocode_addresses(address_list, city="Ann Arbor", state="MI")
-    
+
     # Store in session state so it persists
     st.session_state['geocoded_df'] = df_geocoded
 
 # Check if we have geocoded data in session state
 if 'geocoded_df' in st.session_state:
     df_geocoded = st.session_state['geocoded_df']
-    
+
     # Create map with GREEN dots using pydeck
     if not df_geocoded.empty:
         # Calculate map center
         center_lat = df_geocoded['lat'].mean()
         center_lon = df_geocoded['lon'].mean()
-        
+
         # Create a layer with green circles
         layer = pdk.Layer(
             'ScatterplotLayer',
@@ -144,7 +134,7 @@ if 'geocoded_df' in st.session_state:
             get_radius=100,  # Radius in meters
             pickable=True
         )
-        
+
         # Set the viewport location
         view_state = pdk.ViewState(
             latitude=center_lat,
@@ -152,12 +142,12 @@ if 'geocoded_df' in st.session_state:
             zoom=12,
             pitch=0
         )
-        
+
         # Create the deck
         r = pdk.Deck(
             layers=[layer],
             initial_view_state=view_state,
             tooltip={"text": "{address}"}
         )
-        
+
         st.pydeck_chart(r)
