@@ -390,7 +390,6 @@ if not electric_df.empty:
         name='Electric Usage',
         fill='tozeroy'
     ))
-    
     fig_electric.update_layout(
         title="Electric Meter Data Over Time",
         xaxis_title="Date",
