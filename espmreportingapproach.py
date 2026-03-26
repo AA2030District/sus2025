@@ -215,7 +215,6 @@ def generatereport(espmidlist):
     ).content
     response =session.post("https://portfoliomanager.energystar.gov/ws/reports/21829340/generate",auth=HTTPBasicAuth(user, pw),timeout=60)
     results=response.content
-    print(results)
     try:
         time.sleep(100)
         max_download_attempts = 6
@@ -761,7 +760,6 @@ try:
     cursor.execute(create_temp_table_query)
     print("Temp table '#ESPMFIRSTTESTTEMP' created successfully.")
     report_output = generatereport(idlist)
-    print(report_output)
 
     ##create a list of tuples of all building data
     buildingdatalist=[]
