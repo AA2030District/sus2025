@@ -643,32 +643,6 @@ try:
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'medianscore') IS NOT NULL
-                BEGIN
-                    DECLARE @drop_default_sql NVARCHAR(MAX) = N'';
-
-                    SELECT @drop_default_sql = @drop_default_sql +
-                        N'ALTER TABLE ESPMFIRSTTEST DROP CONSTRAINT [' + dc.name + N'];'
-                    FROM sys.default_constraints dc
-                    INNER JOIN sys.columns c
-                        ON dc.parent_object_id = c.object_id
-                       AND dc.parent_column_id = c.column_id
-                    WHERE dc.parent_object_id = OBJECT_ID('ESPMFIRSTTEST')
-                      AND c.name = 'medianscore';
-
-                    IF LEN(@drop_default_sql) > 0
-                        EXEC sp_executesql @drop_default_sql;
-
-                    ALTER TABLE ESPMFIRSTTEST DROP COLUMN medianscore;
-                END
-                """)
-                print("Removed 'medianscore' column from ESPMFIRSTTEST table (if it existed).")
-                connection.commit()
-            except pyodbc.Error as e:
-                print(f"Warning: Could not remove 'medianscore' column: {e}")
-
-            try:
-                cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'pmparentid') IS NULL
                 BEGIN
                     ALTER TABLE ESPMFIRSTTEST ADD pmparentid INT NULL;

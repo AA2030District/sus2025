@@ -18,8 +18,7 @@ conn = st.connection("sql", type="sql")
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """
     SELECT e.*
-    FROM [dbo].[ESPMFIRSTTEST] e
-      AND TRY_CONVERT(INT, e.datayear) = (
+    FROM [dbo].[ESPMFIRSTTEST] e WHERE TRY_CONVERT(INT, e.datayear) = (
           SELECT MAX(TRY_CONVERT(INT, e2.datayear))
           FROM [dbo].[ESPMFIRSTTEST] e2
           WHERE e2.espmid = e.espmid
