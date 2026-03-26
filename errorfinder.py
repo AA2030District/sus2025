@@ -178,7 +178,7 @@ def findgaps(selection):
                                 "overlaps": overlapdates,
                                 "overlapdays": overlapdays,
                                 "Last Meter Data Date":failedenddate,
-                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#energy
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#energy"
                             }
                         }
                     )
