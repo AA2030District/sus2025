@@ -6,6 +6,8 @@ from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import pandas as pd
 import time
 import pydeck as pdk
+from st_aggrid import AgGrid, GridOptionsBuilder
+
 
 require_login()
 st.title("Account Details")
@@ -25,41 +27,21 @@ base_list_query = """
         AND datayear = 2025
 """ 
 base_list = conn.query(base_list_query)
-st.subheader("Account Details")
-filter_columns = st.multiselect(
-    "Select columns to filter",
-    options=base_list.columns.tolist(),
+gb = GridOptionsBuilder.from_dataframe(base_list)
+gb.configure_default_column(
+    filter=True,
+    floatingFilter=True,
+    sortable=True,
+    resizable=True,
 )
+grid_options = gb.build()
 
-filtered_base_list = base_list.copy()
-for col in filter_columns:
-    if pd.api.types.is_numeric_dtype(filtered_base_list[col]):
-        col_min = float(filtered_base_list[col].min())
-        col_max = float(filtered_base_list[col].max())
-        selected_min, selected_max = st.slider(
-            f"{col} range",
-            min_value=col_min,
-            max_value=col_max,
-            value=(col_min, col_max),
-            key=f"filter_range_{col}",
-        )
-        filtered_base_list = filtered_base_list[
-            filtered_base_list[col].between(selected_min, selected_max)
-        ]
-    else:
-        contains_value = st.text_input(
-            f"{col} contains",
-            key=f"filter_text_{col}",
-        )
-        if contains_value:
-            filtered_base_list = filtered_base_list[
-                filtered_base_list[col]
-                .astype(str)
-                .str.contains(contains_value, case=False, na=False)
-            ]
-
-st.caption(f"Showing {len(filtered_base_list)} of {len(base_list)} rows")
-st.dataframe(filtered_base_list, height=1000)
+AgGrid(
+    base_list,
+    gridOptions=grid_options,
+    height=1000,
+    fit_columns_on_grid_load=False,
+)
 
 # Function to Geocode Addresses
 @st.cache_data(ttl=86400)
