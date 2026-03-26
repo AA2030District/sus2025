@@ -50,6 +50,19 @@ def safe_to_int(value):
     except (TypeError, ValueError):
         return None
 
+def safe_to_decimal(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return round(float(value), 2)
+    text = str(value).replace(",", "").strip()
+    if text == "" or text.lower() in {"none", "nan"}:
+        return None
+    try:
+        return round(float(text), 2)
+    except (TypeError, ValueError):
+        return None
+
 def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
     """
     Attempt to connect to SQL Server with retry logic for timeouts.
@@ -223,14 +236,14 @@ def generatereport(espmidlist):
                 f"returned HTTP {response.status_code}. Retrying..."
             )
             if attempt < max_download_attempts:
-                time.sleep(20)
+                time.sleep(100)
         if dict_data is None:
             raise RuntimeError(
                 f"Failed to download report after {max_download_attempts} attempts. "
                 f"Last HTTP status: {response.status_code if response else 'N/A'}"
             )
     except Exception as e:
-        print("The following exception occured, "+e)
+        print(f"The following exception occurred: {e}")
     return dict_data
 
 def errordbhandling():
@@ -277,11 +290,15 @@ try:
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui INT,
-        weathernormalizedsiteeui INT,
+        siteeui DECIMAL(18,2),
+        weathernormalizedsiteeui DECIMAL(18,2),
         energystarscore INT,
         medianscore INT,
         wui NVARCHAR(100),
+        energycost DECIMAL(18,2),
+        energycostintensity DECIMAL(18,2),
+        energycostelectricitygridpurchase DECIMAL(18,2),
+        energycostnaturalgas DECIMAL(18,2),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -382,7 +399,7 @@ try:
                     print(f"Warning: Could not add 'yearbuilt' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui INT")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui DECIMAL(18,2)")
                 print("Added 'siteeui' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -392,7 +409,7 @@ try:
                     print(f"Warning: Could not add 'siteeui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui INT")
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui DECIMAL(18,2)")
                 print("Added 'weathernormalizedsiteeui' column to ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
@@ -430,6 +447,46 @@ try:
                     pass  # Column already exists
                 else:
                     print(f"Warning: Could not add 'wui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycost DECIMAL(18,2)")
+                print("Added 'energycost' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycost' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostintensity DECIMAL(18,2)")
+                print("Added 'energycostintensity' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostintensity' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostelectricitygridpurchase DECIMAL(18,2)")
+                print("Added 'energycostelectricitygridpurchase' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostelectricitygridpurchase' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostnaturalgas DECIMAL(18,2)")
+                print("Added 'energycostnaturalgas' column to ESPMFIRSTTEST table.")
+                connection.commit()
+            except pyodbc.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostnaturalgas' column: {e}")
             
             try:
                 cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD hasenergygaps NVARCHAR(100)")
@@ -507,7 +564,7 @@ try:
                 cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'siteeui') IS NULL
                 BEGIN
-                    ALTER TABLE ESPMFIRSTTEST ADD siteeui INT NULL;
+                    ALTER TABLE ESPMFIRSTTEST ADD siteeui DECIMAL(18,2) NULL;
                 END
                 ELSE IF EXISTS (
                     SELECT 1
@@ -515,55 +572,55 @@ try:
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
                     WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
                       AND c.name = 'siteeui'
-                      AND t.name <> 'int'
+                      AND t.name NOT IN ('decimal', 'numeric')
                 )
                 BEGIN
                     UPDATE ESPMFIRSTTEST
                     SET siteeui = NULL
                     WHERE siteeui IS NOT NULL
-                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
+                      AND TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
 
                     UPDATE ESPMFIRSTTEST
-                    SET siteeui = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
+                    SET siteeui = TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
                     WHERE siteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui INT NULL;
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui DECIMAL(18,2) NULL;
                 END
                 """)
-                print("Ensured 'siteeui' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'siteeui' column exists as DECIMAL(18,2) on ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
-                print(f"Warning: Could not ensure 'siteeui' INT column: {e}")
+                print(f"Warning: Could not ensure 'siteeui' DECIMAL(18,2) column: {e}")
 
             try:
                 cursor.execute("""
                 IF COL_LENGTH('ESPMFIRSTTEST', 'weathernormalizedsiteeui') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui INT NULL;
+                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui DECIMAL(18,2) NULL;
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
                     WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
                       AND c.name = 'weathernormalizedsiteeui'
-                      AND t.name <> 'int'
+                      AND t.name NOT IN ('decimal', 'numeric')
                 )
                 BEGIN
                     UPDATE ESPMFIRSTTEST
                     SET weathernormalizedsiteeui = NULL
                     WHERE weathernormalizedsiteeui IS NOT NULL
-                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
+                      AND TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
 
                     UPDATE ESPMFIRSTTEST
-                    SET weathernormalizedsiteeui = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
+                    SET weathernormalizedsiteeui = TRY_CONVERT(DECIMAL(18,2), TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
                     WHERE weathernormalizedsiteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui INT NULL;
+                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui DECIMAL(18,2) NULL;
                 END
                 """)
-                print("Ensured 'weathernormalizedsiteeui' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'weathernormalizedsiteeui' column exists as DECIMAL(18,2) on ESPMFIRSTTEST table.")
                 connection.commit()
             except pyodbc.Error as e:
-                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' INT column: {e}")
+                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' DECIMAL(18,2) column: {e}")
 
             try:
                 cursor.execute("""
@@ -684,11 +741,15 @@ try:
         usetype NVARCHAR(100),
         datayear NVARCHAR(100) NOT NULL,
         yearbuilt NVARCHAR(100),
-        siteeui INT,
-        weathernormalizedsiteeui INT,
+        siteeui DECIMAL(18,2),
+        weathernormalizedsiteeui DECIMAL(18,2),
         energystarscore INT,
         medianscore INT,
         wui NVARCHAR(100),
+        energycost DECIMAL(18,2),
+        energycostintensity DECIMAL(18,2),
+        energycostelectricitygridpurchase DECIMAL(18,2),
+        energycostnaturalgas DECIMAL(18,2),
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -725,6 +786,10 @@ try:
         energystarscore=None
         medianscore=None
         weathernormalizedsiteeui=None
+        energycost=None
+        energycostintensity=None
+        energycostelectricitygridpurchase=None
+        energycostnaturalgas=None
 
         datayear = building.get('@year')
         for buildingvalue in building['metric']:
@@ -745,7 +810,7 @@ try:
             elif metric_name == 'yearBuilt':
                 yearbuilt = metric_value
             elif metric_name == 'siteIntensity':
-                siteeui = safe_to_int(metric_value)
+                siteeui = safe_to_decimal(metric_value)
             elif metric_name == 'alertEnergyMeterGap':
                 hasenergygaps = metric_value
             elif metric_name == 'waterIntensityTotal':
@@ -764,15 +829,26 @@ try:
             elif metric_name == 'occupancy':
                 occupancy = metric_value
             elif metric_name =='siteIntensityWN':
-                weathernormalizedsiteeui = safe_to_int(metric_value)
+                 try:
+                    weathernormalizedsiteeui = float(metric_value) if metric_value is not None else None
+                 except (TypeError, ValueError):
+                    weathernormalizedsiteeui = None
             elif metric_name =='score':
-                energystarscore = safe_to_int(metric_value)
-            elif metric_name =='medianscore':
+                energystarscore = metric_value
+            elif metric_name =='medianScore':
                 medianscore = safe_to_int(metric_value)
-        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,weathernormalizedsiteeui,energystarscore,medianscore,wui,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+            elif metric_name == 'energyCost':
+                energycost = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostIntensity':
+                energycostintensity = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostElectricityGridPurchase':
+                energycostelectricitygridpurchase = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostNaturalGas':
+                energycostnaturalgas = safe_to_decimal(metric_value)
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,datayear,siteeui,weathernormalizedsiteeui,energystarscore,medianscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, datayear, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
@@ -790,11 +866,15 @@ try:
                     ISNULL(target.numbuildings, '') <> ISNULL(source.numbuildings, '') OR
                     ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
                     ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '') OR
-                    ISNULL(target.siteeui, -1) <> ISNULL(source.siteeui, -1) OR
-                    ISNULL(target.weathernormalizedsiteeui, -1) <> ISNULL(source.weathernormalizedsiteeui, -1) OR
+                    ISNULL(target.siteeui, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.siteeui, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.weathernormalizedsiteeui, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.weathernormalizedsiteeui, CAST(-1.00 AS DECIMAL(18,2))) OR
                     ISNULL(target.energystarscore, -1) <> ISNULL(source.energystarscore, -1) OR
                     ISNULL(target.medianscore, -1) <> ISNULL(source.medianscore, -1) OR
                     ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
+                    ISNULL(target.energycost, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycost, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.energycostintensity, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostintensity, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.energycostelectricitygridpurchase, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostelectricitygridpurchase, CAST(-1.00 AS DECIMAL(18,2))) OR
+                    ISNULL(target.energycostnaturalgas, CAST(-1.00 AS DECIMAL(18,2))) <> ISNULL(source.energycostnaturalgas, CAST(-1.00 AS DECIMAL(18,2))) OR
                     ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
                     ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
                     ISNULL(target.energylessthan12months, '') <> ISNULL(source.energylessthan12months, '') OR
@@ -814,14 +894,18 @@ try:
                         energystarscore = source.energystarscore,
                         medianscore = source.medianscore,
                         wui = source.wui,
+                        energycost = source.energycost,
+                        energycostintensity = source.energycostintensity,
+                        energycostelectricitygridpurchase = source.energycostelectricitygridpurchase,
+                        energycostnaturalgas = source.energycostnaturalgas,
                         hasenergygaps = source.hasenergygaps,
                         haswatergaps = source.haswatergaps,
                         energylessthan12months = source.energylessthan12months,
                         waterlessthan12months = source.waterlessthan12months,
                         pmparentid = source.pmparentid
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.medianscore, source.wui, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, siteeui, weathernormalizedsiteeui, energystarscore, medianscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.medianscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
         cursor.execute(merge_query)
