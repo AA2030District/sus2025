@@ -11,7 +11,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 
 st.set_page_config(layout="wide")
 require_login()
-st.title("Account Details")
+st.title("Washtenaw 2030 District Full Building Portfolio")
 
 conn = st.connection("sql", type="sql")
 
