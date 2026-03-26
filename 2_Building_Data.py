@@ -167,7 +167,7 @@ if not this_building_df.empty:
         st.write("Use Type:")
         st.write("Square Footage:")
         st.write("Most Current Year:")
-        st.write("Energy Cost Intensity:")
+        st.write("Energy Cost Per Square Foot:")
         st.write("All recorded years:")
         st.write("Energy Star Score:")
         st.write("Energy Star Rank (Use Type):")

@@ -17,15 +17,15 @@ conn = st.connection("sql", type="sql")
 
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """
-    SELECT *
-    FROM [dbo].[ESPMFIRSTTEST]
-    WHERE ISNULL(pmparentid,espmid)=espmid 
-        AND hasenergygaps = 'OK' 
-        AND haswatergaps = 'OK' 
-        AND energylessthan12months = 'OK' 
-        AND waterlessthan12months='OK' 
-        AND siteeui is not NULL 
-        AND datayear = 2025
+    SELECT e.*
+    FROM [dbo].[ESPMFIRSTTEST] e
+    WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND TRY_CONVERT(INT, e.datayear) = (
+          SELECT MAX(TRY_CONVERT(INT, e2.datayear))
+          FROM [dbo].[ESPMFIRSTTEST] e2
+          WHERE e2.espmid = e.espmid
+            AND TRY_CONVERT(INT, e2.datayear) IS NOT NULL
+      )
 """ 
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
@@ -92,16 +92,16 @@ def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
 
 
 query = """
-    SELECT DISTINCT [address]
-    FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [datayear] = 2024
-        AND [address] IS NOT NULL
-        AND ISNULL(pmparentid,espmid)=espmid 
-        AND hasenergygaps = 'OK' 
-        AND haswatergaps = 'OK' 
-        AND energylessthan12months = 'OK' 
-        AND waterlessthan12months='OK' 
-        AND siteeui is not NULL
+    SELECT DISTINCT e.[address]
+    FROM [dbo].[ESPMFIRSTTEST] e
+    WHERE e.[address] IS NOT NULL
+      AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND TRY_CONVERT(INT, e.datayear) = (
+          SELECT MAX(TRY_CONVERT(INT, e2.datayear))
+          FROM [dbo].[ESPMFIRSTTEST] e2
+          WHERE e2.espmid = e.espmid
+            AND TRY_CONVERT(INT, e2.datayear) IS NOT NULL
+      )
 """
 df_addresses = conn.query(query)
 address_list = df_addresses['address'].tolist()
