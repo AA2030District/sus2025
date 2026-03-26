@@ -199,18 +199,19 @@ if not this_building_df.empty:
     else:
         energy_star_rank_display = 'Not Available'
 
-    # Display the data in metrics
-    with st.container(horizontal=True, gap="medium"):
-        cols = st.columns(2, gap="medium", width=300)
-    with cols[0]:
-        st.metric("Use Type", use_type_display)
-        st.metric("Square Footage", sqft_display)
-        st.metric("Most Current Year", year_display)
-        st.metric("Energy Cost Per Square Foot", eci_display)
-    with cols[1]:
-        st.metric("All Recorded Years", years_display)
-        st.metric("Energy Star Score", energy_star_score_display)
-        st.metric("Energy Star Rank (Use Type)", energy_star_rank_display)
+    # Display summary metrics in a single horizontal row
+    metric_items = [
+        ("Use Type", use_type_display),
+        ("Square Footage", sqft_display),
+        ("Most Current Year", year_display),
+        ("Energy Cost Per Square Foot", eci_display),
+        ("All Recorded Years", years_display),
+        ("Energy Star Score", energy_star_score_display),
+        ("Energy Star Rank (Use Type)", energy_star_rank_display),
+    ]
+    metric_cols = st.columns(len(metric_items), gap="small")
+    for col, (label, value) in zip(metric_cols, metric_items):
+        col.metric(label, value)
 
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
