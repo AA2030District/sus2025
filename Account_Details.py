@@ -19,8 +19,7 @@ conn = st.connection("sql", type="sql")
 base_list_query = """
     SELECT e.*
     FROM [dbo].[ESPMFIRSTTEST] e
-    WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-      AND TRY_CONVERT(INT, e.datayear) = (
+    TRY_CONVERT(INT, e.datayear) = (
           SELECT MAX(TRY_CONVERT(INT, e2.datayear))
           FROM [dbo].[ESPMFIRSTTEST] e2
           WHERE e2.espmid = e.espmid
