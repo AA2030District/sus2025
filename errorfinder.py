@@ -178,14 +178,14 @@ def findgaps(selection):
                                 "overlaps": overlapdates,
                                 "overlapdays": overlapdays,
                                 "Last Meter Data Date":failedenddate,
-                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/meter/usage/{espmid}#{meterid}"
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#energy
                             }
                         }
                     )
                 else:
                         st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
                     )
-
+        
         if haswatergaps == "Possible Issue" or waterlessthan12months == "Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['waterMeterAssociation']['meters']['meterId']:
                 date2=datetime(int(datayear),1,1)
@@ -275,7 +275,7 @@ def findgaps(selection):
                                 "overlaps": overlapdates,
                                 "overlapdays": overlapdays,
                                 "Last Meter Data Date":failedenddate,
-                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/meter/usage/{espmid}#{meterid}"
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#water"
                             }
                         }
                     )
