@@ -10,27 +10,6 @@ require_login()
 
 st.title("Portfolio Analysis")
 conn = st.connection("sql", type="sql")
-
-portfolio_col_query = """
-SELECT TOP 1 COLUMN_NAME
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME = 'portfolios'
-  AND LOWER(COLUMN_NAME) LIKE '%portfolio%'
-ORDER BY
-  CASE
-    WHEN LOWER(COLUMN_NAME) IN ('portfolio', 'portfolio_name', 'portfolioname') THEN 0
-    ELSE 1
-  END,
-  COLUMN_NAME
-"""
-portfolio_col_df = conn.query(portfolio_col_query)
-if portfolio_col_df.empty:
-    st.error("No portfolio column found in the portfolios table.")
-    st.stop()
-portfolio_column = portfolio_col_df.iloc[0]["COLUMN_NAME"]
-
-
-
 new_query = f"""
 SELECT
     e.espmid,
@@ -39,7 +18,7 @@ SELECT
     TRY_CAST(e.datayear AS INT) AS datayear,
     TRY_CAST(e.sqfootage AS DECIMAL(10,2)) AS total_sqft,
     TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui,
-    CAST(p.[{portfolio_column}] AS NVARCHAR(255)) AS portfolio_name
+    CAST(p.portfolio AS NVARCHAR(255)) AS portfolio_name
 FROM espmfirsttest e
 INNER JOIN portfolios p
     ON e.espmid = p.espmid
