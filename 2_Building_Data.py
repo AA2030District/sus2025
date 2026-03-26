@@ -9,6 +9,7 @@ require_login()
 st.title("Building Energy Analysis")
 
 conn = st.connection("sql", type="sql")
+st.set_page_config(layout="wide")
 
 # Conversion factors
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU
@@ -161,56 +162,55 @@ if not this_building_df.empty:
             energy_star_rank_df = pd.DataFrame()
     
     
-    # Display the data in columns
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write("Use Type:")
-        st.write("Square Footage:")
-        st.write("Most Current Year:")
-        st.write("Energy Cost Per Square Foot:")
-        st.write("All recorded years:")
-        st.write("Energy Star Score:")
-        st.write("Energy Star Rank (Use Type):")
-    with col2:
-        st.write(str(use_type) if pd.notna(use_type) else 'Not Available')
-        
-        # Square footage formatting
-        if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
-            st.write(f"{float(most_current_data['sqfootage']):,.0f}")
-        elif pd.notna(most_current_data['sqfootage']):
-            st.write(str(most_current_data['sqfootage']))
-        else:
-            st.write('Not Available')
-        
-        # Year
-        st.write(str(most_current_year))
-        
-        # Energy cost intensity formatting
-        current_eci = most_current_data.get('energycostintensity')
-        if pd.notna(current_eci):
-            try:
-                st.write(f"${float(current_eci):,.2f}/ft^2")
-            except (TypeError, ValueError):
-                st.write(str(current_eci))
-        else:
-            st.write('Not Available')
+    # Prepare display values for summary metrics
+    use_type_display = str(use_type) if pd.notna(use_type) else 'Not Available'
 
-        available_years = this_building_df['datayear'].tolist()
-        st.write(str(available_years))
-        
-        # Energy Star score + rank in same use type/year
-        current_score = most_current_data.get('energystarscore')
-        if pd.notna(current_score):
-            st.write(f"{int(float(current_score))}")
-        else:
-            st.write('Not Available')
+    if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
+        sqft_display = f"{float(most_current_data['sqfootage']):,.0f}"
+    elif pd.notna(most_current_data['sqfootage']):
+        sqft_display = str(most_current_data['sqfootage'])
+    else:
+        sqft_display = 'Not Available'
 
-        if not energy_star_rank_df.empty:
-            rank_value = energy_star_rank_df.iloc[0]['score_rank']
-            scored_buildings = energy_star_rank_df.iloc[0]['scored_buildings']
-            st.write(f"{int(rank_value)} of {int(scored_buildings)}")
-        else:
-            st.write('Not Available')
+    year_display = str(most_current_year)
+
+    current_eci = most_current_data.get('energycostintensity')
+    if pd.notna(current_eci):
+        try:
+            eci_display = f"${float(current_eci):,.2f}/ft^2"
+        except (TypeError, ValueError):
+            eci_display = str(current_eci)
+    else:
+        eci_display = 'Not Available'
+
+    available_years = this_building_df['datayear'].tolist()
+    years_display = str(available_years)
+
+    current_score = most_current_data.get('energystarscore')
+    if pd.notna(current_score):
+        energy_star_score_display = f"{int(float(current_score))}"
+    else:
+        energy_star_score_display = 'Not Available'
+
+    if not energy_star_rank_df.empty:
+        rank_value = energy_star_rank_df.iloc[0]['score_rank']
+        scored_buildings = energy_star_rank_df.iloc[0]['scored_buildings']
+        energy_star_rank_display = f"{int(rank_value)} of {int(scored_buildings)}"
+    else:
+        energy_star_rank_display = 'Not Available'
+
+    # Display the data in metrics
+    with st.container(horizontal=True, gap="medium"):
+        cols = st.columns(2, gap="medium", width=300)
+    with cols[0]:
+        st.metric("Use Type", use_type_display)
+        st.metric("Square Footage", sqft_display)
+        st.metric("Most Current Year", year_display)
+        st.metric("Energy Cost Per Square Foot", eci_display)
+    with cols[1]:
+        st.metric("All Recorded Years", years_display)
+        st.metric("Energy Star Score", energy_star_score_display)
+        st.metric("Energy Star Rank (Use Type)", energy_star_rank_display)
 
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
