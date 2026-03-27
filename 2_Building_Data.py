@@ -195,7 +195,7 @@ if not this_building_df.empty:
     if not energy_star_rank_df.empty:
         rank_value = energy_star_rank_df.iloc[0]['score_rank']
         scored_buildings = energy_star_rank_df.iloc[0]['scored_buildings']
-        energy_star_rank_display = f"{int(rank_value)} of {int(scored_buildings)}"
+        energy_star_rank_display = f"{int(rank_value)} best of {int(scored_buildings)}"
     else:
         energy_star_rank_display = 'Not Available'
 
