@@ -364,9 +364,6 @@ electric_df = get_meter_data('electric', selected_espmid, 'Electric')
 gas_df = get_meter_data('naturalgas', selected_espmid, 'Natural Gas')
 solar_df = get_meter_data('solar', selected_espmid, 'Solar')
 
-# Combine all data for display
-all_meter_data = pd.concat([electric_df, gas_df, solar_df], ignore_index=True)
-
 # 3. Pie chart creation
 pie_energy_metrics = {
     "electric_usage": 0,
@@ -379,22 +376,6 @@ pie_energy_metrics = {
 if not electric_df.empty:
     electric_sorted = electric_df.sort_values('startdate')
     
-    fig_electric = go.Figure()
-    fig_electric.add_trace(go.Scatter(
-        x=electric_sorted['startdate'],
-        y=electric_sorted['usage'],
-        mode='lines',
-        line=dict(shape='hv'),
-        name='Electric Usage',
-        fill='tozeroy'
-    ))
-    fig_electric.update_layout(
-        title="Electric Meter Data Over Time",
-        xaxis_title="Date",
-        yaxis_title="Usage (kWh)",
-        height=400
-    )
-    st.plotly_chart(fig_electric, use_container_width=True)
 
     # For pie chart, add electric values of most current year
     electric_2025 = electric_sorted[electric_sorted['enddate'].dt.year == int(most_current_year)]
@@ -405,26 +386,6 @@ if not electric_df.empty:
 if not gas_df.empty:
     gas_sorted = gas_df.sort_values('startdate')
     
-    fig_gas = go.Figure()
-    fig_gas.add_trace(go.Scatter(
-        x=gas_sorted['startdate'],
-        y=gas_sorted['usage'],
-        mode='lines',
-        line=dict(shape='hv'),
-        name='Natural Gas Usage',
-        fill='tozeroy'
-    ))
-    
-    fig_gas.update_layout(
-        title="Natural Gas Meter Data Over Time",
-        xaxis_title="Date",
-        yaxis_title="Usage (therms/CCF)",
-        height=400
-    )
-    st.plotly_chart(fig_gas, use_container_width=True)
-
-    # For pie chart, add gas values of most current year
-    # CHECK IF CORRECT: MULTIPLY BY 100??
     gas_2025 = gas_sorted[gas_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['natural_gas_usage'] = gas_2025['usage'].sum() * 100
 
@@ -432,25 +393,7 @@ if not gas_df.empty:
 if not solar_df.empty:
     solar_sorted = solar_df.sort_values('startdate')
     
-    fig_solar = go.Figure()
-    fig_solar.add_trace(go.Scatter(
-        x=solar_sorted['startdate'],
-        y=solar_sorted['usage'],
-        mode='lines',
-        line=dict(shape='hv'),
-        name='Solar Generation',
-        fill='tozeroy'
-    ))
-    
-    fig_solar.update_layout(
-        title="Solar Meter Data Over Time",
-        xaxis_title="Date",
-        yaxis_title="Generation (kWh)",
-        height=400
-    )
-    st.plotly_chart(fig_solar, use_container_width=True)
-
-    # For pie chart, add solar values of most current year
+   
     solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['solar_usage'] = solar_2025['usage'].sum() * 3.412
     
