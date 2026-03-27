@@ -284,7 +284,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
                 y=avg_eui,
                 line_dash='dot',
                 line_color='green',
-                annotation_text=f'District-Wide Average {use_type} EUI: {avg_eui:.1f}',
+                annotation_text=f'Average District-Wide {use_type} EUI: {avg_eui:.1f}',
                 annotation_position='top left'
             )
         
