@@ -13,3 +13,4 @@ statsmodels>=0.14.0
 xmltodict
 datetime
 streamlit-aggrid>=0.3.4
+humanize
