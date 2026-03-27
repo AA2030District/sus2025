@@ -188,7 +188,7 @@ if not this_building_df.empty:
 
     current_score = most_current_data.get('energystarscore')
     if pd.notna(current_score):
-        energy_star_score_display = f"{int(float(current_score))}"
+        energy_star_score_display = f"{int(float(current_score))}/100"
     else:
         energy_star_score_display = 'Not Available'
 
