@@ -14,22 +14,6 @@ st.set_page_config(layout="wide")
 # Conversion factors
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU
 THERM_TO_KBTU = 100  # 1 therm = 100 kBTU (also ~1 CCF = 100 kBTU)
-GRAPH_TEXT_COLOR = "#111111"
-
-def apply_high_contrast_axes(fig):
-    fig.update_layout(
-        font=dict(color=GRAPH_TEXT_COLOR),
-        title_font=dict(color=GRAPH_TEXT_COLOR),
-        legend=dict(font=dict(color=GRAPH_TEXT_COLOR)),
-    )
-    fig.update_xaxes(
-        title_font=dict(color=GRAPH_TEXT_COLOR),
-        tickfont=dict(color=GRAPH_TEXT_COLOR)
-    )
-    fig.update_yaxes(
-        title_font=dict(color=GRAPH_TEXT_COLOR),
-        tickfont=dict(color=GRAPH_TEXT_COLOR)
-    )
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
@@ -291,7 +275,6 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
         color='Category',
         color_discrete_sequence=px.colors.qualitative.Set2
     )
-    apply_high_contrast_axes(fig)
     
     # Display the chart
     st.plotly_chart(fig, use_container_width=True)
@@ -341,7 +324,6 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
                 annotation_text=f'District-Wide Average {use_type} EUI: {avg_eui:.1f}',
                 annotation_position='top left'
             )
-        apply_high_contrast_axes(fig_eui)
         
         st.plotly_chart(fig_eui, use_container_width=True)
     else:
@@ -373,7 +355,6 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             texttemplate='%{text:.2f}', 
             textposition='outside'
         )
-        apply_high_contrast_axes(fig_wui)
         
         st.plotly_chart(fig_wui, use_container_width=True)
     else:
@@ -441,7 +422,6 @@ if not electric_df.empty:
         yaxis_title="Usage (kWh)",
         height=400
     )
-    apply_high_contrast_axes(fig_electric)
     st.plotly_chart(fig_electric, use_container_width=True)
 
     # For pie chart, add electric values of most current year
@@ -469,7 +449,6 @@ if not gas_df.empty:
         yaxis_title="Usage (therms/CCF)",
         height=400
     )
-    apply_high_contrast_axes(fig_gas)
     st.plotly_chart(fig_gas, use_container_width=True)
 
     # For pie chart, add gas values of most current year
@@ -497,7 +476,6 @@ if not solar_df.empty:
         yaxis_title="Generation (kWh)",
         height=400
     )
-    apply_high_contrast_axes(fig_solar)
     st.plotly_chart(fig_solar, use_container_width=True)
 
     # For pie chart, add solar values of most current year
@@ -530,14 +508,10 @@ if not pie_df.empty:
         textposition='outside',
         textinfo='percent+label',
         hoverinfo='label+percent+value',
-        hovertemplate='<b>%{label}</b><br>Usage: %{value:,.0f} kBtu<br>Percentage: %{percent}<extra></extra>',
-        textfont=dict(color=GRAPH_TEXT_COLOR)
+        hovertemplate='<b>%{label}</b><br>Usage: %{value:,.0f} kBtu<br>Percentage: %{percent}<extra></extra>'
     )
     fig_pie.update_layout(
-        margin=dict(l=50, r=50, t=80, b=50),
-        font=dict(color=GRAPH_TEXT_COLOR),
-        title_font=dict(color=GRAPH_TEXT_COLOR),
-        legend=dict(font=dict(color=GRAPH_TEXT_COLOR))
+        margin=dict(l=50, r=50, t=80, b=50)
     )
     
     st.plotly_chart(fig_pie, use_container_width=True)
