@@ -18,6 +18,11 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
 
+if st.button("Clear Streamlit Cache"):
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    st.rerun()
+
 conn = st.connection("sql", type="sql")
 
 # excluded espmid, 865 entries for total portfolio in

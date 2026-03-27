@@ -432,4 +432,3 @@ if not pie_df.empty:
 else:
     st.warning("No energy data available for 2025 to display pie chart")
 
-# 4. Combined meter data table
