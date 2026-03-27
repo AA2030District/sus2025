@@ -24,7 +24,10 @@ def require_login():
     if st.button("Login"):
         if username == VALID_USER and password == VALID_PASS:
             st.session_state.logged_in = True
-            st.rerun()  # or st.experimental_rerun on older versions
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.rerun()
+              # or st.experimental_rerun on older versions
         else:
             st.error("Incorrect username or password")
 
