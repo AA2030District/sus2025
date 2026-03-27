@@ -233,53 +233,10 @@ GROUP BY [usetype]
 """
 use_type_df = conn.query(usetype_averages_query)
 avg_eui = use_type_df['avg_eui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_eui'].iloc[0]) else None
+avg_wui = use_type_df['avg_wui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_wui'].iloc[0]) else None
 
 
 baseline_eui_value = site_eui_benchmark.get(use_type, None)
-
-
-# Check if WUI column has any non-null values  
-if not this_building_df.empty and this_building_df['wui'].notna().any():
-    # Get the most current WUI value
-    most_current_wui = this_building_df.iloc[0]['wui']
-    
-    # Get the average WUI for the use type
-    avg_wui = use_type_df['avg_wui'].iloc[0] if not use_type_df.empty and pd.notna(use_type_df['avg_wui'].iloc[0]) else None
-    building_count = use_type_df['building_count'].iloc[0] if not use_type_df.empty else 0
-    
-    # Prepare data for the bar chart
-    chart_data = {
-        'Category': [],
-        'WUI Value': []
-    }
-    
-    # Add current building's WUI
-    chart_data['Category'].append('This Building')
-    chart_data['WUI Value'].append(most_current_wui)
-    
-    # Add average WUI for same use type (if available)
-    if avg_wui is not None:
-        chart_data['Category'].append(f'Average {use_type}')
-        chart_data['WUI Value'].append(avg_wui)
-    
-    # Create DataFrame for plotting
-    chart_df = pd.DataFrame(chart_data)
-    
-    fig = px.bar(
-        chart_df,
-        x='Category',
-        y='WUI Value',
-        title=f'WUI Comparison: {building_info["buildingname"]}',
-        labels={'WUI Value': 'WUI (gal/ftÂ²)', 'Category': ''},
-        height=500,
-        color='Category',
-        color_discrete_sequence=px.colors.qualitative.Set2
-    )
-    
-    # Display the chart
-    st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("No WUI data available")
 
 
 # EUI bar chart by year
@@ -355,6 +312,15 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             texttemplate='%{text:.2f}', 
             textposition='outside'
         )
+
+        if avg_wui is not None:
+            fig_wui.add_hline(
+                y=avg_wui,
+                line_dash='dot',
+                line_color='green',
+                annotation_text=f'District-Wide Average {use_type} WUI: {avg_wui:.2f}',
+                annotation_position='top left'
+            )
         
         st.plotly_chart(fig_wui, use_container_width=True)
     else:
