@@ -341,12 +341,8 @@ ORDER BY espmid;
 
 buildings_df = conn.query(buildings_query)
 column_configuration = {
-    "Building Name": st.column_config.TextColumn(
-        "buildingname", help="The name of the user", max_chars=100, width="medium"
-    ),
-    "espmid": st.column_config.TextColumn(
-        "espmid", help="The name of the user", max_chars=100, width="medium"
-    ),
+    col: st.column_config.Column(col, width="content")
+    for col in buildings_df.columns
 }
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 if "selected_row_index" not in st.session_state:
@@ -363,7 +359,7 @@ with select: # Add select tab #############################################
 
     event = st.dataframe(
         df,
-        width="content",
+        width="stretch",
         column_config=column_configuration,
         hide_index=True,
         on_select="rerun",
