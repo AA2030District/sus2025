@@ -393,7 +393,6 @@ if not gas_df.empty:
 if not solar_df.empty:
     solar_sorted = solar_df.sort_values('startdate')
     
-   
     solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == int(most_current_year)]
     pie_energy_metrics['solar_usage'] = solar_2025['usage'].sum() * 3.412
     
@@ -434,24 +433,3 @@ else:
     st.warning("No energy data available for 2025 to display pie chart")
 
 # 4. Combined meter data table
-st.subheader("All Meter Data")
-if not all_meter_data.empty:
-    # Sort by date
-    all_meter_data = all_meter_data.sort_values('startdate')
-    
-    # Format dates for display
-    display_df = all_meter_data.copy()
-    display_df['startdate'] = display_df['startdate'].dt.strftime('%Y-%m-%d')
-    display_df['enddate'] = display_df['enddate'].dt.strftime('%Y-%m-%d')
-    
-    # Display columns
-    display_cols = ['energy_type', 'meterid', 'usage', 'startdate', 'enddate']
-    st.dataframe(display_df[display_cols], 
-                 use_container_width=True, 
-                 height=400)
-    
-    # Summary
-    st.write(f"**Total Records:** {len(all_meter_data)}")
-    
-else:
-    st.info("No meter data found for this building.")
