@@ -16,6 +16,11 @@ import streamlit.components.v1 as components
 user=st.secrets["espm"]['username']
 pw=st.secrets["espm"]['password']
 st.set_page_config(layout="wide")
+st.markdown("""
+<style>
+h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+</style>
+""", unsafe_allow_html=True)
 require_login() 
 session = requests.Session()
 retry_strategy = Retry(

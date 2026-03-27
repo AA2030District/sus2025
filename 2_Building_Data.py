@@ -11,6 +11,11 @@ st.title("Building Energy Analysis")
 
 conn = st.connection("sql", type="sql")
 st.set_page_config(layout="wide")
+st.markdown("""
+<style>
+h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+</style>
+""", unsafe_allow_html=True)
 
 # Conversion factors
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU

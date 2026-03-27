@@ -11,6 +11,11 @@ def require_login():
     if st.session_state.logged_in:
         return  # already logged in
 
+    st.markdown("""
+    <style>
+    h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+    </style>
+    """, unsafe_allow_html=True)
     st.title("Login")
 
     username = st.text_input("Username")
