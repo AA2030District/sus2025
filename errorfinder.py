@@ -363,6 +363,7 @@ with select: # Add select tab #############################################
 
     event = st.dataframe(
         df,
+        width="content",
         column_config=column_configuration,
         hide_index=True,
         on_select="rerun",
