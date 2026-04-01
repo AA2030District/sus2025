@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from auth_helper import require_login
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 st.set_page_config(layout="wide")
 st.markdown("""
