@@ -40,13 +40,19 @@ gb.configure_default_column(
     flex=1,
     minWidth=140,
 )
+gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=25)
 grid_options = gb.build()
 AgGrid(
     base_list,
     gridOptions=grid_options,
     height=1000,
+    theme="streamlit",
     use_container_width=True,
     fit_columns_on_grid_load=False,
+    update_mode="MODEL_CHANGED",
+    data_return_mode="FILTERED_AND_SORTED",
+    show_toolbar=True,
+    show_download_button=True,
     key="base_list_grid",
 )
 
