@@ -19,6 +19,8 @@ require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
 
 conn = st.connection("sql", type="sql")
+df = pd.read_json("https://www.ag-grid.com/example-assets/olympic-winners.json")
+grid_return = AgGrid(df)
 
 base_list_query = """
      SELECT
