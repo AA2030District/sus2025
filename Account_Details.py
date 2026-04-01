@@ -44,7 +44,7 @@ grid_options = gb.build()
 AgGrid(
     base_list,
     gridOptions=grid_options,
-    height='None',
+    height='auto',
     width='stretch',
     fit_columns_on_grid_load=False,
 )
