@@ -7,8 +7,6 @@ import pandas as pd
 import time
 import pydeck as pdk
 from st_aggrid import AgGrid, GridOptionsBuilder
-
-
 st.set_page_config(layout="wide")
 st.markdown("""
 <style>
@@ -19,9 +17,6 @@ require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
 
 conn = st.connection("sql", type="sql")
-df = pd.read_json("https://www.ag-grid.com/example-assets/olympic-winners.json")
-grid_return = AgGrid(df)
-
 base_list_query = """
      SELECT
     e.*,
