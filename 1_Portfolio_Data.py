@@ -4,7 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from auth_helper import require_login
-from st_aggrid import AgGrid, GridOptionsBuilder
 
 st.set_page_config(layout="wide")
 st.markdown("""
@@ -17,8 +16,6 @@ require_login()
 st.title("Portfolio Data")
 
 conn = st.connection("sql", type="sql")
-df = pd.read_json("https://www.ag-grid.com/example-assets/olympic-winners.json")
-grid_return = AgGrid(df)
 
 summary_query = """
 SELECT 
