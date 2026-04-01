@@ -51,8 +51,8 @@ AgGrid(
     fit_columns_on_grid_load=False,
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
-    show_toolbar=True,
-    show_download_button=True,
+    show_toolbar=False,
+    show_download_button=False,
     key="base_list_grid",
 )
 
