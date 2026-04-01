@@ -7,6 +7,8 @@ import pandas as pd
 import time
 import pydeck as pdk
 from st_aggrid import AgGrid, GridOptionsBuilder
+
+
 st.set_page_config(layout="wide")
 st.markdown("""
 <style>
@@ -15,7 +17,10 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 """, unsafe_allow_html=True)
 require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
+
 conn = st.connection("sql", type="sql")
+
+# excluded espmid, 865 entries for total portfolio in
 base_list_query = """
      SELECT
     e.*,
@@ -34,28 +39,21 @@ base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
     filter=True,
-    floatingFilter=False,
+    floatingFilter=True,
     sortable=True,
     resizable=True,
     flex=1,
     minWidth=140,
 )
-gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=25)
 grid_options = gb.build()
+
 AgGrid(
     base_list,
     gridOptions=grid_options,
     height=1000,
-    theme="streamlit",
     use_container_width=True,
     fit_columns_on_grid_load=False,
-    update_mode="MODEL_CHANGED",
-    data_return_mode="FILTERED_AND_SORTED",
-    show_toolbar=False,
-    show_download_button=False,
-    key="base_list_grid",
 )
-
 
 # Function to Geocode Addresses
 @st.cache_data(ttl=86400)
