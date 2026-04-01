@@ -49,10 +49,12 @@ st.write(base_list)
 AgGrid(
     base_list,
     gridOptions=grid_options,
-    height='1000',
-    width='stretch',
+    height=1000,
+    use_container_width=True,
     fit_columns_on_grid_load=False,
+    key="base_list_grid",
 )
+
 
 # Function to Geocode Addresses
 @st.cache_data(ttl=86400)
