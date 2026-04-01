@@ -15,8 +15,6 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 """, unsafe_allow_html=True)
 require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
-st.write("AgGrid smoke test")
-AgGrid(pd.DataFrame({"x":[1,2], "y":["a","b"]}), key="aggrid_smoke", height=140)
 conn = st.connection("sql", type="sql")
 base_list_query = """
      SELECT
@@ -43,7 +41,6 @@ gb.configure_default_column(
     minWidth=140,
 )
 grid_options = gb.build()
-st.write(base_list)
 AgGrid(
     base_list,
     gridOptions=grid_options,
