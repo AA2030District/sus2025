@@ -40,11 +40,11 @@ gb.configure_default_column(
     minWidth=140,
 )
 grid_options = gb.build()
-
+st.write(base_list)
 AgGrid(
     base_list,
     gridOptions=grid_options,
-    height='auto',
+    height='1000',
     width='stretch',
     fit_columns_on_grid_load=False,
 )
