@@ -14,7 +14,8 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 require_login()
 
 st.title("Portfolio Data")
-
+st.write("AgGrid smoke test")
+AgGrid(pd.DataFrame({"x":[1,2], "y":["a","b"]}), key="aggrid_smoke", height=140)
 conn = st.connection("sql", type="sql")
 
 summary_query = """
