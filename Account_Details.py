@@ -21,12 +21,17 @@ st.title("Washtenaw 2030 District Full Building Portfolio")
 conn = st.connection("sql", type="sql")
 
 base_list_query = """
-    SELECT e.*
-    FROM [dbo].[ESPMFIRSTTEST] e WHERE TRY_CONVERT(INT, e.datayear) = (
-          SELECT MAX(TRY_CONVERT(INT, e2.datayear))
-          FROM [dbo].[ESPMFIRSTTEST] e2
-          WHERE e2.espmid = e.espmid
-            AND TRY_CONVERT(INT, e2.datayear) IS NOT NULL
+     SELECT
+    e.*,
+    p.[portfolio] AS portfolio
+FROM [dbo].[ESPMFIRSTTEST] e
+left JOIN [dbo].[portfolios] p
+    ON e.[espmid] = p.[espmid]
+WHERE TRY_CONVERT(INT, e.datayear) = (
+      SELECT MAX(TRY_CONVERT(INT, e2.datayear))
+      FROM [dbo].[ESPMFIRSTTEST] e2
+      WHERE e2.espmid = e.espmid
+        AND TRY_CONVERT(INT, e2.datayear) IS NOT NULL
       )
 """ 
 base_list = conn.query(base_list_query)
