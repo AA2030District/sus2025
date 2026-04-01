@@ -20,7 +20,6 @@ st.title("Washtenaw 2030 District Full Building Portfolio")
 
 conn = st.connection("sql", type="sql")
 
-# excluded espmid, 865 entries for total portfolio in
 base_list_query = """
     SELECT e.*
     FROM [dbo].[ESPMFIRSTTEST] e WHERE TRY_CONVERT(INT, e.datayear) = (
@@ -97,8 +96,6 @@ def geocode_addresses(address_list, city= "Ann Arbor", state="MI"):
 query = """
     SELECT DISTINCT e.[address]
     FROM [dbo].[ESPMFIRSTTEST] e
-    INNER JOIN [dbo].[portfolios] p
-        ON e.[espmid] = p.[espmid]
     WHERE e.[address] IS NOT NULL
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND TRY_CONVERT(INT, e.datayear) = (
