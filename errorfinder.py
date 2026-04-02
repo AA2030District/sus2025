@@ -398,11 +398,11 @@ with errors:
 
         _, col_prev, col_next = st.columns([6, 1, 1])
         with col_prev:
-            if st.button("Previous Building", width="content"):
+            if st.button("Previous Building"):
                 st.session_state.selected_row_index = (selected_row_index - 1) % len(df)
                 st.rerun()
         with col_next:
-            if st.button("Next Building", width="content"):
+            if st.button("Next Building"):
                 st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
                 st.rerun()
     else:
