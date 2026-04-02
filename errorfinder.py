@@ -341,7 +341,7 @@ ORDER BY espmid;
 
 buildings_df = conn.query(buildings_query)
 column_configuration = {
-    col: st.column_config.Column(col, width="content")
+    col: st.column_config.Column(col)
     for col in buildings_df.columns
 }
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
@@ -359,7 +359,7 @@ with select: # Add select tab #############################################
 
     event = st.dataframe(
         df,
-        width="stretch",
+        use_container_width=True,
         column_config=column_configuration,
         hide_index=True,
         on_select="rerun",
