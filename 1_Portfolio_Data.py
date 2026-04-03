@@ -251,7 +251,12 @@ fig_pie = px.pie(
     values='total_sqft',
     names='category',
     title='Square Footage Distribution by Building Category',
-    color_discrete_sequence=px.colors.qualitative.Set2,
+    color_discrete_map={
+        'Multifamily': '#41AC49',
+        'Industrial': '#878888',
+        'Commercial': '#205330',
+        'Municipal': '#3E6CF5',
+    },
 )
 
 # Improve pie chart layout
