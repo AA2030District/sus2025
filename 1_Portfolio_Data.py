@@ -49,7 +49,8 @@ df_filtered = df[df['years'] != '2020']
 fig = px.bar(
     df,
     x='years',
-    y='buildings'
+    y='buildings',
+    color_discrete_sequence=['#41AC49']
 )
 fig.update_layout(
     height=500,
@@ -76,7 +77,8 @@ df_filtered = df[df['years'] != '2020']
 fig = px.bar(
     df,
     x='years',
-    y='square_footage'
+    y='square_footage',
+    color_discrete_sequence=['#41AC49']
 )
 fig.update_layout(
     height=500,
@@ -508,7 +510,12 @@ fig_eui_bar = px.bar(
     title='Average Site EUI by Data Year (Bar Chart)',
     labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Actual EUI', 'Baseline EUI', 'Target EUI']},
-    text='eui'
+    text='eui',
+    color_discrete_map={
+        'Actual EUI': '#F7C900',
+        'Baseline EUI': '#878888',
+        'Target EUI': '#41AC49',
+    },
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
