@@ -2,11 +2,16 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.io as pio
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
-pio.templates.default = "plotly_white"
+def apply_white_background(fig):
+    fig.update_layout(
+        template='simple_white',
+        plot_bgcolor='white',
+        paper_bgcolor='white'
+    )
+    return fig
 
 st.markdown("""
 <style>
@@ -65,7 +70,7 @@ fig.update_layout(
     }
 )
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 
 
@@ -92,7 +97,7 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # Categorize each use type into simpler
 # Municipal, Multifamily, Commercial, Industrial
@@ -238,7 +243,7 @@ fig_pie.update_layout(
     height=500,
     margin=dict(l=50, r=50, t=80, b=50)
 )
-st.plotly_chart(fig_pie, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
 
 # Filter to only include the target use types
 target_usetypes = [
@@ -281,7 +286,7 @@ fig_usetype.update_layout(
 )
 
 # Display the chart
-st.plotly_chart(fig_usetype, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_usetype), use_container_width=True)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
@@ -451,7 +456,7 @@ for i, (label, color) in enumerate(legend_items):
         borderpad=4
     )
 
-st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
+st.plotly_chart(apply_white_background(fig), use_container_width=True, config={"responsive": True})
 
 
 
@@ -522,7 +527,7 @@ fig_eui_bar = px.bar(
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
-site_eui_first_slot.plotly_chart(fig_eui_bar, use_container_width=True)
+site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), use_container_width=True)
 
 # Percent Difference between Actual EUI and Baseline EUI by Year
 df_diff = df_yearly.copy().sort_values('datayear')
@@ -571,7 +576,7 @@ fig_pct_diff.update_layout(
         zerolinewidth=1
     )
 )
-st.plotly_chart(fig_pct_diff, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_pct_diff), use_container_width=True)
 
 # WUI line graph
 
@@ -591,7 +596,7 @@ fig_wui.update_traces(
 )
 fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
-st.plotly_chart(fig_wui, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_wui), use_container_width=True)
 
 
 # Water WUI bar chart, using preexisting data
@@ -641,7 +646,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-st.plotly_chart(fig_wui_bar, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_wui_bar), use_container_width=True)
 
 # District Water Performance Against Baseline Over Time
 df_wui_diff = df_yearly.copy().sort_values('datayear')
@@ -690,7 +695,7 @@ fig_wui_pct_diff.update_layout(
         zerolinewidth=1
     )
 )
-st.plotly_chart(fig_wui_pct_diff, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_wui_pct_diff), use_container_width=True)
 
 # SQL query to get unique buildings with year built and site EUI for 2025
 scatter_query = """
@@ -746,7 +751,7 @@ fig_scatter.update_layout(
     )
 )
 
-st.plotly_chart(fig_scatter, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_scatter), use_container_width=True)
 
 
 
@@ -777,7 +782,7 @@ fig.update_layout(
     }
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 wui_data = {
     "years": [2021, 2022, 2023, 2024],
@@ -816,7 +821,7 @@ fig.update_xaxes(
     tickvals=[2021, 2022, 2023, 2024]
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 emissions_data = {
     "years": [2018, 2019, 2021, 2022, 2023, 2024],
@@ -851,7 +856,7 @@ fig.update_layout(
     }
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # GHG Emissions
 # Electric Emissions Factor MT CO2e/kWh
@@ -909,7 +914,7 @@ fig_ghg.update_layout(
         'font': {'size': 20}
     }
 )
-st.plotly_chart(fig_ghg, use_container_width=True)
+st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
 
 
