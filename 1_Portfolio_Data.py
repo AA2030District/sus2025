@@ -10,10 +10,16 @@ def apply_white_background(fig):
         template='simple_white',
         plot_bgcolor='white',
         paper_bgcolor='white',
-        font=dict(color='black')
+        font=dict(color='black'),
+        title_font=dict(color='black'),
+        legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
+        hoverlabel=dict(font=dict(color='black'))
     )
     fig.update_xaxes(color='black')
     fig.update_yaxes(color='black')
+    fig.update_traces(textfont_color='black')
+    for ann in (fig.layout.annotations or []):
+        ann.font = dict(color='black')
     return fig
 
 st.markdown("""
