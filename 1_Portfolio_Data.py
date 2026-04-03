@@ -9,8 +9,11 @@ def apply_white_background(fig):
     fig.update_layout(
         template='simple_white',
         plot_bgcolor='white',
-        paper_bgcolor='white'
+        paper_bgcolor='white',
+        font=dict(color='black')
     )
+    fig.update_xaxes(color='black')
+    fig.update_yaxes(color='black')
     return fig
 
 st.markdown("""
