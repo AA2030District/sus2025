@@ -219,6 +219,7 @@ category_summary = graph_df.groupby('category').agg({
     'building_count': 'sum',
     'avg_siteeui': 'mean'
 }).round(2).reset_index()
+category_summary['category'] = category_summary['category'].astype(str).str.strip()
 
 # # Bar Chart
 # fig_bar = px.bar(
@@ -250,6 +251,7 @@ fig_pie = px.pie(
     category_summary,
     values='total_sqft',
     names='category',
+    color='category',
     title='Square Footage Distribution by Building Category',
     color_discrete_map={
         'Multifamily': '#41AC49',
@@ -296,7 +298,7 @@ fig_usetype = px.bar(
         'usetype': 'Building Type'
     },
     text='avg_siteeui',
-    color_discrete_sequence=px.colors.qualitative.Set2,
+    color_discrete_sequence=['#41AC49'],
     hover_data=['building_count', 'total_sqft'] 
 )
 
