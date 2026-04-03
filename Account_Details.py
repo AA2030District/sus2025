@@ -9,7 +9,6 @@ import pydeck as pdk
 from st_aggrid import AgGrid, GridOptionsBuilder
 
 
-st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }

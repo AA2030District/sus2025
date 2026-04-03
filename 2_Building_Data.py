@@ -10,7 +10,6 @@ require_login()
 st.title("Building Energy Analysis")
 
 conn = st.connection("sql", type="sql")
-st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }

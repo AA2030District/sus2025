@@ -4,7 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
 
-st.set_page_config(layout="wide")
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
