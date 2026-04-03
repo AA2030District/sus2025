@@ -8,6 +8,9 @@ from auth_helper import require_login
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+[data-testid="stAppViewContainer"] { background-color: #FFFFFF; }
+[data-testid="stHeader"] { background: #FFFFFF; }
+[data-testid="stSidebar"] { background-color: #FFFFFF; }
 </style>
 """, unsafe_allow_html=True)
 require_login()
