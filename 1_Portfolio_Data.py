@@ -13,7 +13,11 @@ def apply_white_background(fig):
         font=dict(color='black'),
         title_font=dict(color='black'),
         legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
-        hoverlabel=dict(font=dict(color='black'))
+        hoverlabel=dict(
+            font=dict(color='black'),
+            bgcolor='white',
+            bordercolor='black'
+        )
     )
     fig.update_xaxes(color='black')
     fig.update_yaxes(color='black')
