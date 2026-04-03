@@ -213,10 +213,11 @@ if not this_building_df.empty:
         ("Energy Star Score", energy_star_score_display),
         ("Energy Star Rank (Use Type)", energy_star_rank_display),
     ]
-    with st.container(horizontal=True, gap="small"):
-        for label, value in metric_items:
-            st.metric(label, value, width="content")
-    st.metric("All Recorded Years", years_display, width="content")
+    metric_cols = st.columns(len(metric_items))
+    for col, (label, value) in zip(metric_cols, metric_items):
+        with col:
+            st.metric(label, value)
+    st.metric("All Recorded Years", years_display)
 
 else:
     st.error(f"No data found for ESPMID: {selected_espmid}")
