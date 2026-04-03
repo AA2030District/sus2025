@@ -400,9 +400,9 @@ df['performance_category'] = pd.cut(
 # Create color mapping based on performance
 def get_color(ratio):
     if ratio <= 1.0:
-        return '#2ECC71'  # Green
+        return '#41AC49'  # Green
     elif ratio <= 1.2:
-        return '#F1C40F'  # Yellow
+        return '#41AC49'  # Green
     elif ratio <= 1.5:
         return '#E67E22'  # Orange
     else:
@@ -582,6 +582,7 @@ fig_pct_diff = px.bar(
         'pct_diff_from_baseline': '% Difference from Baseline'
     }
 )
+fig_pct_diff.update_traces(marker_color='#F7C900')
 fig_pct_diff.update_traces(
     texttemplate='%{text:.1f}%', 
     textposition='outside',
@@ -621,8 +622,8 @@ fig_wui = px.line(
 fig_wui.update_traces(
     text=df_yearly['avg_wui'].round(1),
     textposition='top center',
-    line=dict(color='red', width=3),
-    marker=dict(size=10, color='red')
+    line=dict(color='#3E6CF5', width=3),
+    marker=dict(size=10, color='#3E6CF5')
 )
 fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
 fig_wui.update_layout(height=400, showlegend=False)
@@ -665,7 +666,12 @@ fig_wui_bar = px.bar(
     title='Average Water Use Intensity (WUI) by Data Year',
     labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Actual WUI', 'Baseline WUI', 'Target WUI']},
-    text='wui'
+    text='wui',
+    color_discrete_map={
+        'Actual WUI': '#3E6CF5',
+        'Baseline WUI': '#878888',
+        'Target WUI': '#41AC49',
+    },
 )
 
 fig_wui_bar.update_traces(
