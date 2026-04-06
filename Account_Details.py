@@ -119,27 +119,19 @@ gb.configure_column(
 )
 gb.configure_column(
     "haswatergaps",
-    floatingFilter=True,
-    suppressHeaderFilterButton=False,
-    filterParams=set_filter_params,
+    filter="agTextColumnFilter",
 )
 gb.configure_column(
     "hasenergygaps",
-    floatingFilter=True,
-    suppressHeaderFilterButton=False,
-    filterParams=set_filter_params,
+    filter="agTextColumnFilter",
 )
 gb.configure_column(
     "energylessthan12months",
-    floatingFilter=True,
-    suppressHeaderFilterButton=False,
-    filterParams=set_filter_params,
+    filter="agTextColumnFilter",
 )
 gb.configure_column(
     "waterlessthan12months",
-    floatingFilter=True,
-    suppressHeaderFilterButton=False,
-    filterParams=set_filter_params,
+    filter="agTextColumnFilter",
 )
 grid_options = gb.build()
 grid_response = AgGrid(
