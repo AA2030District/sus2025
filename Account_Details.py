@@ -43,7 +43,6 @@ gb.configure_default_column(
     minWidth=80,
     suppressHeaderFilterButton = True,
     floatingFilter=True,
-    filterParams={"defaultOption": "contains", "caseSensitive": False},
 )
 gb.configure_grid_options(
     autoSizeStrategy={"type": "fitCellContents"}
@@ -100,7 +99,6 @@ grid_response = AgGrid(
     use_container_width=True,
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
-    allow_unsafe_jscode=True,
     key="base_list_grid",
 )
 
