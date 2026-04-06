@@ -34,7 +34,12 @@ def apply_white_background(fig):
         linecolor='black',
         automargin=True
     )
-    fig.update_traces(textfont_color='black')
+    fig.update_traces(
+        textfont=dict(
+            color='black',
+            family='Arial Black'
+        )
+    )
     # cliponaxis only applies to cartesian traces (e.g., bar/scatter), not pie/treemap
     fig.update_traces(cliponaxis=False, selector=dict(type='bar'))
     fig.update_traces(cliponaxis=False, selector=dict(type='scatter'))
@@ -490,10 +495,10 @@ fig.update_layout(
 legend_x = 1.02
 legend_y = 0.95
 legend_items = [
-    ('Below or Equal to National Median', '#2ECC71'),
-    ('Slightly Above (1-20%)', '#F1C40F'),
-    ('Moderately Above (20-50%)', '#E67E22'),
-    ('Significantly Above (>50%)', '#E74C3C')
+    ('Below or Equal to National Median', '#205330'),
+    ('Slightly Above (1-20%)', '#41AC49'),
+    ('Moderately Above (20-50%)', '#F7C900'),
+    ('Significantly Above (>50%)', '#F1C40F')
 ]
 
 for i, (label, color) in enumerate(legend_items):
