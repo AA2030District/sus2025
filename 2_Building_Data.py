@@ -204,6 +204,16 @@ if not this_building_df.empty:
     else:
         energy_star_rank_display = 'Not Available'
 
+    def _metric_font_size(text: str) -> int:
+        n = len(str(text))
+        if n <= 14:
+            return 30
+        if n <= 20:
+            return 24
+        if n <= 28:
+            return 20
+        return 16
+
     # Display summary metrics in a single horizontal row
     metric_items = [
         ("Use Type", use_type_display),
@@ -216,7 +226,19 @@ if not this_building_df.empty:
     metric_cols = st.columns(len(metric_items))
     for col, (label, value) in zip(metric_cols, metric_items):
         with col:
-            st.metric(label, value)
+            if label in {"Energy Star Rank (Use Type)", "Use Type"}:
+                size_px = _metric_font_size(value)
+                st.markdown(
+                    f"""
+                    <div>
+                        <div style="font-size:0.9rem; color:#6b7280;">{label}</div>
+                        <div style="font-size:{size_px}px; font-weight:600; line-height:1.2;">{value}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.metric(label, value)
     st.metric("All Recorded Years", years_display)
 
 else:
