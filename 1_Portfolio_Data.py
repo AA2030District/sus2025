@@ -34,7 +34,10 @@ def apply_white_background(fig):
         linecolor='black',
         automargin=True
     )
-    fig.update_traces(textfont_color='black', cliponaxis=False)
+    fig.update_traces(textfont_color='black')
+    # cliponaxis only applies to cartesian traces (e.g., bar/scatter), not pie/treemap
+    fig.update_traces(cliponaxis=False, selector=dict(type='bar'))
+    fig.update_traces(cliponaxis=False, selector=dict(type='scatter'))
     for ann in (fig.layout.annotations or []):
         ann.font = dict(color='black')
     return fig
