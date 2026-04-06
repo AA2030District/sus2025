@@ -572,15 +572,6 @@ fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
 site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), use_container_width=True)
 
-# Percent Difference between Actual EUI and Baseline EUI by Year
-df_diff = df_yearly.copy().sort_values('datayear')
-eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline']].rename(
-    columns={'years': 'datayear'}
-)
-df_diff = df_diff.merge(eui_reference_df, on='datayear', how='left')
-
-
-
 
 # Water WUI bar chart, using preexisting data
 wui_data = {
