@@ -142,7 +142,7 @@ fig.update_xaxes(type="category")
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # Categorize each use type into simpler
-# Municipal, Multifamily, Commercial, Industrial, K-12
+# Municipal, Multifamily, Commercial, Industrial, K-12, Restaurant
 
 use_type_mapping = {
     # MUNICIPAL
@@ -193,7 +193,7 @@ use_type_mapping = {
     'Medical Office': 'Commercial',
     'Office': 'Commercial',
     'Financial Office': 'Commercial',
-    'Other - Restaurant/Bar': 'Commercial',
+    'Other - Restaurant/Bar': 'Restaurant',
     'College/University': 'Commercial',  
     'Worship Facility': 'Commercial',  
     'Distribution Center': 'Commercial',
@@ -205,7 +205,7 @@ use_type_mapping = {
     'Vehicle Repair Services': 'Commercial',
     'Convenience Store without Gas Station': 'Commercial',
     'Personal Services (Health/Beauty, Dry Cleaning, etc)': 'Commercial',
-    'Restaurant': 'Commercial', 
+    'Restaurant': 'Restaurant', 
     'Other': 'Commercial',  
     
     # INDUSTRIAL
@@ -273,12 +273,13 @@ fig_pie = px.pie(
     color='category',
     title='Square Footage Distribution by Building Category',
     category_orders={
-        'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Municipal']
+        'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Restaurant', 'Municipal']
     },
     color_discrete_map={
         'Multifamily': '#41AC49',
         'Industrial': '#878888',
         'Commercial': '#205330',
+        'Restaurant': '#E67E22',
         'Municipal': '#3E6CF5',
         'K-12':'#F7C900'
     },
