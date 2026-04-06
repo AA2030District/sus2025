@@ -36,12 +36,16 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
       )
 """ 
 base_list = conn.query(base_list_query)
+for col in ["haswatergaps", "hasenergygaps", "energylessthan12months", "waterlessthan12months"]:
+    if col in base_list.columns:
+        base_list[col] = base_list[col].fillna("Unknown").astype(str)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
+    filter=True,
     sortable=True,
     resizable=True,
     minWidth=80,
-    suppressHeaderFilterButton = True,
+    suppressHeaderFilterButton=False,
     floatingFilter=True,
 )
 gb.configure_grid_options(
@@ -116,28 +120,28 @@ gb.configure_column(
 gb.configure_column(
     "haswatergaps",
     filter="agSetColumnFilter",
-    floatingFilter=False,
+    floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "hasenergygaps",
     filter="agSetColumnFilter",
-    floatingFilter=False,
+    floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "energylessthan12months",
     filter="agSetColumnFilter",
-    floatingFilter=False,
+    floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "waterlessthan12months",
     filter="agSetColumnFilter",
-    floatingFilter=False,
+    floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
