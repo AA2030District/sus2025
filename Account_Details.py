@@ -38,12 +38,14 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
-    filters_panel=False,
-    columns_panel =False,
     sortable=True,
     resizable=True,
     minWidth=80,
 )
+gb.configure_side_bar(
+        filters_panel=False,
+        columns_panel=False,
+    )
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
