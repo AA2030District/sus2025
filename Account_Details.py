@@ -107,6 +107,22 @@ gb.configure_column(
     "usetype",
     filter="agTextColumnFilter",
 )
+gb.configure_column(
+    "haswatergaps",
+    filter="agSetColumnFilter",
+)
+gb.configure_column(
+    "hasenergygaps",
+    filter="agSetColumnFilter",
+)
+gb.configure_column(
+    "energylessthan12months",
+    filter="agSetColumnFilter",
+)
+gb.configure_column(
+    "waterlessthan12months",
+    filter="agSetColumnFilter",
+)
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
