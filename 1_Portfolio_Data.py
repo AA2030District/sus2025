@@ -106,17 +106,22 @@ st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # Manually inserted data, not taken from SQL/Energy Star
 sqft_data = {
-    "years": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
-    "square_footage": [859321, 1023938, 0, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
+    "years": [2018, 2019, "2020/2021", 2022, 2023, 2024, 2025],
+    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
 }
 
 df = pd.DataFrame(sqft_data)
-df_filtered = df[df['years'] != '2020']
+df["years"] = df["years"].astype(str)
 fig = px.bar(
     df,
     x='years',
     y='square_footage',
-    color_discrete_sequence=['#41AC49']
+    color_discrete_sequence=['#41AC49'],
+    text='square_footage'
+)
+fig.update_traces(
+    texttemplate='%{text:,.0f}',
+    textposition='outside'
 )
 fig.update_layout(
     height=500,
@@ -127,6 +132,7 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
+fig.update_xaxes(type="category")
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # Categorize each use type into simpler
