@@ -16,6 +16,9 @@ st.markdown("""
 [data-testid="stSidebar"] {
     background-color: #dddddd;
 }
+#gridToolBar {
+    display: none !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
