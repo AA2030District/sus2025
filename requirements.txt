@@ -12,5 +12,5 @@ geopy>=2.4.0
 statsmodels>=0.14.0
 xmltodict
 datetime
-streamlit-aggrid==0.3.4.post3
+streamlit-aggrid
 humanize
