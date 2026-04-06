@@ -272,6 +272,9 @@ fig_pie = px.pie(
     names='category',
     color='category',
     title='Square Footage Distribution by Building Category',
+    category_orders={
+        'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Municipal']
+    },
     color_discrete_map={
         'Multifamily': '#41AC49',
         'Industrial': '#878888',
