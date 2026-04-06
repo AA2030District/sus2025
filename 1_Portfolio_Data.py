@@ -579,48 +579,8 @@ eui_reference_df = pd.DataFrame(eui_data)[['years', 'baseline']].rename(
 )
 df_diff = df_diff.merge(eui_reference_df, on='datayear', how='left')
 
-# Calculate percent difference from baseline
-# SHOULDN'T THIS BE NEGATIVE?? AVG_EUI < BASELINE
-df_diff['pct_diff_from_baseline'] = ((df_diff['avg_siteeui'] - df_diff['baseline']) / df_diff['baseline']) * 100
-df_diff['datayear'] = df_diff['datayear'].astype(str)
 
-fig_pct_diff = px.bar(
-    df_diff,
-    x='datayear',
-    y='pct_diff_from_baseline',
-    title='District Energy Performance Against Baseline Over Time',
-    text='pct_diff_from_baseline',
-    labels={
-        'datayear': 'Data Year', 
-        'pct_diff_from_baseline': '% Difference from Baseline'
-    }
-)
-fig_pct_diff.update_traces(marker_color='#F7C900')
-fig_pct_diff.update_traces(
-    texttemplate='%{text:.1f}%', 
-    textposition='outside',
-)
 
-# Add a horizontal line at 0% for reference
-fig_pct_diff.add_hline(
-    y=0, 
-    line_dash="dash", 
-    line_color="black",
-    annotation_text="Baseline",
-    annotation_position="bottom right"
-)
-
-fig_pct_diff.update_layout(
-    height=450,
-    showlegend=False,
-    yaxis=dict(
-        ticksuffix='%',
-        zeroline=True,
-        zerolinecolor='black',
-        zerolinewidth=1
-    )
-)
-st.plotly_chart(apply_white_background(fig_pct_diff), use_container_width=True)
 
 # Water WUI bar chart, using preexisting data
 wui_data = {
