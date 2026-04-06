@@ -41,7 +41,6 @@ gb.configure_default_column(
     sortable=True,
     resizable=True,
     flex=1,
-    minWidth=70,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
@@ -49,7 +48,7 @@ grid_response = AgGrid(
     gridOptions=grid_options,
     height=1000,
     use_container_width=True,
-    fit_columns_on_grid_load=False,
+    fit_columns_on_grid_load=True,
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
     key="base_list_grid",
