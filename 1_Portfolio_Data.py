@@ -17,21 +17,24 @@ def apply_white_background(fig):
             font=dict(color='black'),
             bgcolor='white',
             bordercolor='black'
-        )
+        ),
+        autosize=True
     )
     fig.update_xaxes(
         color='black',
         tickfont=dict(color='black'),
         title_font=dict(color='black'),
-        linecolor='black'
+        linecolor='black',
+        automargin=True
     )
     fig.update_yaxes(
         color='black',
         tickfont=dict(color='black'),
         title_font=dict(color='black'),
-        linecolor='black'
+        linecolor='black',
+        automargin=True
     )
-    fig.update_traces(textfont_color='black')
+    fig.update_traces(textfont_color='black', cliponaxis=False)
     for ann in (fig.layout.annotations or []):
         ann.font = dict(color='black')
     return fig
