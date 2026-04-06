@@ -325,6 +325,7 @@ fig_usetype = px.bar(
 fig_usetype.update_traces(
     texttemplate='%{text:.1f} kBtu/ft²', 
     textposition='outside',
+    textfont=dict(size=10),
 )
 
 fig_usetype.update_layout(
