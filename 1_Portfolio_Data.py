@@ -665,24 +665,6 @@ emissions_data = {
     "target_2030": [6.72, 8.37, 5.95, 4.7, 3.79, 3.1]
 }
 
-# Create dataframe and reshape for Plotly
-df = pd.DataFrame(emissions_data)
-df_melted = df.melt(id_vars=['years'], 
-                    value_vars=['baseline', 'current', 'yearly_target', 'target_2030'],
-                    var_name=' ', 
-                    value_name='emissions')
-
-fig = px.line(
-    df_melted,
-    x='years',
-    y='emissions',
-    color=' ',
-    markers=True
-)
-
-
-st.plotly_chart(apply_white_background(fig), use_container_width=True)
-
 # GHG Emissions
 # Electric Emissions Factor MT CO2e/kWh
 electric_emission_factor = {
