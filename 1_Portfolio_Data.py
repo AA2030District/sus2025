@@ -76,6 +76,7 @@ buildings_data = {
 }
 
 df = pd.DataFrame(buildings_data)
+df["years"] = df["years"].astype(str)
 df_filtered = df[df['years'] != '2020']
 fig = px.bar(
     df,
@@ -97,6 +98,7 @@ fig.update_layout(
         'font': {'size': 20}
     }
 )
+fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
