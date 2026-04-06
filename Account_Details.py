@@ -47,6 +47,12 @@ gb.configure_default_column(
 gb.configure_grid_options(
     autoSizeStrategy={"type": "fitCellContents"}
 )
+set_filter_params = {
+    "buttons": ["apply", "reset"],
+    "closeOnApply": True,
+    "suppressMiniFilter": False,
+    "defaultToNothingSelected": False,
+}
 gb.configure_column(
     "espmid",
     filter="agTextColumnFilter",
@@ -110,18 +116,30 @@ gb.configure_column(
 gb.configure_column(
     "haswatergaps",
     filter="agSetColumnFilter",
+    floatingFilter=False,
+    suppressHeaderFilterButton=False,
+    filterParams=set_filter_params,
 )
 gb.configure_column(
     "hasenergygaps",
     filter="agSetColumnFilter",
+    floatingFilter=False,
+    suppressHeaderFilterButton=False,
+    filterParams=set_filter_params,
 )
 gb.configure_column(
     "energylessthan12months",
     filter="agSetColumnFilter",
+    floatingFilter=False,
+    suppressHeaderFilterButton=False,
+    filterParams=set_filter_params,
 )
 gb.configure_column(
     "waterlessthan12months",
     filter="agSetColumnFilter",
+    floatingFilter=False,
+    suppressHeaderFilterButton=False,
+    filterParams=set_filter_params,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
