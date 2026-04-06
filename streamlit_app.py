@@ -1,6 +1,19 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
+st.markdown("""
+<style>
+[data-testid="stAppViewContainer"] {
+    background-color: #FFFFFF;
+}
+[data-testid="stHeader"] {
+    background-color: #FFFFFF;
+}
+[data-testid="stSidebar"] {
+    background-color: #F3F4F6;
+}
+</style>
+""", unsafe_allow_html=True)
 
 home = st.Page("Account_Details.py", title="Account Details")
 page1 = st.Page("1_Portfolio_Data.py", title="Portfolio Data")
