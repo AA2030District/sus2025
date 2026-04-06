@@ -71,7 +71,7 @@ site_eui_first_slot = st.empty()
 
 # Manually inserted data, not taken from SQL/Energy Star
 buildings_data = {
-    "years": [2018, 2019, 2020/2021, 2022, 2023, 2024, 2025],
+    "years": [2018, 2019, '2020/2021', 2022, 2023, 2024, 2025],
     "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
 }
 
