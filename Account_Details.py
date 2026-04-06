@@ -38,13 +38,15 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
-    autoSizeStrategy='SizeColumnsToContentStrategy',
     sortable=True,
     resizable=True,
     minWidth=80,
     suppressHeaderFilterButton = True,
     floatingFilter=True,
     filterParams={"defaultOption": "contains", "caseSensitive": False},
+)
+gb.configure_grid_options(
+    autoSizeStrategy={"type": "fitCellContents"}
 )
 gb.configure_column(
     "espmid",
