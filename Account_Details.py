@@ -40,7 +40,6 @@ gb.configure_default_column(
     floatingFilter=True,
     sortable=True,
     resizable=True,
-    flex=1,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
