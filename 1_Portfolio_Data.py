@@ -18,7 +18,8 @@ def apply_white_background(fig):
             bgcolor='white',
             bordercolor='black'
         ),
-        autosize=True
+        autosize=True,
+        margin=dict(l=0, r=0, t=0, b=0)
     )
     fig.update_xaxes(
         color='black',
@@ -431,13 +432,13 @@ df['performance_category'] = pd.cut(
 # Create color mapping based on performance
 def get_color(ratio):
     if ratio <= 1.0:
-        return '#41AC49'  # Green
+        return '#205330'  # Below or equal
     elif ratio <= 1.2:
-        return '#41AC49'  # Green
+        return '#41AC49'  # Slightly above
     elif ratio <= 1.5:
-        return '#E67E22'  # Orange
+        return '#F7C900'  # Moderately above
     else:
-        return '#E74C3C'  # Red
+        return '#F1C40F'  # Significantly above
 
 df['color'] = df['performance_ratio'].apply(get_color)
 
