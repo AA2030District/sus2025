@@ -289,7 +289,8 @@ fig_pie.update_traces(
     textposition='outside',
     textinfo='percent+label',
     hoverinfo='label+percent+value',
-    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>'
+    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
+    rotation=180
 )
 
 fig_pie.update_layout(
