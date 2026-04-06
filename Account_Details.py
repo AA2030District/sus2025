@@ -61,6 +61,10 @@ gb.configure_column(
         """
     ),
 )
+gb.configure_column(
+    "buildingname",
+    filter="agTextColumnFilter",
+)
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
