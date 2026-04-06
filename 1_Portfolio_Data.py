@@ -812,28 +812,27 @@ st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
 
 # Total WUI Saved 2021 - 2024
-wui_saved = df_wui_diff['avg_wui'].sum() - df_wui_diff['baseline'].sum()
 
-total_gallons = wui_saved * summary_df['total_sqft'].sum()
-total_bottles = total_gallons * 7.57
+# total_gallons = wui_saved * summary_df['total_sqft'].sum()
+# total_bottles = total_gallons * 7.57
 
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("💧 Total Gallons of Water Saved", f"{total_gallons:,}")
-with col2:
-    st.metric("🚰 Total Water Bottles Saved", f"{total_bottles:,.0f}")
+# col1, col2 = st.columns(2)
+# with col1:
+#     st.metric("💧 Total Gallons of Water Saved", f"{total_gallons:,}")
+# with col2:
+#     st.metric("🚰 Total Water Bottles Saved", f"{total_bottles:,.0f}")
 
 
-# Total EUI Saved 2021 - 2024
-eui_saved = (df_diff['avg_siteeui'].sum() - df_diff['baseline'].sum())
+# # Total EUI Saved 2021 - 2024
+# eui_saved = (df_diff['avg_siteeui'].sum() - df_diff['baseline'].sum())
 
-# Total Annual 10W LED Lightbulb = (EUI * Total sq. ft) / 3.413 (kbtu --> kwH) / 29.2 (kwh/year)
-total_kwh_saved = (eui_saved * summary_df['total_sqft'].sum()) / 3.413
-total_lightbulbs_saved = total_kwh_saved / 29.2
+# # Total Annual 10W LED Lightbulb = (EUI * Total sq. ft) / 3.413 (kbtu --> kwH) / 29.2 (kwh/year)
+# total_kwh_saved = (eui_saved * summary_df['total_sqft'].sum()) / 3.413
+# total_lightbulbs_saved = total_kwh_saved / 29.2
 
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
-with col2:
-    st.metric("💡 Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+# col1, col2 = st.columns(2)
+# with col1:
+#     st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
+# with col2:
+#     st.metric("💡 Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
 
