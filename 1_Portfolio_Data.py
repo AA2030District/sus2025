@@ -291,7 +291,7 @@ fig_pie.update_traces(
     hoverinfo='label+percent+value',
     hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
     rotation=180,
-    direction='clockwise'
+    direction='counterclockwise'
 )
 
 fig_pie.update_layout(
