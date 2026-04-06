@@ -41,7 +41,6 @@ gb.configure_default_column(
     sortable=True,
     resizable=True,
     minWidth=80,
-    suppressHeaderFilterButton = True,
     floatingFilter=True,
     filterParams={"defaultOption": "contains", "caseSensitive": False},
 )
