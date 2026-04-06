@@ -622,27 +622,6 @@ fig_pct_diff.update_layout(
 )
 st.plotly_chart(apply_white_background(fig_pct_diff), use_container_width=True)
 
-# WUI line graph
-
-fig_wui = px.line(
-    df_yearly,
-    x='datayear',
-    y='avg_wui',
-    title='Average WUI by Year',
-    labels={'datayear': 'Year', 'avg_wui': 'Avg WUI (Gal/ftÂ²)'},
-    markers=True
-)
-fig_wui.update_traces(
-    text=df_yearly['avg_wui'].round(1),
-    textposition='top center',
-    line=dict(color='#3E6CF5', width=3),
-    marker=dict(size=10, color='#3E6CF5')
-)
-fig_wui.update_xaxes(dtick="M12", tickformat="%Y")
-fig_wui.update_layout(height=400, showlegend=False)
-st.plotly_chart(apply_white_background(fig_wui), use_container_width=True)
-
-
 # Water WUI bar chart, using preexisting data
 wui_data = {
     "years": [2021, 2022, 2023, 2024],
