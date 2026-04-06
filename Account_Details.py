@@ -35,7 +35,7 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
       )
 """ 
 base_list = conn.query(base_list_query)
-df = pd.Dataframe(base_list)
+df = pd.DataFrame(base_list)
 grid_return = AgGrid(df, editable=True)
 new_df = grid_return['data']
 
