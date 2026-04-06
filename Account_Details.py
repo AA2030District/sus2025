@@ -41,7 +41,7 @@ gb.configure_default_column(
     sortable=True,
     resizable=True,
     flex=1,
-    minWidth=140,
+    minWidth=70,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
