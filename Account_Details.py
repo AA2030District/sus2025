@@ -37,17 +37,22 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 """ 
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
+gb.configure_default_column(
+    filter=True,
+    floatingFilter=True,
+    sortable=True,
+    resizable=True,
+    minWidth=80,
+)
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
     gridOptions=grid_options,
     height=1000,
     use_container_width=True,
-    fit_columns_on_grid_load=False,
+    fit_columns_on_grid_load=True,
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
-    show_toolbar=False,
-    show_download_button=False,
     key="base_list_grid",
 )
 
