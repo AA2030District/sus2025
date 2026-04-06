@@ -38,6 +38,7 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
+    autoSizeStrategy='SizeColumnsToContentStrategy',
     sortable=True,
     resizable=True,
     minWidth=80,
