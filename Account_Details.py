@@ -62,6 +62,22 @@ gb.configure_column(
     ),
 )
 gb.configure_column(
+    "sqfootage",
+    filter="agTextColumnFilter",
+    comparator=JsCode(
+        """
+        function(valueA, valueB) {
+            const a = parseFloat(valueA);
+            const b = parseFloat(valueB);
+            if (isNaN(a) && isNaN(b)) return 0;
+            if (isNaN(a)) return -1;
+            if (isNaN(b)) return 1;
+            return a - b;
+        }
+        """
+    ),
+)
+gb.configure_column(
     "buildingname",
     filter="agTextColumnFilter",
 )
