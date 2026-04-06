@@ -14,7 +14,7 @@ st.markdown("""
     background-color: #FFFFFF;
 }
 [data-testid="stSidebar"] {
-    background-color: #F3F4F6;
+    background-color: #dddddd;
 }
 </style>
 """, unsafe_allow_html=True)
