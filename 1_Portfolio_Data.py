@@ -142,7 +142,7 @@ fig.update_xaxes(type="category")
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
 # Categorize each use type into simpler
-# Municipal, Multifamily, Commercial, Industrial
+# Municipal, Multifamily, Commercial, Industrial, K-12
 
 use_type_mapping = {
     # MUNICIPAL
@@ -151,7 +151,7 @@ use_type_mapping = {
     'Library': 'Municipal',
     'Courthouse': 'Municipal',
     'Prison/Incarceration': 'Municipal',
-    'K-12 School': 'Municipal', 
+    'K-12 School': 'K-12', 
     'Drinking Water Treatment & Distribution': 'Municipal',
     'Wastewater Treatment Plant': 'Municipal',
     'Parking': 'Municipal',  
@@ -277,6 +277,7 @@ fig_pie = px.pie(
         'Industrial': '#878888',
         'Commercial': '#205330',
         'Municipal': '#3E6CF5',
+        'K-12':'#F7C900'
     },
 )
 
