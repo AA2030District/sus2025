@@ -12,6 +12,7 @@ from st_aggrid import AgGrid, GridOptionsBuilder
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+#gridToolBar { display: none !important; }
 </style>
 """, unsafe_allow_html=True)
 require_login()
