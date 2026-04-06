@@ -684,35 +684,7 @@ wui_data = {
     "target": [35.36, 25.84, 15.23, 20.90]
 }
 
-# Create dataframe and reshape for Plotly
-df = pd.DataFrame(wui_data)
-df_melted = df.melt(id_vars=['years'], 
-                    value_vars=['baseline', 'actual', 'target'],
-                    var_name=' ', 
-                    value_name='wui')
 
-fig = px.line(
-    df_melted,
-    x='years',
-    y='wui',
-    color=' ',
-    markers=True
-)
-
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="WUI (gal/sq ft)",
-    title={
-        'text': "Water Use Intensity By Year",
-        'font': {'size': 20}
-    }
-)
-# Debugged issue with x-axis tick marks
-fig.update_xaxes(
-    tickmode='array',
-    tickvals=[2021, 2022, 2023, 2024]
-)
 
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
@@ -739,15 +711,6 @@ fig = px.line(
     markers=True
 )
 
-fig.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="Emissions (MT CO2e / sq ft)",
-    title={
-        'text': "District Carbon Emissions By Square Foot",
-        'font': {'size': 20}
-    }
-)
 
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
@@ -771,6 +734,13 @@ ghg_emissions = {
     "2025": 0
 }
 
+# Use yearly portfolio square footage so emissions are normalized per year.
+sqft_by_year = {
+    str(int(row["datayear"])): float(row["total_sqft"])
+    for _, row in df_yearly.iterrows()
+    if pd.notna(row["datayear"]) and pd.notna(row["total_sqft"])
+}
+
 for year in ghg_emissions:
     total_electric_energy_query = f"""
             SELECT 
@@ -790,7 +760,12 @@ for year in ghg_emissions:
     gdf = conn.query(total_gas_energy_query)
 
 
-    ghg_emissions[year] = ((edf['total_electric_energy'].iloc[0] * electric_emission_factor[year]) + (gdf['total_gas_energy'].iloc[0] * natural_gas_emission_factor))
+    total_ghg = (
+        (edf['total_electric_energy'].iloc[0] * electric_emission_factor[year]) +
+        (gdf['total_gas_energy'].iloc[0] * natural_gas_emission_factor)
+    )
+    year_sqft = sqft_by_year.get(year, 0.0)
+    ghg_emissions[year] = (total_ghg / year_sqft) if year_sqft > 0 else 0
 
 ghg_df = pd.DataFrame(list(ghg_emissions.items()), columns=['year', 'ghg_emissions_mt'])
 fig_ghg = px.bar(
@@ -803,7 +778,7 @@ fig_ghg.update_layout(
     xaxis_title="Year",
     yaxis_title="GHG ekWh/m^2",
     title={
-        'text': "District Green House Gas Emissions Over Time",
+        'text': "District Green House Gas Emissions Per Square Foot Over Time",
         'font': {'size': 20}
     }
 )
