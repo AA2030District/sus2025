@@ -37,14 +37,6 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 """ 
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
-gb.configure_default_column(
-    filter=True,
-    floatingFilter=True,
-    sortable=True,
-    resizable=True,
-    flex=1,
-    minWidth=140,
-)
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
@@ -59,15 +51,15 @@ grid_response = AgGrid(
     key="base_list_grid",
 )
 
-current_grid_df = pd.DataFrame(grid_response["data"])
-csv_data = current_grid_df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    label="Download Current Grid (CSV)",
-    data=csv_data,
-    file_name="account_details_current_grid.csv",
-    mime="text/csv",
-    key="download_current_grid_csv",
-)
+# current_grid_df = pd.DataFrame(grid_response["data"])
+# csv_data = current_grid_df.to_csv(index=False).encode("utf-8")
+# st.download_button(
+#     label="Download Current Grid (CSV)",
+#     data=csv_data,
+#     file_name="account_details_current_grid.csv",
+#     mime="text/csv",
+#     key="download_current_grid_csv",
+# )
 
 # Function to Geocode Addresses
 @st.cache_data(ttl=86400)
