@@ -6,7 +6,7 @@ from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 import pandas as pd
 import time
 import pydeck as pdk
-from st_aggrid import AgGrid, GridOptionsBuilder
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 
 st.markdown("""
@@ -45,6 +45,22 @@ gb.configure_default_column(
     floatingFilter=True,
     filterParams={"defaultOption": "contains", "caseSensitive": False},
 )
+gb.configure_column(
+    "espmid",
+    filter="agTextColumnFilter",
+    comparator=JsCode(
+        """
+        function(valueA, valueB) {
+            const a = parseFloat(valueA);
+            const b = parseFloat(valueB);
+            if (isNaN(a) && isNaN(b)) return 0;
+            if (isNaN(a)) return -1;
+            if (isNaN(b)) return 1;
+            return a - b;
+        }
+        """
+    ),
+)
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
@@ -53,6 +69,7 @@ grid_response = AgGrid(
     use_container_width=True,
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
+    allow_unsafe_jscode=True,
     key="base_list_grid",
 )
 
