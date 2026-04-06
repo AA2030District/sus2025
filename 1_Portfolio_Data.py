@@ -547,7 +547,7 @@ fig_eui_bar = px.bar(
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
     labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
-    category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
+    category_orders={'series': ['Actual EUI', 'Baseline EUI', 'Target EUI']},
     text='eui',
     color_discrete_map={
         'Actual EUI': '#F7C900',
