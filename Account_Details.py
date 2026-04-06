@@ -42,10 +42,10 @@ gb.configure_default_column(
     resizable=True,
     minWidth=80,
 )
-gb.configure_side_bar(
-        filters_panel=False,
-        columns_panel=False,
-    )
+# gb.configure_side_bar(
+#         filters_panel=False,
+#         columns_panel=False,
+#     )
 grid_options = gb.build()
 grid_response = AgGrid(
     base_list,
