@@ -43,6 +43,7 @@ gb.configure_default_column(
     minWidth=80,
     suppressHeaderFilterButton = True,
     floatingFilter=True,
+    filterParams={"defaultOption": "contains", "caseSensitive": False},
 )
 grid_options = gb.build()
 grid_response = AgGrid(

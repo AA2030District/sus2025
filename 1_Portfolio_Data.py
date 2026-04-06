@@ -301,7 +301,6 @@ target_usetypes = [
     'K-12 School',
     'Other - Entertainment/Public Assembly',
     'Other - Recreation',
-    'Hotel'
 ]
 df_filtered = df[df['usetype'].isin(target_usetypes)].copy()
 df_filtered = df_filtered.sort_values('avg_siteeui', ascending=True)
