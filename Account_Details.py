@@ -42,6 +42,7 @@ gb.configure_default_column(
     resizable=True,
     minWidth=80,
     suppressHeaderFilterButton = True,
+    floatingFilter=True,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
