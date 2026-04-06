@@ -100,6 +100,7 @@ grid_response = AgGrid(
     update_mode="MODEL_CHANGED",
     data_return_mode="FILTERED_AND_SORTED",
     key="base_list_grid",
+    allow_unsafe_jscode=True,
 )
 
 # current_grid_df = pd.DataFrame(grid_response["data"])
