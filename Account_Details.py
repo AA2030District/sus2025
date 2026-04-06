@@ -37,7 +37,6 @@ WHERE TRY_CONVERT(INT, e.datayear) = (
 base_list = conn.query(base_list_query)
 gb = GridOptionsBuilder.from_dataframe(base_list)
 gb.configure_default_column(
-    filter=True,
     floatingFilter=True,
     sortable=True,
     resizable=True,
@@ -55,7 +54,6 @@ grid_response = AgGrid(
     data_return_mode="FILTERED_AND_SORTED",
     key="base_list_grid",
 )
-
 current_grid_df = pd.DataFrame(grid_response["data"])
 csv_data = current_grid_df.to_csv(index=False).encode("utf-8")
 st.download_button(
