@@ -657,7 +657,7 @@ fig_wui_bar = px.bar(
     barmode='group',
     title='Average Water Use Intensity (WUI) by Data Year',
     labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Data Year', 'series': ''},
-    category_orders={'series': ['Actual WUI', 'Baseline WUI', 'Target WUI']},
+    category_orders={'series': ['Baseline WUI','Actual WUI', 'Target WUI']},
     text='wui',
     color_discrete_map={
         'Actual WUI': '#3E6CF5',
