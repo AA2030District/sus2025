@@ -3,6 +3,10 @@ import streamlit as st
 st.set_page_config(layout="wide")
 st.markdown("""
 <style>
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] * {
+    color: #000000;
+}
 [data-testid="stAppViewContainer"] {
     background-color: #FFFFFF;
 }
