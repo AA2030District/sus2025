@@ -119,28 +119,24 @@ gb.configure_column(
 )
 gb.configure_column(
     "haswatergaps",
-    filter="agSetColumnFilter",
     floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "hasenergygaps",
-    filter="agSetColumnFilter",
     floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "energylessthan12months",
-    filter="agSetColumnFilter",
     floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
 )
 gb.configure_column(
     "waterlessthan12months",
-    filter="agSetColumnFilter",
     floatingFilter=True,
     suppressHeaderFilterButton=False,
     filterParams=set_filter_params,
