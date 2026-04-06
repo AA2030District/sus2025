@@ -18,8 +18,7 @@ def apply_white_background(fig):
             bgcolor='white',
             bordercolor='black'
         ),
-        autosize=True,
-        margin=dict(l=0, r=0, t=0, b=0)
+        autosize=True
     )
     fig.update_xaxes(
         color='black',
@@ -438,7 +437,7 @@ def get_color(ratio):
     elif ratio <= 1.5:
         return '#F7C900'  # Moderately above
     else:
-        return '#F1C40F'  # Significantly above
+        return '#E67E22'  # Significantly above
 
 df['color'] = df['performance_ratio'].apply(get_color)
 
