@@ -81,7 +81,12 @@ fig = px.bar(
     df,
     x='years',
     y='buildings',
-    color_discrete_sequence=['#41AC49']
+    color_discrete_sequence=['#41AC49'],
+    text='buildings'
+)
+fig.update_traces(
+    texttemplate='%{text:,.0f}',
+    textposition='outside'
 )
 fig.update_layout(
     height=500,
