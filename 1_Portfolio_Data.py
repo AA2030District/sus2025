@@ -37,7 +37,7 @@ def apply_white_background(fig):
     fig.update_traces(
         textfont=dict(
             color='black',
-            family='Arial Black'
+            family='Open Sans'
         )
     )
     # cliponaxis only applies to cartesian traces (e.g., bar/scatter), not pie/treemap
