@@ -80,16 +80,30 @@ WHERE TRY_CAST([datayear] AS INT) = 2025
 energy_ok_buildings_df = conn.query(energy_ok_buildings_query)
 energy_ok_buildings = int(round(float(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]))) if not energy_ok_buildings_df.empty else 0
 
+water_ok_buildings_query = """
+SELECT
+    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS water_ok_buildings
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE TRY_CAST([datayear] AS INT) = 2025
+    AND ISNULL(pmparentid, espmid) = espmid
+    AND [haswatergaps] = 'OK'
+    AND [waterlessthan12months] = 'OK'
+"""
+water_ok_buildings_df = conn.query(water_ok_buildings_query)
+water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0]))) if not water_ok_buildings_df.empty else 0
+
 
 # Summary stats
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
     st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
 with col2:
     st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
 with col3:
-    st.metric("Buildings (Energy OK)", f"{energy_ok_buildings:,}")
+    st.metric("Buildings With Complete Energy Data", f"{energy_ok_buildings:,}")
+with col4:
+    st.metric("Buildings With Complete Water Data", f"{water_ok_buildings:,}")
 
 # Reserve first graph slot for Site EUI bar chart
 site_eui_first_slot = st.empty()
