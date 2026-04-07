@@ -431,7 +431,7 @@ df['performance_category'] = pd.cut(
 # Create color mapping based on performance
 def get_color(ratio):
     if ratio <= 1.0:
-        return '#CDEECD'  # Below or equal
+        return '#BFE6BF'  # Below or equal
     elif ratio <= 1.2:
         return '#41AC49'  # Slightly above
     elif ratio <= 1.5:
