@@ -259,7 +259,7 @@ fig_pie.update_layout(
     margin=dict(l=130, r=130, t=110, b=130),
 )
 st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
-
+    
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
 
