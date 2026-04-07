@@ -324,7 +324,7 @@ fig_usetype = px.bar(
     orientation='h',  # Horizontal bar chart for better label readability
     title='Average Site EUI by Building Type (2025)',
     labels={
-        'avg_siteeui': 'Average Site EUI (kBtu/ft�)',
+        'avg_siteeui': 'Average Site EUI (kBtu/ft^2)',
         'usetype': 'Building Type'
     },
     text='avg_siteeui',
@@ -334,14 +334,14 @@ fig_usetype = px.bar(
 
 # Customize the chart
 fig_usetype.update_traces(
-    texttemplate='%{text:.1f} kBtu/ft�', 
+    texttemplate='%{text:.1f} kBtu/ft^2', 
     textposition='outside',
     textfont=dict(size=10),
 )
 
 fig_usetype.update_layout(
     height=500,
-    xaxis=dict(title='Average Site EUI (kBtu/ft�)'),
+    xaxis=dict(title='Average Site EUI (kBtu/ft^2)'),
     yaxis=dict(title=''),
     coloraxis_showscale=False 
 )
@@ -573,7 +573,7 @@ fig_eui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
-    labels={'eui': 'EUI (kBtu/ft�)', 'datayear': 'Data Year', 'series': ''},
+    labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
     text='eui',
     color_discrete_map={
@@ -621,7 +621,7 @@ fig_wui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Water Use Intensity (WUI) by Data Year',
-    labels={'wui': 'WUI (gal/ft�)', 'datayear': 'Data Year', 'series': ''},
+    labels={'wui': 'WUI (gal/ft^2)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline WUI','Actual WUI', 'Target WUI']},
     text='wui',
     color_discrete_map={
@@ -648,11 +648,6 @@ wui_data = {
     "actual": [42, 33.06, 22.91, 27.04],
     "target": [35.36, 25.84, 15.23, 20.90]
 }
-
-
-
-st.plotly_chart(apply_white_background(fig), use_container_width=True)
-
 emissions_data = {
     "years": [2018, 2019, 2021, 2022, 2023, 2024],
     "baseline": [13.44, 16.73, 11.89, 9.4, 7.57, 6.2],
@@ -757,5 +752,6 @@ st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 #     st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
 # with col2:
 #     st.metric("?? Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+
 
 
