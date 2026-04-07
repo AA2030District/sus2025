@@ -196,7 +196,7 @@ SELECT
     [usetype],
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-    COUNT(*) as building_count
+    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
