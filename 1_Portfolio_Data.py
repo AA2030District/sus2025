@@ -324,7 +324,7 @@ fig_usetype = px.bar(
     orientation='h',  # Horizontal bar chart for better label readability
     title='Average Site EUI by Building Type (2025)',
     labels={
-        'avg_siteeui': 'Average Site EUI (kBtu/ft²)',
+        'avg_siteeui': 'Average Site EUI (kBtu/ftï¿½)',
         'usetype': 'Building Type'
     },
     text='avg_siteeui',
@@ -334,14 +334,14 @@ fig_usetype = px.bar(
 
 # Customize the chart
 fig_usetype.update_traces(
-    texttemplate='%{text:.1f} kBtu/ft²', 
+    texttemplate='%{text:.1f} kBtu/ftï¿½', 
     textposition='outside',
     textfont=dict(size=10),
 )
 
 fig_usetype.update_layout(
     height=500,
-    xaxis=dict(title='Average Site EUI (kBtu/ft²)'),
+    xaxis=dict(title='Average Site EUI (kBtu/ftï¿½)'),
     yaxis=dict(title=''),
     coloraxis_showscale=False 
 )
@@ -573,7 +573,7 @@ fig_eui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
-    labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
+    labels={'eui': 'EUI (kBtu/ftï¿½)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
     text='eui',
     color_discrete_map={
@@ -621,7 +621,7 @@ fig_wui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Water Use Intensity (WUI) by Data Year',
-    labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Data Year', 'series': ''},
+    labels={'wui': 'WUI (gal/ftï¿½)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline WUI','Actual WUI', 'Target WUI']},
     text='wui',
     color_discrete_map={
