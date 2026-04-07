@@ -562,17 +562,22 @@ site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), use_contai
 # Water WUI bar chart, using preexisting data
 wui_data = {
     "years": [2021, 2022, 2023, 2024],
-    "baseline": [52, 38, 22.4, 30.73,31],
+    "baseline": [52, 38, 22.4, 30.73],
     "actual": [42, 33.06, 22.91, 27.04],
-    "target": [35.36, 25.84, 15.23,23.30]
+    "target": [35.36, 25.84, 15.23, 23.30],
 }
 df_wui_bar = df_yearly.copy().sort_values('datayear')
-wui_reference_df = pd.DataFrame(wui_data)[['years', 'baseline', 'target']].rename(
-    columns={'years': 'datayear'}
-)
+wui_reference_df = pd.DataFrame(wui_data).rename(columns={'years': 'datayear'})
 
 # Merge with yearly data
-df_wui_bar = df_wui_bar.merge(wui_reference_df, on='datayear', how='left')
+df_wui_bar = df_wui_bar.merge(
+    wui_reference_df[['datayear', 'baseline', 'target', 'actual']],
+    on='datayear',
+    how='left'
+)
+# 2021-2024 use provided Actual WUI; 2025 uses SQL avg_wui across building types.
+df_wui_bar['avg_wui'] = df_wui_bar['actual'].combine_first(df_wui_bar['avg_wui'])
+df_wui_bar = df_wui_bar.drop(columns=['actual'])
 df_wui_bar['datayear'] = df_wui_bar['datayear'].astype(str)
 df_wui_bar_melted = df_wui_bar.melt(
     id_vars=['datayear'],
