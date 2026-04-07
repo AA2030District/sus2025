@@ -183,80 +183,8 @@ fig.update_layout(
 fig.update_xaxes(type="category")
 st.plotly_chart(apply_white_background(fig), use_container_width=True)
 
-# Categorize each use type into simpler
-# Municipal, Multifamily, Commercial, Industrial, K-12, Restaurant
 
-use_type_mapping = {
-    # MUNICIPAL
-    'Fire Station': 'Municipal',
-    'Police Station': 'Municipal',
-    'Library': 'Municipal',
-    'Courthouse': 'Municipal',
-    'Prison/Incarceration': 'Municipal',
-    'K-12 School': 'K-12', 
-    'Drinking Water Treatment & Distribution': 'Municipal',
-    'Wastewater Treatment Plant': 'Municipal',
-    'Parking': 'Municipal',  
-    'Transportation Terminal/Station': 'Municipal', 
-    'Other - Public Services': 'Municipal',
-    'Social/Meeting Hall': 'Municipal',  
-    'Other - Recreation': 'Municipal',  
-    'Swimming Pool': 'Municipal',  
-    'Ice/Curling Rink': 'Municipal',  
-    'Bowling Alley': 'Municipal',  
-    'Museum': 'Municipal',  
-    'Convention Center': 'Municipal',
-    'Other - Entertainment/Public Assembly': 'Municipal',  
-    'Other - Utility': 'Municipal',  
-    'Other - Recreation': 'Municipal',   
-    
-    # MULTIFAMILY
-    'Single Family Home': 'Multifamily',
-    'Senior Living Community': 'Multifamily',
-    'Multifamily Housing': 'Multifamily',
-    'Residence Hall/Dormitory': 'Multifamily',
-    'Residential Care Facility': 'Multifamily',
-    'Other - Lodging/Residential': 'Multifamily',
-    
-    # COMMERCIAL
-    'Other - Mall': 'Commercial',
-    'Vehicle Dealership': 'Commercial',
-    'Adult Education': 'Commercial',  
-    'Bar/Nightclub': 'Commercial',
-    'Non-Refrigerated Warehouse': 'Commercial',
-    'Other - Technology/Science': 'Commercial',
-    'Other - Services': 'Commercial',
-    'Mixed Use Property': 'Commercial',
-    'Hotel': 'Commercial',
-    'Laboratory': 'Commercial',  
-    'Other - Education': 'Commercial',  
-    'Food Service': 'Commercial',
-    'Retail Store': 'Commercial',
-    'Medical Office': 'Commercial',
-    'Office': 'Commercial',
-    'Financial Office': 'Commercial',
-    'Other - Restaurant/Bar': 'Restaurant',
-    'College/University': 'Commercial',  
-    'Worship Facility': 'Commercial',  
-    'Distribution Center': 'Commercial',
-    'Supermarket/Grocery Store': 'Commercial',
-    'Strip Mall': 'Commercial',
-    'Self-Storage Facility': 'Commercial',
-    'Wholesale Club/Supercenter': 'Commercial',
-    'Fitness Center/Health Club/Gym': 'Commercial',
-    'Vehicle Repair Services': 'Commercial',
-    'Convenience Store without Gas Station': 'Commercial',
-    'Personal Services (Health/Beauty, Dry Cleaning, etc)': 'Commercial',
-    'Restaurant': 'Restaurant', 
-    'Other': 'Commercial',  
-    
-    # INDUSTRIAL
-    'Manufacturing/Industrial Plant': 'Industrial',
-    'Energy/Power Station': 'Industrial',
-    'Laboratory': 'Industrial',  
-    'Wastewater Treatment Plant': 'Industrial',  
-    'Drinking Water Treatment & Distribution': 'Industrial',  
-}
+
 
 # CHANGE THIS TO 2025
 current_query = """
@@ -267,6 +195,7 @@ SELECT
     COUNT(*) as building_count
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
+AND ISNULL(pmparentid,espmid)=espmid 
 GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
