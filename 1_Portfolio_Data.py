@@ -248,13 +248,15 @@ fig_pie = px.pie(
 fig_pie.update_traces(
     textposition="outside",
     textinfo="percent+label",
+    textfont_size=11,
+    pull=[0.03] * len(pie_data),
     hovertemplate="<b>%{label}</b><br>Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
     rotation=180,
     direction="counterclockwise",
 )
 fig_pie.update_layout(
-    height=500,
-    margin=dict(l=90, r=90, t=110, b=90),
+    height=620,
+    margin=dict(l=130, r=130, t=110, b=130),
 )
 st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
 
