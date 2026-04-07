@@ -5,6 +5,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
+                                                                        #FORMATTING
+
 def apply_white_background(fig):
     fig.update_layout(
         template='simple_white',
@@ -54,6 +56,8 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 """, unsafe_allow_html=True)
 require_login()
 
+
+                                                        ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
 conn = st.connection("sql", type="sql")
 
@@ -695,13 +699,21 @@ fig_ghg.update_layout(
 st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
 st.subheader("Total Buildings by Property Type")
-property_type_df = (
-    df_yearly[['usetype', 'building_count']]
-    .copy()
-    .rename(columns={'usetype': 'Property Type', 'building_count': 'Total Buildings'})
-)
-property_type_df['Total Buildings'] = pd.to_numeric(property_type_df['Total Buildings'], errors='coerce').fillna(0).round(0).astype(int)
-property_type_df = property_type_df.sort_values('Total Buildings', ascending=False).reset_index(drop=True)
+property_type_source_df = conn.query(current_query)
+property_type_df = pd.DataFrame(columns=['Property Type', 'Total Buildings'])
+if {'usetype', 'building_count'}.issubset(property_type_source_df.columns):
+    property_type_df = (
+        property_type_source_df[['usetype', 'building_count']]
+        .copy()
+        .rename(columns={'usetype': 'Property Type', 'building_count': 'Total Buildings'})
+    )
+    property_type_df['Total Buildings'] = (
+        pd.to_numeric(property_type_df['Total Buildings'], errors='coerce')
+        .fillna(0)
+        .round(0)
+        .astype(int)
+    )
+    property_type_df = property_type_df.sort_values('Total Buildings', ascending=False).reset_index(drop=True)
 st.dataframe(property_type_df, use_container_width=True, hide_index=True)
 
 
