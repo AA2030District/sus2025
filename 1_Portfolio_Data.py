@@ -157,7 +157,7 @@ fig.update_layout(
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-st.plotly_chart(apply_white_background(fig), use_container_width=True)
+st.plotly_chart(apply_white_background(fig), width="stretch")
 
 
 
@@ -190,7 +190,7 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
-st.plotly_chart(apply_white_background(fig), use_container_width=True)
+st.plotly_chart(apply_white_background(fig), width="stretch")
 
 
 
@@ -249,7 +249,7 @@ fig_pie = px.pie(
             "Other",
         ]
     },
-)
+)   
 fig_pie.update_traces(
     textposition="outside",
     textinfo="percent+label",
@@ -263,7 +263,7 @@ fig_pie.update_layout(
     height=620,
     margin=dict(l=130, r=130, t=110, b=130),
 )
-st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)  
+st.plotly_chart(apply_white_background(fig_pie),width="stretch")  
 
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
@@ -614,7 +614,7 @@ fig_eui_bar = px.bar(
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
-site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), use_container_width=True)
+site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
 
 
 # Water WUI bar chart, using preexisting data
@@ -680,7 +680,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-st.plotly_chart(apply_white_background(fig_wui_bar), use_container_width=True)
+st.plotly_chart(apply_white_background(fig_wui_bar), width="stretch")
 
 
 wui_data = {
@@ -766,7 +766,7 @@ fig_ghg.update_layout(
         'font': {'size': 20}
         }
 )
-st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
+st.plotly_chart(apply_white_background(fig_ghg), width="stretch")
 
 st.subheader("Total Properties by Property Type")
 property_type_source_df = conn.query(current_query)
@@ -784,7 +784,7 @@ if {'usetype', 'property_count'}.issubset(property_type_source_df.columns):
         .astype(int)
     )
     property_type_df = property_type_df.sort_values('Total Properties', ascending=False).reset_index(drop=True)
-st.dataframe(property_type_df, use_container_width=True, hide_index=True)
+st.dataframe(property_type_df, width="stretch", hide_index=True)
 
 
 
