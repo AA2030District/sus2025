@@ -157,7 +157,7 @@ fig.update_layout(
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-st.plotly_chart(apply_white_background(fig), width="stretch")
+st.plotly_chart(apply_white_background(fig), width="content")
 
 
 
@@ -190,7 +190,7 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
-st.plotly_chart(apply_white_background(fig), width="stretch")
+st.plotly_chart(apply_white_background(fig), width="content")
 
 
 
@@ -614,7 +614,7 @@ fig_eui_bar = px.bar(
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(height=450, legend_title_text='')
-site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
+site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="content")
 
 
 # Water WUI bar chart, using preexisting data
@@ -680,7 +680,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-st.plotly_chart(apply_white_background(fig_wui_bar), width="stretch")
+st.plotly_chart(apply_white_background(fig_wui_bar), width="content")
 
 
 wui_data = {
@@ -766,7 +766,7 @@ fig_ghg.update_layout(
         'font': {'size': 20}
         }
 )
-st.plotly_chart(apply_white_background(fig_ghg), width="stretch")
+st.plotly_chart(apply_white_background(fig_ghg), width="content")
 
 st.subheader("Total Properties by Property Type")
 property_type_source_df = conn.query(current_query)
@@ -784,7 +784,7 @@ if {'usetype', 'property_count'}.issubset(property_type_source_df.columns):
         .astype(int)
     )
     property_type_df = property_type_df.sort_values('Total Properties', ascending=False).reset_index(drop=True)
-st.dataframe(property_type_df, width="stretch", hide_index=True)
+st.dataframe(property_type_df, width="content", hide_index=True)
 
 
 
