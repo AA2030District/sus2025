@@ -275,47 +275,47 @@ HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 # st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
 
 # Filter to only include the target use types
-target_usetypes = [
-    'Residential Multifamily',
-    'Office', 
-    'K-12 School',
-    'Other - Entertainment/Public Assembly',
-    'Other - Recreation',
-]
-df_filtered = df[df['usetype'].isin(target_usetypes)].copy()
-df_filtered = df_filtered.sort_values('avg_siteeui', ascending=True)
+# target_usetypes = [
+#     'Residential Multifamily',
+#     'Office', 
+#     'K-12 School',
+#     'Other - Entertainment/Public Assembly',
+#     'Other - Recreation',
+# ]
+# df_filtered = df[df['usetype'].isin(target_usetypes)].copy()
+# df_filtered = df_filtered.sort_values('avg_siteeui', ascending=True)
 
-fig_usetype = px.bar(
-    df_filtered,
-    x='avg_siteeui',
-    y='usetype',
-    orientation='h',  # Horizontal bar chart for better label readability
-    title='Average Site EUI by Building Type (2025)',
-    labels={
-        'avg_siteeui': 'Average Site EUI (kBtu/ft^2)',
-        'usetype': 'Building Type'
-    },
-    text='avg_siteeui',
-    color_discrete_sequence=['#41AC49'],
-    hover_data=['building_count', 'total_sqft'] 
-)
+# fig_usetype = px.bar(
+#     df_filtered,
+#     x='avg_siteeui',
+#     y='usetype',
+#     orientation='h',  # Horizontal bar chart for better label readability
+#     title='Average Site EUI by Building Type (2025)',
+#     labels={
+#         'avg_siteeui': 'Average Site EUI (kBtu/ft^2)',
+#         'usetype': 'Building Type'
+#     },
+#     text='avg_siteeui',
+#     color_discrete_sequence=['#41AC49'],
+#     hover_data=['building_count', 'total_sqft'] 
+# )
 
-# Customize the chart
-fig_usetype.update_traces(
-    texttemplate='%{text:.1f} kBtu/ft^2', 
-    textposition='outside',
-    textfont=dict(size=10),
-)
+# # Customize the chart
+# fig_usetype.update_traces(
+#     texttemplate='%{text:.1f} kBtu/ft^2', 
+#     textposition='outside',
+#     textfont=dict(size=10),
+# )
 
-fig_usetype.update_layout(
-    height=500,
-    xaxis=dict(title='Average Site EUI (kBtu/ft^2)'),
-    yaxis=dict(title=''),
-    coloraxis_showscale=False 
-)
+# fig_usetype.update_layout(
+#     height=500,
+#     xaxis=dict(title='Average Site EUI (kBtu/ft^2)'),
+#     yaxis=dict(title=''),
+#     coloraxis_showscale=False 
+# )
 
-# Display the chart
-st.plotly_chart(apply_white_background(fig_usetype), use_container_width=True)
+# # Display the chart
+# st.plotly_chart(apply_white_background(fig_usetype), use_container_width=True)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
