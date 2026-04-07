@@ -1,6 +1,16 @@
 import streamlit as st
 
 st.set_page_config(layout="wide")
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap');
+
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] * {
+    font-family: 'Open Sans', sans-serif !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 home = st.Page("Account_Details.py", title="Account Details")
 page1 = st.Page("1_Portfolio_Data.py", title="Portfolio Data")
