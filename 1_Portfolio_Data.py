@@ -254,7 +254,7 @@ fig_pie.update_traces(
 )
 fig_pie.update_layout(
     height=500,
-    margin=dict(l=50, r=50, t=80, b=50),
+    margin=dict(l=90, r=90, t=110, b=90),
 )
 st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
 
