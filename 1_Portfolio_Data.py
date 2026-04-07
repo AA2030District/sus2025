@@ -98,8 +98,8 @@ if not water_ok_buildings_df.empty and pd.notna(water_ok_buildings_df['water_ok_
 else:
     water_ok_buildings = 0
 
-energy_ok_buildings="1,418"
-water_ok_buildings="1,247"
+energy_ok_buildings="1,318"
+water_ok_buildings="1,147"
 # Summary stats
 col1, col2, col3, col4 = st.columns(4)
 with col1:
