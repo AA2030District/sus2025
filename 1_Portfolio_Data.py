@@ -1,4 +1,4 @@
-ï»¿import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -324,7 +324,7 @@ fig_usetype = px.bar(
     orientation='h',  # Horizontal bar chart for better label readability
     title='Average Site EUI by Building Type (2025)',
     labels={
-        'avg_siteeui': 'Average Site EUI (kBtu/ftÂ²)',
+        'avg_siteeui': 'Average Site EUI (kBtu/ft²)',
         'usetype': 'Building Type'
     },
     text='avg_siteeui',
@@ -334,14 +334,14 @@ fig_usetype = px.bar(
 
 # Customize the chart
 fig_usetype.update_traces(
-    texttemplate='%{text:.1f} kBtu/ftÂ²', 
+    texttemplate='%{text:.1f} kBtu/ft²', 
     textposition='outside',
     textfont=dict(size=10),
 )
 
 fig_usetype.update_layout(
     height=500,
-    xaxis=dict(title='Average Site EUI (kBtu/ftÂ²)'),
+    xaxis=dict(title='Average Site EUI (kBtu/ft²)'),
     yaxis=dict(title=''),
     coloraxis_showscale=False 
 )
@@ -431,7 +431,7 @@ df['performance_category'] = pd.cut(
 # Create color mapping based on performance
 def get_color(ratio):
     if ratio <= 1.0:
-        return '#DDF4DD'  # Below or equal
+        return '#CDEECD'  # Below or equal
     elif ratio <= 1.2:
         return '#41AC49'  # Slightly above
     elif ratio <= 1.5:
@@ -495,7 +495,7 @@ fig.update_layout(
 legend_x = 1.02
 legend_y = 0.95
 legend_items = [
-    ('Below or Equal to National Median', '#DDF4DD'),
+    ('Below or Equal to National Median', '#CDEECD'),
     ('Slightly Above (1-20%)', '#41AC49'),
     ('Moderately Above (20-50%)', '#F7C900'),
     ('Significantly Above (>50%)', '#F1C40F')
@@ -573,7 +573,7 @@ fig_eui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
-    labels={'eui': 'EUI (kBtu/ftÂ²)', 'datayear': 'Data Year', 'series': ''},
+    labels={'eui': 'EUI (kBtu/ft²)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
     text='eui',
     color_discrete_map={
@@ -621,7 +621,7 @@ fig_wui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Water Use Intensity (WUI) by Data Year',
-    labels={'wui': 'WUI (gal/ftÂ²)', 'datayear': 'Data Year', 'series': ''},
+    labels={'wui': 'WUI (gal/ft²)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline WUI','Actual WUI', 'Target WUI']},
     text='wui',
     color_discrete_map={
@@ -740,9 +740,9 @@ st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
 # col1, col2 = st.columns(2)
 # with col1:
-#     st.metric("ðŸ’§ Total Gallons of Water Saved", f"{total_gallons:,}")
+#     st.metric("?? Total Gallons of Water Saved", f"{total_gallons:,}")
 # with col2:
-#     st.metric("ðŸš° Total Water Bottles Saved", f"{total_bottles:,.0f}")
+#     st.metric("?? Total Water Bottles Saved", f"{total_bottles:,.0f}")
 
 
 # # Total EUI Saved 2021 - 2024
@@ -756,5 +756,6 @@ st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 # with col1:
 #     st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
 # with col2:
-#     st.metric("ðŸ’¡ Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+#     st.metric("?? Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+
 
