@@ -200,16 +200,18 @@ GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
 
-df = conn.query(current_query)
-graph_df = df.copy()
-graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
+#PIE CHART
 
-category_summary = graph_df.groupby('category').agg({
-    'total_sqft': 'sum',
-    'building_count': 'sum',
-    'avg_siteeui': 'mean'
-}).round(2).reset_index()
-category_summary['category'] = category_summary['category'].astype(str).str.strip()
+# df = conn.query(current_query)
+# graph_df = df.copy()
+# graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
+
+# category_summary = graph_df.groupby('category').agg({
+#     'total_sqft': 'sum',
+#     'building_count': 'sum',
+#     'avg_siteeui': 'mean'
+# }).round(2).reset_index()
+# category_summary['category'] = category_summary['category'].astype(str).str.strip()
 
 # # Bar Chart
 # fig_bar = px.bar(
