@@ -104,9 +104,10 @@ water_ok_buildings="1,247"
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
-    st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
+    total_buildings = int(round(float(summary_df['building_count'].sum())))
+    st.metric("Total Buildings", f"{total_buildings:,}")
 with col2:
-    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,f}")
+    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
 with col3:
     st.metric("Buildings With Complete Energy Data", f"{energy_ok_buildings}")
 with col4:
