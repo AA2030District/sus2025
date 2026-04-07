@@ -204,10 +204,61 @@ GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
 
-#PIE CHART
+                                                                                        #PIE CHART
+pie_data = pd.DataFrame(
+    {
+        "usetype": [
+            "Multifamily Housing",
+            "Office",
+            "Single Family Home",
+            "K-12 School",
+            "Residence Hall/Dorm",
+            "Social/Meeting Hall",
+            "Strip Mall",
+            "Worship Facility",
+            "Restaurant",
+            "Fire Station",
+            "Other",
+        ],
+        "property_count": [156, 130, 74, 54, 22, 19, 15, 14, 12, 12, 187],
+    }
+)
 
-# df = conn.query(current_query)
-# graph_df = df.copy()
+fig_pie = px.pie(
+    pie_data,
+    values="property_count",
+    names="usetype",
+    title="Property Distribution by Type",
+    category_orders={
+        "usetype": [
+            "Multifamily Housing",
+            "Office",
+            "Single Family Home",
+            "K-12 School",
+            "Residence Hall/Dorm",
+            "Social/Meeting Hall",
+            "Strip Mall",
+            "Worship Facility",
+            "Restaurant",
+            "Fire Station",
+            "Other",
+        ]
+    },
+)
+fig_pie.update_traces(
+    textposition="outside",
+    textinfo="percent+label",
+    hovertemplate="<b>%{label}</b><br>Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
+    rotation=180,
+    direction="counterclockwise",
+)
+fig_pie.update_layout(
+    height=500,
+    margin=dict(l=50, r=50, t=80, b=50),
+)
+st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
+
+# graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
 
 # category_summary = graph_df.groupby('category').agg({
