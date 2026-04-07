@@ -68,13 +68,28 @@ WHERE [datayear] = 2025
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
 
+energy_ok_buildings_query = """
+SELECT
+    COUNT(DISTINCT [espmid]) AS energy_ok_buildings
+FROM [dbo].[ESPMFIRSTTEST]
+WHERE TRY_CAST([datayear] AS INT) = 2025
+    AND ISNULL(pmparentid, espmid) = espmid
+    AND [hasenergygaps] = 'OK'
+    AND [energylessthan12months] = 'OK'
+"""
+energy_ok_buildings_df = conn.query(energy_ok_buildings_query)
+energy_ok_buildings = int(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]) if not energy_ok_buildings_df.empty else 0
+
+
 # Summary stats
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
     st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
 with col2:
     st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
+with col3:
+    st.metric("Buildings (Energy OK)", f"{energy_ok_buildings:,}")
 
 # Reserve first graph slot for Site EUI bar chart
 site_eui_first_slot = st.empty()
