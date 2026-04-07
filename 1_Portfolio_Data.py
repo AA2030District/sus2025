@@ -238,25 +238,25 @@ HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 # )
 # st.plotly_chart(fig_bar, use_container_width=True)
 
-# Pie Chart
-fig_pie = px.pie(
-    category_summary,
-    values='total_sqft',
-    names='category',
-    color='category',
-    title='Square Footage Distribution by Building Category',
-    category_orders={
-        'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Restaurant', 'Municipal']
-    },
-    color_discrete_map={
-        'Multifamily': '#41AC49',
-        'Industrial': '#878888',
-        'Commercial': '#205330',
-        'Restaurant': '#E67E22',
-        'Municipal': '#3E6CF5',
-        'K-12':'#F7C900'
-    },
-)
+# # Pie Chart
+# fig_pie = px.pie(
+#     category_summary,
+#     values='total_sqft',
+#     names='category',
+#     color='category',
+#     title='Square Footage Distribution by Building Category',
+#     category_orders={
+#         'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Restaurant', 'Municipal']
+#     },
+#     color_discrete_map={
+#         'Multifamily': '#41AC49',
+#         'Industrial': '#878888',
+#         'Commercial': '#205330',
+#         'Restaurant': '#E67E22',
+#         'Municipal': '#3E6CF5',
+#         'K-12':'#F7C900'
+#     },
+# )
 
 # Improve pie chart layout
 fig_pie.update_traces(
