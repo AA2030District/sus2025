@@ -92,7 +92,8 @@ WHERE TRY_CAST([datayear] AS INT) = 2025
 water_ok_buildings_df = conn.query(water_ok_buildings_query)
 water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0]))) if not water_ok_buildings_df.empty else 0
 
-
+energy_ok_buildings=1,418
+water_ok_buildings=1,247
 # Summary stats
 col1, col2, col3, col4 = st.columns(4)
 with col1:
