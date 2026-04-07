@@ -196,7 +196,7 @@ SELECT
     [usetype],
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
+    COUNT(DISTINCT [espmid]) as property_count
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
@@ -698,22 +698,22 @@ fig_ghg.update_layout(
 )
 st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
-st.subheader("Total Buildings by Property Type")
+st.subheader("Total Properties by Property Type")
 property_type_source_df = conn.query(current_query)
-property_type_df = pd.DataFrame(columns=['Property Type', 'Total Buildings'])
-if {'usetype', 'building_count'}.issubset(property_type_source_df.columns):
+property_type_df = pd.DataFrame(columns=['Property Type', 'Total Properties'])
+if {'usetype', 'property_count'}.issubset(property_type_source_df.columns):
     property_type_df = (
-        property_type_source_df[['usetype', 'building_count']]
+        property_type_source_df[['usetype', 'property_count']]
         .copy()
-        .rename(columns={'usetype': 'Property Type', 'building_count': 'Total Buildings'})
+        .rename(columns={'usetype': 'Property Type', 'property_count': 'Total Properties'})
     )
-    property_type_df['Total Buildings'] = (
-        pd.to_numeric(property_type_df['Total Buildings'], errors='coerce')
+    property_type_df['Total Properties'] = (
+        pd.to_numeric(property_type_df['Total Properties'], errors='coerce')
         .fillna(0)
         .round(0)
         .astype(int)
     )
-    property_type_df = property_type_df.sort_values('Total Buildings', ascending=False).reset_index(drop=True)
+    property_type_df = property_type_df.sort_values('Total Properties', ascending=False).reset_index(drop=True)
 st.dataframe(property_type_df, use_container_width=True, hide_index=True)
 
 
