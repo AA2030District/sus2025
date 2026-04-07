@@ -566,8 +566,14 @@ wui_data = {
     "actual": [42, 33.06, 22.91, 27.04],
     "target": [35.36, 25.84, 15.23, 23.30],
 }
-df_wui_bar = df_yearly.copy().sort_values('datayear')
-wui_reference_df = pd.DataFrame(wui_data).rename(columns={'years': 'datayear'})
+df_wui_bar = pd.DataFrame({'datayear': [2021, 2022, 2023, 2024, 2025]})
+wui_reference_df = pd.DataFrame({
+    'datayear': [2021, 2022, 2023, 2024, 2025],
+    'baseline': [52, 38, 22.4, 30.73, 31],
+    'target': [35.36, 25.84, 15.23, 23.30, 20.90],
+    'actual': [42, 33.06, 22.91, 27.04, None],
+})
+df_wui_bar = df_wui_bar.merge(df_yearly[['datayear', 'avg_wui']], on='datayear', how='left')
 
 # Merge with yearly data
 df_wui_bar = df_wui_bar.merge(
