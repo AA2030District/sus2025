@@ -431,7 +431,7 @@ df['performance_category'] = pd.cut(
 # Create color mapping based on performance
 def get_color(ratio):
     if ratio <= 1.0:
-        return '#205330'  # Below or equal
+        return '#DDF4DD'  # Below or equal
     elif ratio <= 1.2:
         return '#41AC49'  # Slightly above
     elif ratio <= 1.5:
@@ -495,7 +495,7 @@ fig.update_layout(
 legend_x = 1.02
 legend_y = 0.95
 legend_items = [
-    ('Below or Equal to National Median', '#205330'),
+    ('Below or Equal to National Median', '#DDF4DD'),
     ('Slightly Above (1-20%)', '#41AC49'),
     ('Moderately Above (20-50%)', '#F7C900'),
     ('Significantly Above (>50%)', '#F1C40F')
