@@ -613,7 +613,11 @@ fig_eui_bar = px.bar(
     },
 )
 fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
-fig_eui_bar.update_layout(height=450, legend_title_text='')
+fig_eui_bar.update_layout(
+    height=450,
+    legend_title_text='',
+    margin=dict(r=80),
+)
 site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="content")
 
 
