@@ -259,20 +259,20 @@ HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 # )
 
 # Improve pie chart layout
-fig_pie.update_traces(
-    textposition='outside',
-    textinfo='percent+label',
-    hoverinfo='label+percent+value',
-    hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
-    rotation=180,
-    direction='counterclockwise'
-)
+# fig_pie.update_traces(
+#     textposition='outside',
+#     textinfo='percent+label',
+#     hoverinfo='label+percent+value',
+#     hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
+#     rotation=180,
+#     direction='counterclockwise'
+# )
 
-fig_pie.update_layout(
-    height=500,
-    margin=dict(l=50, r=50, t=80, b=50)
-)
-st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
+# fig_pie.update_layout(
+#     height=500,
+#     margin=dict(l=50, r=50, t=80, b=50)
+# )
+# st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
 
 # Filter to only include the target use types
 target_usetypes = [
