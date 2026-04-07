@@ -562,9 +562,9 @@ site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), use_contai
 # Water WUI bar chart, using preexisting data
 wui_data = {
     "years": [2021, 2022, 2023, 2024],
-    "baseline": [52, 38, 22.4, 30.73],
+    "baseline": [52, 38, 22.4, 30.73,31],
     "actual": [42, 33.06, 22.91, 27.04],
-    "target": [35.36, 25.84, 15.23, 20.90]
+    "target": [35.36, 25.84, 15.23,23.30]
 }
 df_wui_bar = df_yearly.copy().sort_values('datayear')
 wui_reference_df = pd.DataFrame(wui_data)[['years', 'baseline', 'target']].rename(
