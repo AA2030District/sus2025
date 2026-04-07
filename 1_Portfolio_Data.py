@@ -763,6 +763,16 @@ fig_ghg.update_layout(
 )
 st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
+st.subheader("Total Buildings by Property Type")
+property_type_df = (
+    df[['usetype', 'building_count']]
+    .copy()
+    .rename(columns={'usetype': 'Property Type', 'building_count': 'Total Buildings'})
+)
+property_type_df['Total Buildings'] = pd.to_numeric(property_type_df['Total Buildings'], errors='coerce').fillna(0).round(0).astype(int)
+property_type_df = property_type_df.sort_values('Total Buildings', ascending=False).reset_index(drop=True)
+st.dataframe(property_type_df, use_container_width=True, hide_index=True)
+
 
 
 # Total WUI Saved 2021 - 2024
