@@ -108,9 +108,9 @@ with col1:
 with col2:
     st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
 with col3:
-    st.metric("Buildings With Complete Energy Data", f"{energy_ok_buildings:,}")
+    st.metric("Buildings With Complete Energy Data", f"{energy_ok_buildings}")
 with col4:
-    st.metric("Buildings With Complete Water Data", f"{water_ok_buildings:,}")
+    st.metric("Buildings With Complete Water Data", f"{water_ok_buildings}")
 
 # Reserve first graph slot for Site EUI bar chart
 site_eui_first_slot = st.empty()
