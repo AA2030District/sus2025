@@ -106,7 +106,7 @@ with col1:
     # This is just totaling number of data entries totaled, should use numbuildings?
     st.metric("Total Buildings", f"{summary_df['building_count'].sum():,}")
 with col2:
-    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,.0f}")
+    st.metric("Total Sq Ft", f"{summary_df['total_sqft'].sum():,f}")
 with col3:
     st.metric("Buildings With Complete Energy Data", f"{energy_ok_buildings}")
 with col4:
