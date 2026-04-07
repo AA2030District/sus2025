@@ -616,9 +616,16 @@ fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
 fig_eui_bar.update_layout(
     height=450,
     legend_title_text='',
-    margin=dict(r=80),
+    legend=dict(
+        orientation='h',
+        yanchor='bottom',
+        y=1.02,
+        xanchor='left',
+        x=0,
+    ),
+    margin=dict(r=20, t=90),
 )
-site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="content")
+site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
 
 
 # Water WUI bar chart, using preexisting data
