@@ -51,7 +51,12 @@ def apply_white_background(fig):
 
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap');
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+.js-plotly-plot .plotly text {
+    font-family: 'Open Sans', sans-serif !important;
+    font-weight: 500 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 require_login()
@@ -258,8 +263,8 @@ fig_pie.update_layout(
     height=620,
     margin=dict(l=130, r=130, t=110, b=130),
 )
-st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
-    
+st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)  
+
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
 
@@ -755,10 +760,11 @@ fig_ghg.update_layout(
     height=500,
     xaxis_title="Year",
     yaxis_title="GHG ekWh/m^2",
-    title={
+    title=
+        {
         'text': "District Green House Gas Emissions Per Square Foot Over Time",
         'font': {'size': 20}
-    }
+        }
 )
 st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
