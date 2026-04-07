@@ -70,7 +70,7 @@ summary_df = conn.query(summary_query)
 
 energy_ok_buildings_query = """
 SELECT
-    COUNT(DISTINCT [espmid]) AS energy_ok_buildings
+    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS energy_ok_buildings
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
@@ -78,7 +78,7 @@ WHERE TRY_CAST([datayear] AS INT) = 2025
     AND [energylessthan12months] = 'OK'
 """
 energy_ok_buildings_df = conn.query(energy_ok_buildings_query)
-energy_ok_buildings = int(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]) if not energy_ok_buildings_df.empty else 0
+energy_ok_buildings = int(round(float(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]))) if not energy_ok_buildings_df.empty else 0
 
 
 # Summary stats
