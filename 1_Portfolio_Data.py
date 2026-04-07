@@ -55,7 +55,7 @@ st.markdown("""
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 .js-plotly-plot .plotly text {
     font-family: 'Open Sans', sans-serif !important;
-    font-weight: 500 !important;
+    font-weight: 550 !important;
 }
 </style>
 """, unsafe_allow_html=True)
