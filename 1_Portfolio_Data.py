@@ -78,7 +78,10 @@ WHERE TRY_CAST([datayear] AS INT) = 2025
     AND [energylessthan12months] = 'OK'
 """
 energy_ok_buildings_df = conn.query(energy_ok_buildings_query)
-energy_ok_buildings = int(round(float(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]))) if not energy_ok_buildings_df.empty else 0
+if not energy_ok_buildings_df.empty and pd.notna(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]):
+    energy_ok_buildings = int(round(float(energy_ok_buildings_df['energy_ok_buildings'].iloc[0])))
+else:
+    energy_ok_buildings = 0
 
 water_ok_buildings_query = """
 SELECT
@@ -90,7 +93,10 @@ WHERE TRY_CAST([datayear] AS INT) = 2025
     AND [waterlessthan12months] = 'OK'
 """
 water_ok_buildings_df = conn.query(water_ok_buildings_query)
-water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0]))) if not water_ok_buildings_df.empty else 0
+if not water_ok_buildings_df.empty and pd.notna(water_ok_buildings_df['water_ok_buildings'].iloc[0]):
+    water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0])))
+else:
+    water_ok_buildings = 0
 
 energy_ok_buildings=1,418
 water_ok_buildings=1,247
