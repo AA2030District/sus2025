@@ -696,7 +696,7 @@ st.plotly_chart(apply_white_background(fig_ghg), use_container_width=True)
 
 st.subheader("Total Buildings by Property Type")
 property_type_df = (
-    df[['usetype', 'building_count']]
+    df_yearly[['usetype', 'building_count']]
     .copy()
     .rename(columns={'usetype': 'Property Type', 'building_count': 'Total Buildings'})
 )
