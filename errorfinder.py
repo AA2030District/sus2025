@@ -318,7 +318,6 @@ buildings_query = """
         haswatergaps,
         energylessthan12months,
         waterlessthan12months,
-        portfolio,
         ROW_NUMBER() OVER (
             PARTITION BY espmid
             ORDER BY datayear DESC
@@ -333,8 +332,7 @@ SELECT
     hasenergygaps,
     haswatergaps,
     energylessthan12months,
-    waterlessthan12months,
-    portfolio,
+    waterlessthan12months
 FROM ranked
 WHERE rn = 1
 ORDER BY espmid;
