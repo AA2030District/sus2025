@@ -131,6 +131,11 @@ site_eui_benchmark = {
 
 }
 
+# National Median WUI by Use Type (available entries)
+site_wui_benchmark = {
+    'worship facility': 14.7,
+}
+
 # Get all buildings for dropdown
 
 buildings_query = """
@@ -312,6 +317,8 @@ avg_wui = use_type_df['avg_wui'].iloc[0] if not use_type_df.empty and pd.notna(u
 
 
 baseline_eui_value = site_eui_benchmark.get(use_type, None)
+use_type_key = str(use_type).strip().lower() if pd.notna(use_type) else ""
+baseline_wui_value = site_wui_benchmark.get(use_type_key, None)
 
 
 # EUI bar chart by year
@@ -394,6 +401,8 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
 
         # Add reference column before first data year
         wui_reference_rows = []
+        if baseline_wui_value is not None:
+            wui_reference_rows.append({'datayear': 'Median Baseline', 'wui': float(baseline_wui_value)})
         if avg_wui is not None:
             wui_reference_rows.append({'datayear': 'District Average', 'wui': float(avg_wui)})
         if wui_reference_rows:
@@ -413,9 +422,16 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             category_orders={"datayear": wui_x_order}  
         )
         
+        wui_bar_colors = [
+            '#878888' if year_label == 'Median Baseline'
+            else '#41AC49' if year_label == 'District Average'
+            else '#3E6CF5'
+            for year_label in wui_plot_df['datayear']
+        ]
         fig_wui.update_traces(
             texttemplate='%{text:.2f}', 
-            textposition='outside'
+            textposition='outside',
+            marker_color=wui_bar_colors
         )
         fig_wui.update_layout(
             xaxis=dict(type='category', categoryorder='array', categoryarray=wui_x_order)
