@@ -35,6 +35,7 @@ WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
 """
 
 df = conn.query(new_query)
+df_district_all = df.copy()
 portfolio_options = sorted(df['portfolio_name'].dropna().astype(str).unique().tolist())
 if not portfolio_options:
     st.error("No portfolios found in query results.")
@@ -240,6 +241,7 @@ df_building_eui['avg_siteeui'] = pd.to_numeric(df_building_eui['avg_siteeui'], e
 df_building_eui = df_building_eui[
     df_building_eui['datayear'].notna() & df_building_eui['avg_siteeui'].notna()
 ].copy()
+df_building_eui = df_building_eui[df_building_eui['datayear'] >= 2021].copy()
 df_building_eui['datayear'] = df_building_eui['datayear'].astype(int).astype(str)
 
 # Sort years from lowest to highest average building EUI
@@ -250,6 +252,50 @@ year_order = (
     .tolist()
 )
 
+# Add standalone reference columns before 2021
+baseline_df = (
+    df_all_years[['espmid', 'usetype']]
+    .dropna(subset=['usetype'])
+    .drop_duplicates(subset=['espmid'])
+    .copy()
+)
+baseline_df['benchmark_eui'] = baseline_df['usetype'].map(site_eui_benchmark)
+median_baseline = baseline_df['benchmark_eui'].dropna().median()
+
+df_district_avg = df_district_all.copy()
+df_district_avg['datayear'] = pd.to_numeric(df_district_avg['datayear'], errors='coerce')
+df_district_avg['avg_siteeui'] = pd.to_numeric(df_district_avg['avg_siteeui'], errors='coerce')
+district_average = df_district_avg[
+    (df_district_avg['datayear'] >= 2021) & df_district_avg['avg_siteeui'].notna()
+]['avg_siteeui'].mean()
+
+reference_rows = []
+if pd.notna(median_baseline):
+    reference_rows.append({
+        'datayear': 'Median Baseline',
+        'avg_siteeui': float(median_baseline),
+        'building_label': 'Median Baseline',
+        'usetype': 'Reference',
+        'total_sqft': None
+    })
+if pd.notna(district_average):
+    reference_rows.append({
+        'datayear': 'District Average',
+        'avg_siteeui': float(district_average),
+        'building_label': 'District Average',
+        'usetype': 'Reference',
+        'total_sqft': None
+    })
+
+if reference_rows:
+    df_building_eui = pd.concat([pd.DataFrame(reference_rows), df_building_eui], ignore_index=True)
+
+reference_order = [
+    label for label in ['Median Baseline', 'District Average']
+    if label in df_building_eui['datayear'].unique()
+]
+x_order = reference_order + year_order
+
 fig_building_eui = px.bar(
     df_building_eui,
     x='datayear',
@@ -259,10 +305,10 @@ fig_building_eui = px.bar(
     title=f"{selected_portfolio} Building EUI by Year",
     labels={'datayear': 'Year', 'avg_siteeui': 'Site EUI (kBtu/ft²)', 'building_label': 'Building'},
     hover_data={'usetype': True, 'total_sqft': ':,.0f', 'building_label': False},
-    category_orders={'datayear': year_order}
+    category_orders={'datayear': x_order}
 )
 fig_building_eui.update_layout(
     height=650,
-    xaxis=dict(type='category', categoryorder='array', categoryarray=year_order)
+    xaxis=dict(type='category', categoryorder='array', categoryarray=x_order)
 )
 st.plotly_chart(fig_building_eui, use_container_width=True)
