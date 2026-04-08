@@ -318,19 +318,39 @@ baseline_eui_value = site_eui_benchmark.get(use_type, None)
 if not this_building_df.empty and this_building_df['siteeui'].notna().any():
     # Filter out rows with null EUI values
     eui_by_year_df = this_building_df[this_building_df['siteeui'].notna()].copy()
+    eui_by_year_df['datayear'] = pd.to_numeric(eui_by_year_df['datayear'], errors='coerce')
+    eui_by_year_df['siteeui'] = pd.to_numeric(eui_by_year_df['siteeui'], errors='coerce')
+    eui_by_year_df = eui_by_year_df[
+        eui_by_year_df['datayear'].notna() & eui_by_year_df['siteeui'].notna()
+    ].copy()
     
     if not eui_by_year_df.empty:
-        eui_by_year_df = eui_by_year_df.sort_values('datayear')
+        eui_by_year_df['datayear'] = eui_by_year_df['datayear'].astype(int).astype(str)
+        eui_by_year_df = eui_by_year_df.sort_values('datayear', key=lambda s: s.astype(int))
+        eui_plot_df = eui_by_year_df[['datayear', 'siteeui']].copy()
+        year_order = sorted(eui_plot_df['datayear'].unique(), key=int)
+
+        # Add reference columns before first data year
+        reference_rows = []
+        if baseline_eui_value is not None:
+            reference_rows.append({'datayear': 'Median Baseline', 'siteeui': float(baseline_eui_value)})
+        if avg_eui is not None:
+            reference_rows.append({'datayear': 'District Average', 'siteeui': float(avg_eui)})
+        if reference_rows:
+            eui_plot_df = pd.concat([pd.DataFrame(reference_rows), eui_plot_df], ignore_index=True)
+
+        reference_order = [row['datayear'] for row in reference_rows]
+        eui_x_order = reference_order + year_order
         
         fig_eui = px.bar(
-            eui_by_year_df,
+            eui_plot_df,
             x='datayear',
             y='siteeui',
             title=f'EUI by Year: {building_info["buildingname"]}',
             labels={'siteeui': 'Site EUI (kBtu/ftÂ²)', 'datayear': 'Year'},
             height=500,
             text='siteeui',
-            category_orders={"datayear": sorted(eui_by_year_df['datayear'].unique())}
+            category_orders={"datayear": eui_x_order}
         )
         
         # Customize the chart
@@ -338,24 +358,9 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
             texttemplate='%{text:.1f}', 
             textposition='outside'
         )
-        
-        if baseline_eui_value is not None:
-            fig_eui.add_hline(
-                y=baseline_eui_value,
-                line_dash='dash',
-                line_color='red',
-                annotation_text=f'National Median Baseline EUI: {baseline_eui_value:.1f}',
-                annotation_position='top right'
-            )
-
-        if avg_eui is not None:
-            fig_eui.add_hline(
-                y=avg_eui,
-                line_dash='dot',
-                line_color='green',
-                annotation_text=f'Average District-Wide {use_type} EUI: {avg_eui:.1f}',
-                annotation_position='top left'
-            )
+        fig_eui.update_layout(
+            xaxis=dict(type='category', categoryorder='array', categoryarray=eui_x_order)
+        )
         
         st.plotly_chart(apply_white_background(fig_eui), use_container_width=True)
     else:
@@ -367,35 +372,47 @@ else:
 if not this_building_df.empty and this_building_df['wui'].notna().any():
     # Filter out rows with null WUI values
     wui_by_year_df = this_building_df[this_building_df['wui'].notna()].copy()
+    wui_by_year_df['datayear'] = pd.to_numeric(wui_by_year_df['datayear'], errors='coerce')
+    wui_by_year_df['wui'] = pd.to_numeric(wui_by_year_df['wui'], errors='coerce')
+    wui_by_year_df = wui_by_year_df[
+        wui_by_year_df['datayear'].notna() & wui_by_year_df['wui'].notna()
+    ].copy()
     
     if not wui_by_year_df.empty:
         # Sort by year for better visualization
-        wui_by_year_df = wui_by_year_df.sort_values('datayear')
+        wui_by_year_df['datayear'] = wui_by_year_df['datayear'].astype(int).astype(str)
+        wui_by_year_df = wui_by_year_df.sort_values('datayear', key=lambda s: s.astype(int))
+        wui_plot_df = wui_by_year_df[['datayear', 'wui']].copy()
+        wui_year_order = sorted(wui_plot_df['datayear'].unique(), key=int)
+
+        # Add reference column before first data year
+        wui_reference_rows = []
+        if avg_wui is not None:
+            wui_reference_rows.append({'datayear': 'District Average', 'wui': float(avg_wui)})
+        if wui_reference_rows:
+            wui_plot_df = pd.concat([pd.DataFrame(wui_reference_rows), wui_plot_df], ignore_index=True)
+
+        wui_reference_order = [row['datayear'] for row in wui_reference_rows]
+        wui_x_order = wui_reference_order + wui_year_order
         
         fig_wui = px.bar(
-            wui_by_year_df,
+            wui_plot_df,
             x='datayear',
             y='wui',
             title=f'WUI by Year: {building_info["buildingname"]}',
             labels={'wui': 'WUI (gal/ftÂ²)', 'datayear': 'Year'},
             height=500,
             text='wui',
-            category_orders={"datayear": sorted(wui_by_year_df['datayear'].unique())}  
+            category_orders={"datayear": wui_x_order}  
         )
         
         fig_wui.update_traces(
             texttemplate='%{text:.2f}', 
             textposition='outside'
         )
-
-        if avg_wui is not None:
-            fig_wui.add_hline(
-                y=avg_wui,
-                line_dash='dot',
-                line_color='green',
-                annotation_text=f'District-Wide Average {use_type} WUI: {avg_wui:.2f}',
-                annotation_position='top left'
-            )
+        fig_wui.update_layout(
+            xaxis=dict(type='category', categoryorder='array', categoryarray=wui_x_order)
+        )
         
         st.plotly_chart(apply_white_background(fig_wui), use_container_width=True)
     else:
