@@ -708,74 +708,45 @@ emissions_data = {
     "target_2030": [6.72, 8.37, 5.95, 4.7, 3.79, 3.1]
 }
 
-# GHG Emissions
-# Electric Emissions Factor MT CO2e/kWh
-electric_emission_factor = {
-    "2021": 0.000596,
-    "2022": 0.000663, 
-    "2023": 0.000628,
-    "2024" : 0.000565,
-    "2025" : 0.000506,
-}
-# Natural Gas Emissions Factor kgco2eq/mbtu
-natural_gas_emission_factor = 53.1148 
-
-ghg_emissions = {
-    "2021": 0,
-    "2022": 0,
-    "2023": 0,
-    "2024": 0,
-    "2025": 0
-}
-
-# Use yearly portfolio square footage so emissions are normalized per year.
-sqft_by_year = {
-    str(int(row["datayear"])): float(row["total_sqft"])
-    for _, row in df_yearly.iterrows()
-    if pd.notna(row["datayear"]) and pd.notna(row["total_sqft"])
-}
-
-for year in ghg_emissions:
-    total_electric_energy_query = f"""
-            SELECT 
-                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_electric_energy
-            FROM [dbo].[electric]
-            WHERE YEAR([enddate]) = {year}
-        """
-    
-    total_gas_energy_query = f"""
-            SELECT 
-                COALESCE(SUM(TRY_CAST([usage] AS DECIMAL(10,2))), 0) as total_gas_energy
-            FROM [dbo].[naturalgas]
-            WHERE YEAR([enddate]) = {year}
-        """
-    
-    edf = conn.query(total_electric_energy_query)
-    gdf = conn.query(total_gas_energy_query)
-
-
-    total_ghg = (
-        (edf['total_electric_energy'].iloc[0] * electric_emission_factor[year]) +
-        (gdf['total_gas_energy'].iloc[0] * natural_gas_emission_factor)
-    )
-    year_sqft = sqft_by_year.get(year, 0.0)
-    ghg_emissions[year] = (total_ghg / year_sqft) if year_sqft > 0 else 0
-
-ghg_df = pd.DataFrame(list(ghg_emissions.items()), columns=['year', 'ghg_emissions_mt'])
-fig_ghg = px.bar(
-    ghg_df,
-    x='year',
-    y='ghg_emissions_mt'
+emissions_df = pd.DataFrame(emissions_data)
+emissions_df["years"] = emissions_df["years"].astype(str)
+emissions_long = emissions_df.melt(
+    id_vars=["years"],
+    value_vars=["baseline", "current", "yearly_target", "target_2030"],
+    var_name="series",
+    value_name="ghg",
 )
+emissions_long["series"] = emissions_long["series"].replace(
+    {
+        "baseline": "Baseline",
+        "current": "Current",
+        "yearly_target": "Yearly Target",
+        "target_2030": "2030 Target",
+    }
+)
+
+fig_ghg = px.bar(
+    emissions_long,
+    x="years",
+    y="ghg",
+    color="series",
+    barmode="group",
+    title="District Green House Gas Emissions Per Square Foot Over Time",
+    labels={"years": "Year", "ghg": "GHG Emissions", "series": ""},
+    text="ghg",
+    color_discrete_map={
+        "Current": "#F7C900",
+        "Baseline": "#878888",
+        "Yearly Target": "#41AC49",
+        "2030 Target": "#3E6CF5",
+    },
+)
+fig_ghg.update_traces(texttemplate="%{text:.2f}", textposition="outside")
 fig_ghg.update_layout(
     height=500,
     xaxis_title="Year",
-    yaxis_title="GHG ekWh/m^2",
-    title=
-        {
-        'text': "District Green House Gas Emissions Per Square Foot Over Time",
-        'font': {'size': 20}
-        }
+    yaxis_title="GHG Emissions",
+    legend_title_text="",
 )
 st.plotly_chart(apply_white_background(fig_ghg), width="content")
 
