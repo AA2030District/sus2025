@@ -354,9 +354,16 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
         )
         
         # Customize the chart
+        eui_bar_colors = [
+            '#878888' if year_label == 'Median Baseline'
+            else '#41AC49' if year_label == 'District Average'
+            else '#F7C900'
+            for year_label in eui_plot_df['datayear']
+        ]
         fig_eui.update_traces(
             texttemplate='%{text:.1f}', 
-            textposition='outside'
+            textposition='outside',
+            marker_color=eui_bar_colors
         )
         fig_eui.update_layout(
             xaxis=dict(type='category', categoryorder='array', categoryarray=eui_x_order)
