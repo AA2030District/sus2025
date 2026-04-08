@@ -737,8 +737,8 @@ fig_ghg = px.bar(
     color_discrete_map={
         "Current": "#F7C900",
         "Baseline": "#878888",
-        "Yearly Target": "#41AC49",
-        "2030 Target": "#3E6CF5",
+        "Yearly Target": "#3E6CF5",
+        "2030 Target": "#41AC49",
     },
 )
 fig_ghg.update_traces(texttemplate="%{text:.2f}", textposition="outside")
