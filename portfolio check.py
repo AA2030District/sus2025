@@ -235,7 +235,20 @@ df_building_eui = df_all_years.copy()
 df_building_eui['building_label'] = df_building_eui['buildingname'].fillna('Unknown Building').astype(str).str.strip()
 df_building_eui.loc[df_building_eui['building_label'] == '', 'building_label'] = 'Unknown Building'
 df_building_eui['building_label'] = df_building_eui['building_label'] + " (ID " + df_building_eui['espmid'].astype(str) + ")"
-df_building_eui = df_building_eui.sort_values(['datayear', 'building_label'])
+df_building_eui['datayear'] = pd.to_numeric(df_building_eui['datayear'], errors='coerce')
+df_building_eui['avg_siteeui'] = pd.to_numeric(df_building_eui['avg_siteeui'], errors='coerce')
+df_building_eui = df_building_eui[
+    df_building_eui['datayear'].notna() & df_building_eui['avg_siteeui'].notna()
+].copy()
+df_building_eui['datayear'] = df_building_eui['datayear'].astype(int).astype(str)
+
+# Sort years from lowest to highest average building EUI
+year_order = (
+    df_building_eui.groupby('datayear', as_index=False)['avg_siteeui']
+    .mean()
+    .sort_values('avg_siteeui', ascending=True)['datayear']
+    .tolist()
+)
 
 fig_building_eui = px.bar(
     df_building_eui,
@@ -245,7 +258,11 @@ fig_building_eui = px.bar(
     barmode='group',
     title=f"{selected_portfolio} Building EUI by Year",
     labels={'datayear': 'Year', 'avg_siteeui': 'Site EUI (kBtu/ft²)', 'building_label': 'Building'},
-    hover_data={'usetype': True, 'total_sqft': ':,.0f', 'building_label': False}
+    hover_data={'usetype': True, 'total_sqft': ':,.0f', 'building_label': False},
+    category_orders={'datayear': year_order}
 )
-fig_building_eui.update_layout(height=650, xaxis=dict(type='category'))
+fig_building_eui.update_layout(
+    height=650,
+    xaxis=dict(type='category', categoryorder='array', categoryarray=year_order)
+)
 st.plotly_chart(fig_building_eui, use_container_width=True)
