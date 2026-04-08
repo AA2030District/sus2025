@@ -779,23 +779,7 @@ fig_ghg.update_layout(
 )
 st.plotly_chart(apply_white_background(fig_ghg), width="content")
 
-st.subheader("Total Properties by Property Type")
-property_type_source_df = conn.query(current_query)
-property_type_df = pd.DataFrame(columns=['Property Type', 'Total Properties'])
-if {'usetype', 'property_count'}.issubset(property_type_source_df.columns):
-    property_type_df = (
-        property_type_source_df[['usetype', 'property_count']]
-        .copy()
-        .rename(columns={'usetype': 'Property Type', 'property_count': 'Total Properties'})
-    )
-    property_type_df['Total Properties'] = (
-        pd.to_numeric(property_type_df['Total Properties'], errors='coerce')
-        .fillna(0)
-        .round(0)
-        .astype(int)
-    )
-    property_type_df = property_type_df.sort_values('Total Properties', ascending=False).reset_index(drop=True)
-st.dataframe(property_type_df, width="content", hide_index=True)
+
 
 
 
