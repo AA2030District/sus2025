@@ -629,10 +629,11 @@ fig_eui_bar.update_layout(
         orientation='h',
         yanchor='bottom',
         y=1.02,
-        xanchor='center',
-        x=0.5,
+        xanchor='left',
+        x=0.0,
+        font=dict(size=11),
     ),
-    margin=dict(l=20, r=40, t=110, b=20),
+    margin=dict(l=20, r=80, t=120, b=20),
 )
 fig_eui_bar = apply_white_background(fig_eui_bar)
 fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
