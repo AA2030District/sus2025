@@ -636,7 +636,18 @@ fig_eui_bar.update_layout(
     margin=dict(l=20, r=80, t=120, b=20),
 )
 fig_eui_bar = apply_white_background(fig_eui_bar)
-fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
+fig_eui_bar.update_layout(
+    title=dict(x=0.5, xanchor="center"),
+    legend=dict(
+        orientation='v',
+        yanchor='top',
+        y=1.14,
+        xanchor='left',
+        x=0.0,
+        font=dict(size=11, color='black'),
+    ),
+    margin=dict(l=20, r=80, t=150, b=20),
+)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
