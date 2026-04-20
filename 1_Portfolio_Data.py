@@ -158,7 +158,9 @@ fig.update_layout(
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-st.plotly_chart(apply_white_background(fig), width="content")
+fig = apply_white_background(fig)
+fig.update_layout(title=dict(x=0.5, xanchor="center"))
+st.plotly_chart(fig, width="content")
 
 
 
@@ -191,7 +193,9 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
-st.plotly_chart(apply_white_background(fig), width="content")
+fig = apply_white_background(fig)
+fig.update_layout(title=dict(x=0.5, xanchor="center"))
+st.plotly_chart(fig, width="content")
 
 
 
@@ -267,6 +271,7 @@ fig_pie.update_layout(
     title=dict(y=0.98, x=0.5, xanchor="center", yanchor="top"),
 )
 fig_pie = apply_white_background(fig_pie)
+fig_pie.update_layout(title=dict(x=0.5, xanchor="center"))
 st.plotly_chart(fig_pie, width="stretch")  
 
 # graph_df = pd.DataFrame(columns=[''])
@@ -629,7 +634,9 @@ fig_eui_bar.update_layout(
     ),
     margin=dict(r=20, t=90),
 )
-site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
+fig_eui_bar = apply_white_background(fig_eui_bar)
+fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
+site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
 # Water WUI bar chart, using preexisting data
@@ -695,7 +702,9 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-st.plotly_chart(apply_white_background(fig_wui_bar), width="content")
+fig_wui_bar = apply_white_background(fig_wui_bar)
+fig_wui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
+st.plotly_chart(fig_wui_bar, width="content")
 
 
 wui_data = {
