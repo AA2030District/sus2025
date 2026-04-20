@@ -259,10 +259,12 @@ fig_pie.update_traces(
     hovertemplate="<b>%{label}</b><br>Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
     rotation=180,
     direction="counterclockwise",
+    domain=dict(y=[0.0, 0.82]),
 )
 fig_pie.update_layout(
     height=620,
-    margin=dict(l=130, r=130, t=110, b=130),
+    margin=dict(l=130, r=130, t=160, b=130),
+    title=dict(y=0.98, x=0.5, xanchor="center", yanchor="top"),
 )
 st.plotly_chart(apply_white_background(fig_pie),width="stretch")  
 
@@ -592,9 +594,9 @@ df_eui_bar_melted = df_eui_bar.melt(
     value_name='eui'
 ).dropna(subset=['eui'])
 df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
-    'avg_siteeui': 'Actual EUI',
-    'baseline': 'Baseline EUI',
-    'target': 'Target EUI'
+    'avg_siteeui':'Actual EUI',
+    'baseline':'Baseline EUI',
+    'target':'Target EUI'
 })
 
 fig_eui_bar = px.bar(
