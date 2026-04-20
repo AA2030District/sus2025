@@ -629,15 +629,13 @@ fig_eui_bar.update_layout(
         orientation='h',
         yanchor='bottom',
         y=1.02,
-        xanchor='left',
-        x=0,
+        xanchor='center',
+        x=0.5,
     ),
-    margin=dict(r=20, t=90),
+    margin=dict(l=20, r=40, t=110, b=20),
 )
 fig_eui_bar = apply_white_background(fig_eui_bar)
 fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
-fig_eui_bar.update_xaxes(automargin=True)
-fig_eui_bar.update_yaxes(automargin=True)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
