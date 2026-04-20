@@ -14,7 +14,7 @@ def apply_white_background(fig):
         paper_bgcolor='white',
         font=dict(color='black'),
         title_font=dict(color='black'),
-        title_x=0.4,
+        title_x=0.5,
         legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
         hoverlabel=dict(
             font=dict(color='black'),
@@ -266,7 +266,8 @@ fig_pie.update_layout(
     margin=dict(l=130, r=130, t=160, b=130),
     title=dict(y=0.98, x=0.5, xanchor="center", yanchor="top"),
 )
-st.plotly_chart(apply_white_background(fig_pie),width="stretch")  
+fig_pie = apply_white_background(fig_pie)
+st.plotly_chart(fig_pie, width="stretch")  
 
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
