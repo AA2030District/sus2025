@@ -14,7 +14,7 @@ def apply_white_background(fig):
         paper_bgcolor='white',
         font=dict(color='black'),
         title_font=dict(color='black'),
-        title_x=0.5,
+        title_x=0.4,
         legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
         hoverlabel=dict(
             font=dict(color='black'),
