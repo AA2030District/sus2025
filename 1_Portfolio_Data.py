@@ -752,7 +752,9 @@ fig_ghg.update_layout(
     yaxis_title="GHG Emissions",
     legend_title_text="",
 )
-st.plotly_chart(apply_white_background(fig_ghg), width="content")
+fig_ghg = apply_white_background(fig_ghg)
+fig_ghg.update_layout(title=dict(x=0.5, xanchor="center"))
+st.plotly_chart(fig_ghg, width="content")
 
 
 
