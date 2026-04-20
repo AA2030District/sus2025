@@ -636,6 +636,8 @@ fig_eui_bar.update_layout(
 )
 fig_eui_bar = apply_white_background(fig_eui_bar)
 fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
+fig_eui_bar.update_xaxes(automargin=True)
+fig_eui_bar.update_yaxes(automargin=True)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
