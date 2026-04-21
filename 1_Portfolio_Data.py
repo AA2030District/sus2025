@@ -71,6 +71,7 @@ WITH latest_year AS (
     SELECT MAX(TRY_CAST([datayear] AS INT)) AS report_year
     FROM [dbo].[ESPMFIRSTTEST]
     WHERE TRY_CAST([datayear] AS INT) IS NOT NULL
+      AND ISNULL([donotinclude], 0) <> 1
 )
 SELECT 
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
@@ -80,6 +81,7 @@ FROM [dbo].[ESPMFIRSTTEST] e
 CROSS JOIN latest_year ly
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND TRY_CAST(e.[datayear] AS INT) = ly.report_year
+    AND ISNULL(e.[donotinclude], 0) <> 1
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
 
@@ -89,6 +91,7 @@ SELECT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
+    AND ISNULL([donotinclude], 0) <> 1
     AND [hasenergygaps] = 'OK'
     AND [energylessthan12months] = 'OK'
 """
@@ -104,6 +107,7 @@ SELECT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
+    AND ISNULL([donotinclude], 0) <> 1
     AND [haswatergaps] = 'OK'
     AND [waterlessthan12months] = 'OK'
 """
@@ -154,6 +158,7 @@ property_rollup AS (
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
     GROUP BY d.espmid
 )
 SELECT
@@ -237,6 +242,7 @@ SELECT
 FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
+AND ISNULL([donotinclude], 0) <> 1
 GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
@@ -601,6 +607,7 @@ yearly_query = """
         ON LTRIM(RTRIM(e.[buildingname])) = b.building_name
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
+        AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK' 
         AND e.haswatergaps = 'OK' 
         AND e.energylessthan12months = 'OK' 
