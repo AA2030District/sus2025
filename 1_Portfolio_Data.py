@@ -588,11 +588,17 @@ yearly_query = """
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
-        AVG(TRY_CAST(b.[Zerotool Baseline] AS DECIMAL(10,2))) as baseline,
-        AVG(TRY_CAST(b.[Zerotool Baseline] AS DECIMAL(10,2))) * 0.65 as target
+        AVG(b.zerotool_baseline) as baseline,
+        AVG(b.zerotool_baseline) * 0.65 as target
     FROM [dbo].[ESPMFIRSTTEST] e
-    LEFT JOIN [dbo].[baselines] b
-        ON e.[usetype] = b.[usetype]
+    LEFT JOIN (
+        SELECT
+            LTRIM(RTRIM([Building Name])) AS building_name,
+            MAX(TRY_CAST([Zerotool Baseline] AS DECIMAL(10,2))) AS zerotool_baseline
+        FROM [dbo].[baselines]
+        GROUP BY LTRIM(RTRIM([Building Name]))
+    ) b
+        ON LTRIM(RTRIM(e.[buildingname])) = b.building_name
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND e.hasenergygaps = 'OK' 
