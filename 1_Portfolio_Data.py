@@ -190,7 +190,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Number of Buildings",
     title={
-        'text': "Detroit 2030 Buildings By Year",
+        'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
     }
 )
