@@ -67,12 +67,19 @@ st.title("Portfolio Data")
 conn = st.connection("sql", type="sql")
 
 summary_query = """
+WITH latest_year AS (
+    SELECT MAX(TRY_CAST([datayear] AS INT)) AS report_year
+    FROM [dbo].[ESPMFIRSTTEST]
+    WHERE TRY_CAST([datayear] AS INT) IS NOT NULL
+)
 SELECT 
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-FROM [dbo].[ESPMFIRSTTEST]
-WHERE ISNULL(pmparentid,espmid)=espmid 
+FROM [dbo].[ESPMFIRSTTEST] e
+CROSS JOIN latest_year ly
+WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND TRY_CAST(e.[datayear] AS INT) = ly.report_year
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
 
@@ -135,7 +142,6 @@ WITH years AS (
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
     SELECT 2025 UNION ALL
-    Select 2026
 ),
 property_rollup AS (
     SELECT
