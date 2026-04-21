@@ -613,17 +613,32 @@ yearly_query = """
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
+for col in ['avg_siteeui', 'baseline', 'target']:
+    df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
+df_yearly['datayear'] = df_yearly['datayear'].astype(str)
+
+df_eui_bar_melted = df_yearly.melt(
+    id_vars=['datayear'],
+    value_vars=['baseline', 'avg_siteeui', 'target'],
+    var_name='series',
+    value_name='eui'
+).dropna(subset=['eui'])
+df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
+    'baseline': 'Baseline EUI',
+    'avg_siteeui': 'Actual EUI',
+    'target': 'Target EUI'
+})
 
 fig_eui_bar = px.bar(
-    df_yearly,
+    df_eui_bar_melted,
     x='datayear',
-    y='avg_siteeui',
-    # color='series',
+    y='eui',
+    color='series',
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
     labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
-    text='avg_siteeui',
+    text='eui',
     color_discrete_map={
         'Actual EUI': '#F7C900',
         'Baseline EUI': '#878888',
