@@ -71,7 +71,7 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-FROM [dbo].[DetroitDataBase]
+FROM [dbo].[ESPMFIRSTTEST]
 WHERE ISNULL(pmparentid,espmid)=espmid 
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
@@ -79,7 +79,7 @@ summary_df = conn.query(summary_query)
 energy_ok_buildings_query = """
 SELECT
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS energy_ok_buildings
-FROM [dbo].[DetroitDataBase]
+FROM [dbo].[ESPMFIRSTTEST]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
     AND [hasenergygaps] = 'OK'
@@ -94,7 +94,7 @@ else:
 water_ok_buildings_query = """
 SELECT
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS water_ok_buildings
-FROM [dbo].[DetroitDataBase]
+FROM [dbo].[ESPMFIRSTTEST]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
     AND [haswatergaps] = 'OK'
@@ -143,7 +143,7 @@ property_rollup AS (
         MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS numbuildings,
         MAX(TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))) AS sqfootage
-    FROM [dbo].[DetroitDataBase] d
+    FROM [dbo].[ESPMFIRSTTEST] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
@@ -227,7 +227,7 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COUNT(DISTINCT [espmid]) as property_count
-FROM [dbo].[DetroitDataBase]
+FROM [dbo].[ESPMFIRSTTEST]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
 GROUP BY [usetype]
@@ -581,7 +581,7 @@ yearly_query = """
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
-    FROM [dbo].[DetroitDataBase]
+    FROM [dbo].[ESPMFIRSTTEST]
     WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
         AND ISNULL(pmparentid,espmid)=espmid 
         AND hasenergygaps = 'OK' 
