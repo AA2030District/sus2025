@@ -615,7 +615,6 @@ df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 for col in ['avg_siteeui', 'baseline', 'target']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
-df_yearly['datayear'] = df_yearly['datayear'].astype(str)
 
 df_eui_bar_melted = df_yearly.melt(
     id_vars=['datayear'],
@@ -628,6 +627,7 @@ df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
     'avg_siteeui': 'Actual EUI',
     'target': 'Target EUI'
 })
+df_eui_bar_melted['datayear'] = df_eui_bar_melted['datayear'].astype(str)
 
 fig_eui_bar = px.bar(
     df_eui_bar_melted,
