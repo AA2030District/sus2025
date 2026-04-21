@@ -14,7 +14,6 @@ def apply_white_background(fig):
         paper_bgcolor='white',
         font=dict(color='black'),
         title_font=dict(color='black'),
-        title_x=0.5,
         legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
         hoverlabel=dict(
             font=dict(color='black'),
@@ -72,16 +71,15 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-FROM [dbo].[ESPMFIRSTTEST]
-WHERE [datayear] = 2025
-    AND ISNULL(pmparentid,espmid)=espmid 
+FROM [dbo].[DetroitDataBase]
+WHERE ISNULL(pmparentid,espmid)=espmid 
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
 
 energy_ok_buildings_query = """
 SELECT
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS energy_ok_buildings
-FROM [dbo].[ESPMFIRSTTEST]
+FROM [dbo].[DetroitDataBase]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
     AND [hasenergygaps] = 'OK'
@@ -96,7 +94,7 @@ else:
 water_ok_buildings_query = """
 SELECT
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS water_ok_buildings
-FROM [dbo].[ESPMFIRSTTEST]
+FROM [dbo].[DetroitDataBase]
 WHERE TRY_CAST([datayear] AS INT) = 2025
     AND ISNULL(pmparentid, espmid) = espmid
     AND [haswatergaps] = 'OK'
@@ -125,18 +123,53 @@ with col4:
 site_eui_first_slot = st.empty()
 
 
-# Manually inserted data, not taken from SQL/Energy Star
-buildings_data = {
-    "years": [2018, 2019, "2020/2021", 2022, 2023, 2024, 2025],
-    "buildings": [25, 36, 99, 274, 415, 1154, summary_df['building_count'].sum()]
-}
-
-df = pd.DataFrame(buildings_data)
-df["years"] = df["years"].astype(str)
-df_filtered = df[df['years'] != '2020']
+# Building counts by year from DB:
+# include a property's building count when report_year >= year joined
+buildings_by_year_query = """
+WITH years AS (
+    SELECT 2018 AS report_year UNION ALL
+    SELECT 2019 UNION ALL
+    SELECT 2020 UNION ALL
+    SELECT 2021 UNION ALL
+    SELECT 2022 UNION ALL
+    SELECT 2023 UNION ALL
+    SELECT 2024 UNION ALL
+    SELECT 2025 UNION ALL
+    Select 2026
+),
+property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS numbuildings,
+        MAX(TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))) AS sqfootage
+    FROM [dbo].[DetroitDataBase] d
+    LEFT JOIN [dbo].[yearjoined] yj
+        ON d.espmid = yj.ESPMID
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+    GROUP BY d.espmid
+)
+SELECT
+    y.report_year AS [year],
+    COALESCE(SUM(pr.numbuildings), 0) AS buildings,
+    COALESCE(SUM(pr.sqfootage), 0) AS total_sqft
+FROM years y
+LEFT JOIN property_rollup pr
+    ON pr.year_joined <= y.report_year
+GROUP BY y.report_year
+ORDER BY y.report_year
+"""
+buildings_df = conn.query(buildings_by_year_query)
+buildings_df["year"] = buildings_df["year"].astype(str)
+buildings_df["buildings"] = (
+    pd.to_numeric(buildings_df["buildings"], errors="coerce")
+    .fillna(0)
+    .round()
+    .astype(int)
+)
 fig = px.bar(
-    df,
-    x='years',
+    buildings_df,
+    x='year',
     y='buildings',
     color_discrete_sequence=['#41AC49'],
     text='buildings'
@@ -150,32 +183,23 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Number of Buildings",
     title={
-        'text': "Washtenaw 2030 Buildings By Year",
+        'text': "Detroit 2030 Buildings By Year",
         'font': {'size': 20}
     }
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-fig = apply_white_background(fig)
-fig.update_layout(title=dict(x=0.5, xanchor="center"))
-st.plotly_chart(fig, width="content")
+st.plotly_chart(apply_white_background(fig), width="content")
 
 
 
-# Manually inserted data, not taken from SQL/Energy Star
-sqft_data = {
-    "years": [2018, 2019, "2020/2021", 2022, 2023, 2024, 2025],
-    "square_footage": [859321, 1023938, 2597722, 9433543, 20125392, 35212329, summary_df['total_sqft'].sum()]
-}
 
-df = pd.DataFrame(sqft_data)
-df["years"] = df["years"].astype(str)
 fig = px.bar(
-    df,
-    x='years',
-    y='square_footage',
+    buildings_df,
+    x='year',
+    y='total_sqft',
     color_discrete_sequence=['#41AC49'],
-    text='square_footage'
+    text='total_sqft'
 )
 fig.update_traces(
     texttemplate='%{text:,.0f}',
@@ -191,9 +215,7 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
-fig = apply_white_background(fig)
-fig.update_layout(title=dict(x=0.5, xanchor="center"))
-st.plotly_chart(fig, width="content")
+st.plotly_chart(apply_white_background(fig), width="content")
 
 
 
@@ -205,7 +227,7 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COUNT(DISTINCT [espmid]) as property_count
-FROM [dbo].[ESPMFIRSTTEST]
+FROM [dbo].[DetroitDataBase]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
 GROUP BY [usetype]
@@ -261,16 +283,12 @@ fig_pie.update_traces(
     hovertemplate="<b>%{label}</b><br>Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
     rotation=180,
     direction="counterclockwise",
-    domain=dict(y=[0.0, 0.82]),
 )
 fig_pie.update_layout(
     height=620,
-    margin=dict(l=130, r=130, t=160, b=130),
-    title=dict(y=0.98, x=0.5, xanchor="center", yanchor="top"),
+    margin=dict(l=130, r=130, t=110, b=130),
 )
-fig_pie = apply_white_background(fig_pie)
-fig_pie.update_layout(title=dict(x=0.5, xanchor="center"))
-st.plotly_chart(fig_pie, width="stretch")  
+st.plotly_chart(apply_white_background(fig_pie),width="stretch")  
 
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
@@ -557,21 +575,13 @@ st.plotly_chart(fig_pie, width="stretch")
 # st.plotly_chart(apply_white_background(fig), use_container_width=True, config={"responsive": True})
 
 
-
-eui_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024,2025],
-    "baseline": [94.5, 78.33, 54.32, 80, 74.14, 54.71,62.2],
-    "actual": [113.08, 74.15, 50.91, 79.68, 70.3, 82.44,76.13],
-    "target": [64.3, 53.3, 36.9, 54.4, 50.4, 43.7,32.775]
-}
-
 yearly_query = """
     SELECT 
         TRY_CAST([datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
-    FROM [dbo].[ESPMFIRSTTEST]
+    FROM [dbo].[DetroitDataBase]
     WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
         AND ISNULL(pmparentid,espmid)=espmid 
         AND hasenergygaps = 'OK' 
@@ -587,32 +597,16 @@ yearly_query = """
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
 
-# Site EUI bar chart (rendered in first graph slot) from fixed eui_data
-df_eui_bar = pd.DataFrame(eui_data).rename(columns={"years": "datayear", "actual": "avg_siteeui"})
-df_eui_bar["datayear"] = df_eui_bar["datayear"].astype(str)
-
-df_eui_bar_melted = df_eui_bar.melt(
-    id_vars=['datayear'],
-    value_vars=['avg_siteeui', 'baseline', 'target'],
-    var_name='series',
-    value_name='eui'
-).dropna(subset=['eui'])
-df_eui_bar_melted['series'] = df_eui_bar_melted['series'].replace({
-    'avg_siteeui':'Actual EUI',
-    'baseline':'Baseline EUI',
-    'target':'Target EUI'
-})
-
 fig_eui_bar = px.bar(
-    df_eui_bar_melted,
+    df_yearly,
     x='datayear',
-    y='eui',
-    color='series',
+    y='avg_siteeui',
+    # color='series',
     barmode='group',
     title='Average Site EUI by Data Year (Bar Chart)',
     labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
-    text='eui',
+    text='avg_siteeui',
     color_discrete_map={
         'Actual EUI': '#F7C900',
         'Baseline EUI': '#878888',
@@ -628,14 +622,11 @@ fig_eui_bar.update_layout(
         yanchor='bottom',
         y=1.02,
         xanchor='left',
-        x=0.0,
-        font=dict(size=11),
+        x=0,
     ),
-    margin=dict(l=20, r=80, t=120, b=20),
+    margin=dict(r=20, t=90),
 )
-fig_eui_bar = apply_white_background(fig_eui_bar)
-fig_eui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
-site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
+site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
 
 
 # Water WUI bar chart, using preexisting data
@@ -701,9 +692,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-fig_wui_bar = apply_white_background(fig_wui_bar)
-fig_wui_bar.update_layout(title=dict(x=0.5, xanchor="center"))
-st.plotly_chart(fig_wui_bar, width="content")
+st.plotly_chart(apply_white_background(fig_wui_bar), width="content")
 
 
 wui_data = {
@@ -760,9 +749,7 @@ fig_ghg.update_layout(
     yaxis_title="GHG Emissions",
     legend_title_text="",
 )
-fig_ghg = apply_white_background(fig_ghg)
-fig_ghg.update_layout(title=dict(x=0.5, xanchor="center"))
-st.plotly_chart(fig_ghg, width="content")
+st.plotly_chart(apply_white_background(fig_ghg), width="content")
 
 
 
@@ -792,6 +779,7 @@ st.plotly_chart(fig_ghg, width="content")
 #     st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
 # with col2:
 #     st.metric("?? Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+
 
 
 
