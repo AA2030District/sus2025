@@ -584,21 +584,25 @@ st.plotly_chart(apply_white_background(fig_pie),width="stretch")
 
 yearly_query = """
     SELECT 
-        TRY_CAST([datayear] AS INT) as datayear,
-        COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-        AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        AVG(TRY_CAST([wui] AS DECIMAL(10,2))) as avg_wui
-    FROM [dbo].[ESPMFIRSTTEST]
-    WHERE [datayear] IN (2021, 2022, 2023, 2024, 2025)
-        AND ISNULL(pmparentid,espmid)=espmid 
-        AND hasenergygaps = 'OK' 
-        AND haswatergaps = 'OK' 
-        AND energylessthan12months = 'OK' 
-        AND waterlessthan12months='OK' 
-        AND siteeui is not NULL 
-    GROUP BY [datayear]
-    HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
-    ORDER BY [datayear]
+        TRY_CAST(e.[datayear] AS INT) as datayear,
+        COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
+        AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) as avg_siteeui,
+        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
+        AVG(TRY_CAST(b.[Zerotool Baseline] AS DECIMAL(10,2))) as baseline,
+        AVG(TRY_CAST(b.[Zerotool Baseline] AS DECIMAL(10,2))) * 0.65 as target
+    FROM [dbo].[ESPMFIRSTTEST] e
+    LEFT JOIN [dbo].[baselines] b
+        ON e.[usetype] = b.[usetype]
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2021, 2022, 2023, 2024, 2025)
+        AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
+        AND e.hasenergygaps = 'OK' 
+        AND e.haswatergaps = 'OK' 
+        AND e.energylessthan12months = 'OK' 
+        AND e.waterlessthan12months = 'OK' 
+        AND e.siteeui is not NULL 
+    GROUP BY TRY_CAST(e.[datayear] AS INT)
+    HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
+    ORDER BY datayear
 """
 
 df_yearly = conn.query(yearly_query)
