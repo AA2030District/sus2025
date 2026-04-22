@@ -650,9 +650,15 @@ fig_eui_bar = px.bar(
         'Target EUI': '#41AC49',
     },
 )
-fig_eui_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+max_eui = df_eui_bar_melted['eui'].max()
+fig_eui_bar.update_traces(
+    texttemplate='%{text:.1f}',
+    textposition='outside',
+    cliponaxis=False,
+)
 fig_eui_bar.update_layout(
     height=450,
+    title_x=0.5,
     legend_title_text='',
     legend=dict(
         orientation='h',
@@ -661,8 +667,10 @@ fig_eui_bar.update_layout(
         xanchor='left',
         x=0,
     ),
-    margin=dict(r=20, t=90),
+    margin=dict(r=20, t=110),
 )
+if pd.notna(max_eui):
+    fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
 site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
 
 
