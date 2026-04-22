@@ -595,7 +595,7 @@ yearly_query = """
         AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(b.zerotool_baseline) as baseline,
-        AVG(b.zerotool_baseline) * 0.65 as target
+        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -605,13 +605,11 @@ yearly_query = """
         GROUP BY LTRIM(RTRIM([Building Name]))
     ) b
         ON LTRIM(RTRIM(e.[buildingname])) = b.building_name
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2021, 2022, 2023, 2024, 2025)
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK' 
-        AND e.haswatergaps = 'OK' 
         AND e.energylessthan12months = 'OK' 
-        AND e.waterlessthan12months = 'OK' 
         AND e.siteeui is not NULL 
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
