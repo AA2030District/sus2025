@@ -592,7 +592,7 @@ yearly_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-        AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) as avg_siteeui,
+        AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
