@@ -643,8 +643,18 @@ fig_eui_bar.update_xaxes(
     tickfont=dict(size=14, color="black", family="Open Sans"),
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )
-fig_eui_bar.write_image("fig_eui_bar.png", width=3508, height=2480, scale=1)
+eui_export_path = "fig_eui_bar.png"
+fig_eui_bar.write_image(eui_export_path, width=3508, height=2480, scale=1)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
+with open(eui_export_path, "rb") as f:
+    eui_png_bytes = f.read()
+st.download_button(
+    label="Download EUI Chart (PNG)",
+    data=eui_png_bytes,
+    file_name="fig_eui_bar.png",
+    mime="image/png",
+    key="download_fig_eui_bar_png",
+)
 
 
 # Water WUI bar chart, using preexisting data
