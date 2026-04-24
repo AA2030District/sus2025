@@ -631,12 +631,12 @@ fig_eui_bar.update_layout(
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
-fig_eui_bar.update_yaxes(
-    color="black",                      # axis default color
-    tickfont=dict(color="black"),       # y tick labels
-    title_font=dict(color="black"),     # y-axis title
-    linecolor="black"                   # y-axis line
-)    
+# fig_eui_bar.update_yaxes(
+#     color="black",                      # axis default color
+#     tickfont=dict(color="black"),       # y tick labels
+#     title_font=dict(color="black"),     # y-axis title
+#     linecolor="black"                   # y-axis line
+# )    
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
