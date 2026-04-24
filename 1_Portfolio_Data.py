@@ -614,8 +614,7 @@ fig_eui_bar.update_traces(
     texttemplate='%{text:.1f}',
     textposition='outside',
     cliponaxis=False,
-    colorbar="black"
-    
+    textfont=dict(color='black')
 )
 fig_eui_bar.update_layout(
     height=450,
