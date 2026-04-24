@@ -619,7 +619,7 @@ fig_eui_bar.update_traces(
 )
 fig_eui_bar.update_layout(
     height=450,
-    title_x=0.5,
+    title_x=0.4,
     legend_title_text='',
     legend=dict(
         orientation='h',
