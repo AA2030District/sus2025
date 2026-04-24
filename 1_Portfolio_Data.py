@@ -616,7 +616,7 @@ fig_eui_bar.update_traces(
     cliponaxis=False,
     textfont=dict(color='black')
 )
-fig_eui_bar.update_yaxes(color='black')
+fig_eui_bar.update_yaxes(color="#444")
 fig_eui_bar.update_layout(
     height=450,
     title_x=0.38,
