@@ -638,6 +638,11 @@ fig_eui_bar.update_yaxes(
     tickfont=dict(size=14, color="black", family="Open Sans"),
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )
+fig_eui_bar.update_xaxes(
+    color="black",                      
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")                  
+)
 fig_eui_bar.write_image("fig_eui_bar.png", width=3508, height=2480, scale=1)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
