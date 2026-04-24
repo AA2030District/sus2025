@@ -620,14 +620,14 @@ fig_eui_bar.update_layout(
     height=450,
     title_x=0.38,
     legend_title_text='',
-    legend=dict(
-        orientation='h',
-        yanchor='bottom',
-        y=1.2,
-        xanchor='left',
-        x=0,
-    ),
-    margin=dict(r=20, t=110),
+    # legend=dict(
+    #     orientation='h',
+    #     yanchor='bottom',
+    #     y=1.2,
+    #     xanchor='left',
+    #     x=0,
+    # ),
+    # margin=dict(r=20, t=110),
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
