@@ -627,7 +627,7 @@ fig_eui_bar.update_layout(
         xanchor='left',
         x=0,
     ),
-    margin=dict(r=20, t=110,l=20),
+    margin=dict(r=20,l=20),
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
