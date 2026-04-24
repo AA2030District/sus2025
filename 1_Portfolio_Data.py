@@ -623,10 +623,9 @@ fig_eui_bar.update_layout(
     legend=dict(
         orientation='h',
         yanchor='bottom',
-        y=1,
+        y=1.00,
         xanchor='left',
         x=0,
-    textfont=dict(color='black')
     ),
     margin=dict(r=20, t=110),
 )
