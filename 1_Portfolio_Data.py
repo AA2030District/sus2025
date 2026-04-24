@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import kaleido
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
@@ -631,12 +632,13 @@ fig_eui_bar.update_layout(
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
-# fig_eui_bar.update_yaxes(
-#     color="black",                      # axis default color
-#     tickfont=dict(color="black"),       # y tick labels
-#     title_font=dict(color="black"),     # y-axis title
-#     linecolor="black"                   # y-axis line
-# )    
+fig_eui_bar.update_yaxes(
+    color="black",                      # axis default color
+    tickfont=dict(color="black"),       # y tick labels
+    title_font=dict(color="black"),     # y-axis title
+    linecolor="black"                   # y-axis line
+)    
+fig_eui_bar.write_image("fig_eui_bar.png", width=3508, height=2480, scale=1)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
