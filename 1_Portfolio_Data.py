@@ -616,7 +616,6 @@ fig_eui_bar.update_traces(
     cliponaxis=False,
     textfont=dict(color='black')
 )
-fig_eui_bar.update_yaxes(color="#444")
 fig_eui_bar.update_layout(
     height=450,
     title_x=0.38,
@@ -631,7 +630,7 @@ fig_eui_bar.update_layout(
     margin=dict(r=100),
 )
 if pd.notna(max_eui):
-    fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
+    fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15],color='black')
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
