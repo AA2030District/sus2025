@@ -644,7 +644,7 @@ fig_eui_bar.update_xaxes(
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )
 eui_export_path = "fig_eui_bar.png"
-fig_eui_bar.write_image(eui_export_path, width=4*300, height=1.5*300, scale=1)
+fig_eui_bar.write_image(eui_export_path, width=1200, height=450, scale=1)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 with open(eui_export_path, "rb") as f:
     eui_png_bytes = f.read()
@@ -719,6 +719,17 @@ fig_wui_bar.update_traces(
 fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
+)
+fig_wui_bar.update_yaxes(
+    color="black",                      
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")                  
+)
+fig_wui_bar.update_xaxes(
+    color="black",                      
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")                  
 )
 st.plotly_chart(fig_wui_bar, width="content")
 
