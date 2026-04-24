@@ -623,7 +623,7 @@ fig_eui_bar.update_layout(
     legend=dict(
         orientation='h',
         yanchor='bottom',
-        y=.9,
+        y=1,
         xanchor='left',
         x=0,
     ),
