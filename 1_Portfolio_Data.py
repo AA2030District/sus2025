@@ -644,7 +644,7 @@ fig_eui_bar.update_xaxes(
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )
 eui_export_path = "fig_eui_bar.png"
-fig_eui_bar.write_image(eui_export_path, width=3508, height=2480, scale=1)
+fig_eui_bar.write_image(eui_export_path, width=4*300, height=1.5*300, scale=1)
 site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 with open(eui_export_path, "rb") as f:
     eui_png_bytes = f.read()
