@@ -557,12 +557,12 @@ yearly_query = """
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
-            LTRIM(RTRIM([Building Name])) AS building_name,
-            MAX(TRY_CAST([Zerotool Baseline] AS DECIMAL(10,2))) AS zerotool_baseline
+            TRY_CAST([espmid] AS BIGINT) AS espmid,
+            MAX(TRY_CAST([baseline] AS DECIMAL(10,2))) AS zerotool_baseline
         FROM [dbo].[baselines]
-        GROUP BY LTRIM(RTRIM([Building Name]))
+        GROUP BY TRY_CAST([espmid] AS BIGINT)
     ) b
-        ON LTRIM(RTRIM(e.[buildingname])) = b.building_name
+        ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
