@@ -7,48 +7,6 @@ from auth_helper import require_login
 
                                                                         #FORMATTING
 
-def apply_white_background(fig):
-    fig.update_layout(
-        template='simple_white',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(color='black'),
-        title_font=dict(color='black'),
-        legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
-        hoverlabel=dict(
-            font=dict(color='black'),
-            bgcolor='white',
-            bordercolor='black'
-        ),
-        autosize=True
-    )
-    fig.update_xaxes(
-        color='black',
-        tickfont=dict(color='black'),
-        title_font=dict(color='black'),
-        linecolor='black',
-        automargin=True
-    )
-    fig.update_yaxes(
-        color='black',
-        tickfont=dict(color='black'),
-        title_font=dict(color='black'),
-        linecolor='black',
-        automargin=True
-    )
-    fig.update_traces(
-        textfont=dict(
-            color='black',
-            family='Open Sans'
-        )
-    )
-    # cliponaxis only applies to cartesian traces (e.g., bar/scatter), not pie/treemap
-    fig.update_traces(cliponaxis=False, selector=dict(type='bar'))
-    fig.update_traces(cliponaxis=False, selector=dict(type='scatter'))
-    for ann in (fig.layout.annotations or []):
-        ann.font = dict(color='black')
-    return fig
-
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap');
@@ -201,7 +159,7 @@ fig.update_layout(
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
-st.plotly_chart(apply_white_background(fig), width="content")
+st.plotly_chart(fig, width="content")
 
 
 
@@ -227,7 +185,7 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
-st.plotly_chart(apply_white_background(fig), width="content")
+st.plotly_chart(fig, width="content")
 
 
 
@@ -301,7 +259,7 @@ fig_pie.update_layout(
     height=620,
     margin=dict(l=130, r=130, t=110, b=130),
 )
-st.plotly_chart(apply_white_background(fig_pie),width="stretch")  
+st.plotly_chart(fig_pie, width="stretch")
 
 # graph_df = pd.DataFrame(columns=[''])
 # graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
@@ -372,7 +330,7 @@ st.plotly_chart(apply_white_background(fig_pie),width="stretch")
 #     height=500,
 #     margin=dict(l=50, r=50, t=80, b=50)
 # )
-# st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
+# st.plotly_chart(fig_pie, use_container_width=True)
 
 # Filter to only include the target use types
 # target_usetypes = [
@@ -415,7 +373,7 @@ st.plotly_chart(apply_white_background(fig_pie),width="stretch")
 # )
 
 # # Display the chart
-# st.plotly_chart(apply_white_background(fig_usetype), use_container_width=True)
+# st.plotly_chart(fig_usetype, use_container_width=True)
 
 # National Median Site EUI for each Use Type 
 # reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
@@ -585,7 +543,7 @@ st.plotly_chart(apply_white_background(fig_pie),width="stretch")
 #         borderpad=4
 #     )
 
-# st.plotly_chart(apply_white_background(fig), use_container_width=True, config={"responsive": True})
+# st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
 
 
 yearly_query = """
@@ -615,6 +573,7 @@ yearly_query = """
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
+
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
@@ -671,7 +630,7 @@ fig_eui_bar.update_layout(
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
-site_eui_first_slot.plotly_chart(apply_white_background(fig_eui_bar), width="stretch")
+site_eui_first_slot.plotly_chart(fig_eui_bar, width="stretch")
 
 
 # Water WUI bar chart, using preexisting data
@@ -737,7 +696,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text=''
 )
-st.plotly_chart(apply_white_background(fig_wui_bar), width="content")
+st.plotly_chart(fig_wui_bar, width="content")
 
 
 wui_data = {
@@ -794,7 +753,7 @@ fig_ghg.update_layout(
     yaxis_title="GHG Emissions",
     legend_title_text="",
 )
-st.plotly_chart(apply_white_background(fig_ghg), width="content")
+st.plotly_chart(fig_ghg, width="content")
 
 
 

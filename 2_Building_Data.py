@@ -21,47 +21,6 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 </style>
 """, unsafe_allow_html=True)
 
-def apply_white_background(fig):
-    fig.update_layout(
-        template='simple_white',
-        plot_bgcolor='white',
-        paper_bgcolor='white',
-        font=dict(color='black'),
-        title_font=dict(color='black'),
-        legend=dict(font=dict(color='black'), title=dict(font=dict(color='black'))),
-        hoverlabel=dict(
-            font=dict(color='black'),
-            bgcolor='white',
-            bordercolor='black'
-        ),
-        autosize=True
-    )
-    fig.update_xaxes(
-        color='black',
-        tickfont=dict(color='black'),
-        title_font=dict(color='black'),
-        linecolor='black',
-        automargin=True
-    )
-    fig.update_yaxes(
-        color='black',
-        tickfont=dict(color='black'),
-        title_font=dict(color='black'),
-        linecolor='black',
-        automargin=True
-    )
-    fig.update_traces(
-        textfont=dict(
-            color='black',
-            family='Open Sans'
-        )
-    )
-    # cliponaxis only applies to cartesian traces (e.g., bar/scatter), not pie/treemap
-    fig.update_traces(cliponaxis=False, selector=dict(type='bar'))
-    fig.update_traces(cliponaxis=False, selector=dict(type='scatter'))
-    for ann in (fig.layout.annotations or []):
-        ann.font = dict(color='black')
-    return fig
 
 # Conversion factors
 KWH_TO_KBTU = 3.412  # 1 kWh = 3.412 kBTU
@@ -376,7 +335,7 @@ if not this_building_df.empty and this_building_df['siteeui'].notna().any():
             xaxis=dict(type='category', categoryorder='array', categoryarray=eui_x_order)
         )
         
-        st.plotly_chart(apply_white_background(fig_eui), use_container_width=True)
+        st.plotly_chart(fig_eui, use_container_width=True)
     else:
         st.warning("No EUI data available for any year")
 else:
@@ -437,7 +396,7 @@ if not this_building_df.empty and this_building_df['wui'].notna().any():
             xaxis=dict(type='category', categoryorder='array', categoryarray=wui_x_order)
         )
         
-        st.plotly_chart(apply_white_background(fig_wui), use_container_width=True)
+        st.plotly_chart(fig_wui, use_container_width=True)
     else:
         st.warning("No WUI data available for any year")
 else:
@@ -537,7 +496,7 @@ if not pie_df.empty:
         margin=dict(l=50, r=50, t=80, b=50)
     )
     
-    st.plotly_chart(apply_white_background(fig_pie), use_container_width=True)
+    st.plotly_chart(fig_pie, use_container_width=True)
 else:
     st.warning("No energy data available for 2025 to display pie chart")
 
