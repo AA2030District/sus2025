@@ -636,7 +636,7 @@ fig_eui_bar.update_yaxes(
     color="black",                  
     tickfont=dict(color="black"),      
     title_font=dict(color="black"),     
-    linecolor="black"
+    linecolor="black",
     tickfont=dict(size=14, color="black", family="Open Sans"),
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )    
