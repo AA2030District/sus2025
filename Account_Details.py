@@ -25,9 +25,12 @@ base_list_query = """
      SELECT
     e.*,
     p.[portfolio] AS portfolio
+    b.baseline as baselines
 FROM [dbo].[ESPMFIRSTTEST] e
 left JOIN [dbo].[portfolios] p
     ON e.[espmid] = p.[espmid]
+left JOIN [dbo].[Baselines] b
+    ON e.[espmid] = b.[espmid]
 WHERE TRY_CONVERT(INT, e.datayear) = (
       SELECT MAX(TRY_CONVERT(INT, e2.datayear))
       FROM [dbo].[ESPMFIRSTTEST] e2

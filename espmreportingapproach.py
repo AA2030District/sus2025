@@ -791,7 +791,7 @@ try:
         energycost=None
         energycostintensity=None
         energycostelectricitygridpurchase=None
-        energycostnaturalgas=None
+        energycostnaturalgas=None   
 
         datayear = building.get('@year')
         for buildingvalue in building['metric']:
