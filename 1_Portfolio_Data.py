@@ -552,7 +552,7 @@ yearly_query = """
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
+        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
@@ -682,7 +682,7 @@ wateryear_query = """
 df_water = conn.query(wateryear_query)
 df_water = df_water.sort_values('datayear')
 for col in ['avg_wui']:
-    df_water[col] = pd.to_numeric(df_yearly[col], errors='coerce')
+    df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
 
 # Water WUI bar chart, using preexisting data
 wui_data = {
@@ -711,7 +711,7 @@ for col in ['baseline', 'target']:
 # )
 # 2021-2024 use provided Actual WUI; 2025 uses SQL avg_wui across building types.
 fig_wui_bar = px.bar(
-    df_wui_bar_melted,
+    df_water,
     x='datayear',
     y='wui',
     color='series',
