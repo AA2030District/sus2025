@@ -24,7 +24,7 @@ conn = st.connection("sql", type="sql")
 base_list_query = """
      SELECT
     e.*,
-    p.[portfolio] AS portfolio
+    p.[portfolio] AS portfolio,
     b.baseline as baselines
 FROM [dbo].[ESPMFIRSTTEST] e
 left JOIN [dbo].[portfolios] p
