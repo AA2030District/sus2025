@@ -694,6 +694,19 @@ wui_reference_df = pd.DataFrame(wui_data)
 df_water = df_water.merge(wui_reference_df, on='datayear', how='left')
 for col in ['baseline', 'target']:
     df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
+
+df_wui_bar_melted = df_water.melt(
+    id_vars=['datayear'],
+    value_vars=['baseline', 'avg_wui', 'target'],
+    var_name='series',
+    value_name='wui'
+).dropna(subset=['wui'])
+df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
+    'baseline': 'Baseline WUI',
+    'avg_wui': 'Actual WUI',
+    'target': 'Target WUI',
+})
+df_wui_bar_melted['datayear'] = df_wui_bar_melted['datayear'].astype(str)
 # df_wui_bar = pd.DataFrame({'datayear': [2021, 2022, 2023, 2024, 2025]})
 # wui_reference_df = pd.DataFrame({
 #     'datayear': [2021, 2022, 2023, 2024, 2025],
@@ -711,7 +724,7 @@ for col in ['baseline', 'target']:
 # )
 # 2021-2024 use provided Actual WUI; 2025 uses SQL avg_wui across building types.
 fig_wui_bar = px.bar(
-    df_water,
+    df_wui_bar_melted,
     x='datayear',
     y='wui',
     color='series',
