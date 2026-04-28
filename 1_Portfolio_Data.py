@@ -661,7 +661,6 @@ wateryear_query = """
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
-        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -683,46 +682,34 @@ wateryear_query = """
 df_water = conn.query(wateryear_query)
 df_water = df_water.sort_values('datayear')
 for col in ['avg_wui']:
-    df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
+    df_water[col] = pd.to_numeric(df_yearly[col], errors='coerce')
 
 # Water WUI bar chart, using preexisting data
 wui_data = {
-    "years": [2021, 2022, 2023, 2024],
+    "datayear": [2021, 2022, 2023, 2024],
     "baseline": [52, 38, 22.4, 30.73],
-    "actual": [42, 33.06, 22.91, 27.04],
     "target": [35.36, 25.84, 15.23, 23.30],
 }
-df_wui_bar = pd.DataFrame({'datayear': [2021, 2022, 2023, 2024, 2025]})
-wui_reference_df = pd.DataFrame({
-    'datayear': [2021, 2022, 2023, 2024, 2025],
-    'baseline': [52, 38, 22.4, 30.73, 31],
-    'target': [35.36, 25.84, 15.23, 23.30, 20.90],
-    'actual': [42, 33.06, 22.91, 27.04, None],
-})
-df_wui_bar = df_wui_bar.merge(df_yearly[['datayear', 'avg_wui']], on='datayear', how='left')
+wui_reference_df = pd.DataFrame(wui_data)
+df_water = df_water.merge(wui_reference_df, on='datayear', how='left')
+for col in ['baseline', 'target']:
+    df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
+# df_wui_bar = pd.DataFrame({'datayear': [2021, 2022, 2023, 2024, 2025]})
+# wui_reference_df = pd.DataFrame({
+#     'datayear': [2021, 2022, 2023, 2024, 2025],
+#     'baseline': [52, 38, 22.4, 30.73, 31],
+#     'target': [35.36, 25.84, 15.23, 23.30, 20.90],
+#     'actual': [42, 33.06, 22.91, 27.04, None],
+# })
+# df_wui_bar = df_wui_bar.merge(df_yearly[['datayear', 'avg_wui']], on='datayear', how='left')
 
-# Merge with yearly data
-df_wui_bar = df_wui_bar.merge(
-    wui_reference_df[['datayear', 'baseline', 'target', 'actual']],
-    on='datayear',
-    how='left'
-)
+# # Merge with yearly data
+# df_wui_bar = df_wui_bar.merge(
+#     wui_reference_df[['datayear', 'baseline', 'target', 'actual']],
+#     on='datayear',
+#     how='left'
+# )
 # 2021-2024 use provided Actual WUI; 2025 uses SQL avg_wui across building types.
-df_wui_bar['avg_wui'] = df_wui_bar['actual'].combine_first(df_wui_bar['avg_wui'])
-df_wui_bar = df_wui_bar.drop(columns=['actual'])
-df_wui_bar['datayear'] = df_wui_bar['datayear'].astype(str)
-df_wui_bar_melted = df_wui_bar.melt(
-    id_vars=['datayear'],
-    value_vars=['avg_wui', 'baseline', 'target'],
-    var_name='series',
-    value_name='wui'
-).dropna(subset=['wui'])
-df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
-    'avg_wui': 'Actual WUI',
-    'baseline': 'Baseline WUI',
-    'target': 'Target WUI'
-})
-
 fig_wui_bar = px.bar(
     df_wui_bar_melted,
     x='datayear',
