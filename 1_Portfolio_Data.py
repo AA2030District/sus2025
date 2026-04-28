@@ -660,39 +660,25 @@ wateryear_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui
+        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
-    LEFT JOIN (
-        SELECT
-            TRY_CAST([espmid] AS BIGINT) AS espmid,
-            MAX(TRY_CAST([baseline] AS DECIMAL(10,2))) AS zerotool_baseline
-        FROM [dbo].[baselines]
-        GROUP BY TRY_CAST([espmid] AS BIGINT)
-    ) b
-        ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
+    LEFT JOIN [dbo].[wuibaselines] wb
+        ON e.[usetype] = wb.[usetype]
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.haswatergaps = 'OK' 
         AND e.waterlessthan12months = 'OK' 
+        AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
 df_water = conn.query(wateryear_query)
 df_water = df_water.sort_values('datayear')
-for col in ['avg_wui']:
-    df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
-
-# Water WUI bar chart, using preexisting data
-wui_data = {
-    "datayear": [2021, 2022, 2023, 2024],
-    "baseline": [52, 38, 22.4, 30.73],
-    "target": [35.36, 25.84, 15.23, 23.30],
-}
-wui_reference_df = pd.DataFrame(wui_data)
-df_water = df_water.merge(wui_reference_df, on='datayear', how='left')
-for col in ['baseline', 'target']:
+for col in ['avg_wui', 'baseline', 'target']:
     df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
 
 df_wui_bar_melted = df_water.melt(
