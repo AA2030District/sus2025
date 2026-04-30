@@ -552,7 +552,6 @@ yearly_query = """
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
-        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
@@ -655,7 +654,8 @@ st.download_button(
     mime="image/png",
     key="download_fig_eui_bar_png",
 )
-
+                                        #WUI GRAPH
+### query buildings with water gaps 
 wateryear_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
@@ -670,6 +670,7 @@ wateryear_query = """
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.haswatergaps = 'OK' 
+        AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
         AND e.waterlessthan12months = 'OK' 
         AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
     GROUP BY TRY_CAST(e.[datayear] AS INT)
@@ -693,22 +694,6 @@ df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
     'target': 'Target WUI',
 })
 df_wui_bar_melted['datayear'] = df_wui_bar_melted['datayear'].astype(str)
-# df_wui_bar = pd.DataFrame({'datayear': [2021, 2022, 2023, 2024, 2025]})
-# wui_reference_df = pd.DataFrame({
-#     'datayear': [2021, 2022, 2023, 2024, 2025],
-#     'baseline': [52, 38, 22.4, 30.73, 31],
-#     'target': [35.36, 25.84, 15.23, 23.30, 20.90],
-#     'actual': [42, 33.06, 22.91, 27.04, None],
-# })
-# df_wui_bar = df_wui_bar.merge(df_yearly[['datayear', 'avg_wui']], on='datayear', how='left')
-
-# # Merge with yearly data
-# df_wui_bar = df_wui_bar.merge(
-#     wui_reference_df[['datayear', 'baseline', 'target', 'actual']],
-#     on='datayear',
-#     how='left'
-# )
-# 2021-2024 use provided Actual WUI; 2025 uses SQL avg_wui across building types.
 fig_wui_bar = px.bar(
     df_wui_bar_melted,
     x='datayear',
@@ -748,61 +733,49 @@ fig_wui_bar.update_xaxes(
 st.plotly_chart(fig_wui_bar, width="content")
 
 
-wui_data = {
-    "years": [2021, 2022, 2023, 2024],
-    "baseline": [52, 38, 22.4, 30.73],
-    "actual": [42, 33.06, 22.91, 27.04],
-    "target": [35.36, 25.84, 15.23, 20.90]
-}
-emissions_data = {
-    "years": [2018, 2019, 2021, 2022, 2023, 2024],
-    "baseline": [13.44, 16.73, 11.89, 9.4, 7.57, 6.2],
-    "current": [11.66, 13.1, 9.49, 7.5, 6.04, 4.6],
-    "yearly_target": [11.56, 13.89, 9.16, 6.96, 5.37, 3.9],
-    "target_2030": [6.72, 8.37, 5.95, 4.7, 3.79, 3.1]
-}
+                        #EMISSIONS GRAPH
 
-emissions_df = pd.DataFrame(emissions_data)
-emissions_df["years"] = emissions_df["years"].astype(str)
-emissions_long = emissions_df.melt(
-    id_vars=["years"],
-    value_vars=["baseline", "current", "yearly_target", "target_2030"],
-    var_name="series",
-    value_name="ghg",
-)
-emissions_long["series"] = emissions_long["series"].replace(
-    {
-        "baseline": "Baseline",
-        "current": "Current",
-        "yearly_target": "Yearly Target",
-        "target_2030": "2030 Target",
-    }
-)
+# emissions_df = pd.DataFrame(emissions_data)
+# emissions_df["years"] = emissions_df["years"].astype(str)
+# emissions_long = emissions_df.melt(
+#     id_vars=["years"],
+#     value_vars=["baseline", "current", "yearly_target", "target_2030"],
+#     var_name="series",
+#     value_name="ghg",
+# )
+# emissions_long["series"] = emissions_long["series"].replace(
+#     {
+#         "baseline": "Baseline",
+#         "current": "Current",
+#         "yearly_target": "Yearly Target",
+#         "target_2030": "2030 Target",
+#     }
+# )
 
-fig_ghg = px.bar(
-    emissions_long,
-    x="years",
-    y="ghg",
-    color="series",
-    barmode="group",
-    title="District Green House Gas Emissions Per Square Foot Over Time",
-    labels={"years": "Year", "ghg": "GHG Emissions", "series": ""},
-    text="ghg",
-    color_discrete_map={
-        "Current": "#F7C900",
-        "Baseline": "#878888",
-        "Yearly Target": "#3E6CF5",
-        "2030 Target": "#41AC49",
-    },
-)
-fig_ghg.update_traces(texttemplate="%{text:.2f}", textposition="outside")
-fig_ghg.update_layout(
-    height=500,
-    xaxis_title="Year",
-    yaxis_title="GHG Emissions",
-    legend_title_text="",
-)
-st.plotly_chart(fig_ghg, width="content")
+# fig_ghg = px.bar(
+#     emissions_long,
+#     x="years",
+#     y="ghg",
+#     color="series",
+#     barmode="group",
+#     title="District Green House Gas Emissions Per Square Foot Over Time",
+#     labels={"years": "Year", "ghg": "GHG Emissions", "series": ""},
+#     text="ghg",
+#     color_discrete_map={
+#         "Current": "#F7C900",
+#         "Baseline": "#878888",
+#         "Yearly Target": "#3E6CF5",
+#         "2030 Target": "#41AC49",
+#     },
+# )
+# fig_ghg.update_traces(texttemplate="%{text:.2f}", textposition="outside")
+# fig_ghg.update_layout(
+#     height=500,
+#     xaxis_title="Year",
+#     yaxis_title="GHG Emissions",
+#     legend_title_text="",
+# )
+# st.plotly_chart(fig_ghg, width="content")
 
 
 

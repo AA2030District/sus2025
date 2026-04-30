@@ -299,6 +299,10 @@ try:
         energycostintensity FLOAT,
         energycostelectricitygridpurchase FLOAT,
         energycostnaturalgas FLOAT,
+        totalMarketBasedGHGEmissions FLOAT,
+        greenPowerOffSite FLOAT,
+        onSiteRenewableSystemElectricityExported FLOAT,
+        onSiteRenewableSystemGeneration FLOAT,
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -487,6 +491,22 @@ try:
                     pass  # Column already exists
                 else:
                     print(f"Warning: Could not add 'energycostnaturalgas' column: {e}")
+
+            for column_name in [
+                "totalMarketBasedGHGEmissions",
+                "greenPowerOffSite",
+                "onSiteRenewableSystemElectricityExported",
+                "onSiteRenewableSystemGeneration",
+            ]:
+                try:
+                    cursor.execute(f"""
+                    IF COL_LENGTH('ESPMFIRSTTEST', '{column_name}') IS NULL
+                        ALTER TABLE ESPMFIRSTTEST ADD {column_name} FLOAT NULL;
+                    """)
+                    print(f"Ensured '{column_name}' column exists as FLOAT on ESPMFIRSTTEST table.")
+                    connection.commit()
+                except pyodbc.Error as e:
+                    print(f"Warning: Could not ensure '{column_name}' FLOAT column: {e}")
             
             try:
                 cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD hasenergygaps NVARCHAR(100)")
@@ -750,6 +770,10 @@ try:
         energycostintensity FLOAT,
         energycostelectricitygridpurchase FLOAT,
         energycostnaturalgas FLOAT,
+        totalMarketBasedGHGEmissions FLOAT,
+        greenPowerOffSite FLOAT,
+        onSiteRenewableSystemElectricityExported FLOAT,
+        onSiteRenewableSystemGeneration FLOAT,
         hasenergygaps NVARCHAR(100),
         haswatergaps NVARCHAR(100),
         energylessthan12months NVARCHAR(100),
@@ -792,6 +816,10 @@ try:
         energycostintensity=None
         energycostelectricitygridpurchase=None
         energycostnaturalgas=None   
+        totalmarketbasedghgemissions=None
+        greenpoweroffsite=None
+        onsiterenewablesystemelectricityexported=None
+        onsiterenewablesystemgeneration=None
 
         datayear = building.get('@year')
         for buildingvalue in building['metric']:
@@ -845,10 +873,18 @@ try:
                 energycostelectricitygridpurchase = safe_to_decimal(metric_value)
             elif metric_name == 'energyCostNaturalGas':
                 energycostnaturalgas = safe_to_decimal(metric_value)
-        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,yearcreatedinespm,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+            elif metric_name == 'totalMarketBasedGHGEmissions':
+                totalmarketbasedghgemissions = safe_to_decimal(metric_value)
+            elif metric_name == 'greenPowerOffSite':
+                greenpoweroffsite = safe_to_decimal(metric_value)
+            elif metric_name == 'onSiteRenewableSystemElectricityExported':
+                onsiterenewablesystemelectricityexported = safe_to_decimal(metric_value)
+            elif metric_name == 'onSiteRenewableSystemGeneration':
+                onsiterenewablesystemgeneration = safe_to_decimal(metric_value)
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,yearcreatedinespm,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,totalmarketbasedghgemissions,greenpoweroffsite,onsiterenewablesystemelectricityexported,onsiterenewablesystemgeneration,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
@@ -875,6 +911,10 @@ try:
                     ISNULL(target.energycostintensity, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostintensity, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.energycostnaturalgas, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostnaturalgas, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.totalMarketBasedGHGEmissions, CAST(-1.0 AS FLOAT)) <> ISNULL(source.totalMarketBasedGHGEmissions, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.greenPowerOffSite, CAST(-1.0 AS FLOAT)) <> ISNULL(source.greenPowerOffSite, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.onSiteRenewableSystemElectricityExported, CAST(-1.0 AS FLOAT)) <> ISNULL(source.onSiteRenewableSystemElectricityExported, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.onSiteRenewableSystemGeneration, CAST(-1.0 AS FLOAT)) <> ISNULL(source.onSiteRenewableSystemGeneration, CAST(-1.0 AS FLOAT)) OR
                     ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
                     ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
                     ISNULL(target.energylessthan12months, '') <> ISNULL(source.energylessthan12months, '') OR
@@ -898,14 +938,18 @@ try:
                         energycostintensity = source.energycostintensity,
                         energycostelectricitygridpurchase = source.energycostelectricitygridpurchase,
                         energycostnaturalgas = source.energycostnaturalgas,
+                        totalMarketBasedGHGEmissions = source.totalMarketBasedGHGEmissions,
+                        greenPowerOffSite = source.greenPowerOffSite,
+                        onSiteRenewableSystemElectricityExported = source.onSiteRenewableSystemElectricityExported,
+                        onSiteRenewableSystemGeneration = source.onSiteRenewableSystemGeneration,
                         hasenergygaps = source.hasenergygaps,
                         haswatergaps = source.haswatergaps,
                         energylessthan12months = source.energylessthan12months,
                         waterlessthan12months = source.waterlessthan12months,
                         pmparentid = source.pmparentid
                 WHEN NOT MATCHED THEN
-                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, yearcreatedinespm, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
-                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.yearcreatedinespm, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, yearcreatedinespm, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.yearcreatedinespm, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.totalMarketBasedGHGEmissions, source.greenPowerOffSite, source.onSiteRenewableSystemElectricityExported, source.onSiteRenewableSystemGeneration, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
         cursor.execute(merge_query)
