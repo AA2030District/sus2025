@@ -426,20 +426,21 @@ wateryear_query = """
 """
 df_water = conn.query(wateryear_query)
 df_water = df_water.sort_values('datayear')
-for col in ['avg_wui', 'baseline', 'target']:
-    df_water[col] = pd.to_numeric(df_water[col], errors='coerce')
+df_water[['avg_wui', 'baseline', 'target']] = df_water[['avg_wui', 'baseline', 'target']].apply(
+    pd.to_numeric,
+    errors='coerce',
+)
 
 df_wui_bar_melted = df_water.melt(
     id_vars=['datayear'],
     value_vars=['baseline', 'avg_wui', 'target'],
     var_name='series',
     value_name='wui'
-).dropna(subset=['wui'])
-df_wui_bar_melted['series'] = df_wui_bar_melted['series'].replace({
+).dropna(subset=['wui']).replace({'series': {
     'baseline': 'Baseline WUI',
     'avg_wui': 'Actual WUI',
     'target': 'Target WUI',
-})
+}})
 df_wui_bar_melted['datayear'] = df_wui_bar_melted['datayear'].astype(str)
 fig_wui_bar = px.bar(
     df_wui_bar_melted,
@@ -464,7 +465,8 @@ fig_wui_bar.update_traces(
 )
 fig_wui_bar.update_layout(
     height=450, 
-    legend_title_text=''
+    legend_title_text='',
+    font_color="black",
 )
 fig_wui_bar.update_yaxes(
     color="black",                      
