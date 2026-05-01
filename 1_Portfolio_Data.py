@@ -469,6 +469,7 @@ fig_wui_bar.update_layout(
     font_color="black",
 )
 fig_wui_bar.update_yaxes(
+    range=[0, 45],
     color="black",                      
     linecolor="black",
     tickfont=dict(size=14, color="black", family="Open Sans"),
