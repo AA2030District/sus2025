@@ -294,8 +294,15 @@ yearly_query = """
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target,
-        SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)))
-            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as market_based_ghg_per_sqft
+        SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
+    / NULLIF(
+        SUM(CASE
+            WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
+            THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+            ELSE 0
+        END),
+        0
+    ) as market_based_ghg_per_sqft
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -547,6 +554,50 @@ fig_solar.update_xaxes(
     title_font=dict(size=16, color="black", family="Open Sans")
 )
 st.plotly_chart(fig_solar, width="content")
+
+ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft']].dropna().copy()
+ghg_df['datayear'] = ghg_df['datayear'].astype(str)
+
+fig_ghg = px.bar(
+    ghg_df,
+    x='datayear',
+    y='market_based_ghg_per_sqft',
+    color_discrete_sequence=['#3E6CF5'],
+    text='market_based_ghg_per_sqft',
+    title='yearly ghg emissions',
+    labels={
+        'market_based_ghg_per_sqft': 'Market-Based GHG Emissions (kg CO2e/sq ft)',
+        'datayear': 'Data Year',
+    },
+)
+max_ghg = ghg_df['market_based_ghg_per_sqft'].max()
+fig_ghg.update_traces(
+    texttemplate='%{text:.2f}',
+    textposition='outside',
+    cliponaxis=False,
+    textfont=dict(color='black')
+)
+fig_ghg.update_layout(
+    height=450,
+    legend_title_text='',
+    font_color="black",
+    margin=dict(r=100),
+)
+if pd.notna(max_ghg):
+    fig_ghg.update_yaxes(range=[0, max_ghg * 1.15])
+fig_ghg.update_yaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+fig_ghg.update_xaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+st.plotly_chart(fig_ghg, width="content")
 
 
 
