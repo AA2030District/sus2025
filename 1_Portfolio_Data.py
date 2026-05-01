@@ -515,7 +515,7 @@ fig_solar = px.bar(
     color_discrete_sequence=['#41AC49'],
     text='renewablesum',
     title='District Member Solar Generation By Year',
-    labels={'renewablesum': 'Solar Generation', 'datayear': 'Data Year'},
+    labels={'renewablesum': 'Solar Generation(kwh)', 'datayear': 'Data Year'},
 )
 max_solar = solar_df['renewablesum'].max()
 fig_solar.update_traces(
