@@ -206,29 +206,52 @@ GROUP BY [usetype]
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
 
-                                                                                        #PIE CHART
-pie_data = pd.DataFrame(
-    {
-        "usetype": [
-            "Multifamily Housing",
-            "Office",
-            "Single Family Home",
-            "K-12 School",
-            "Residence Hall/Dorm",
-            "Social/Meeting Hall",
-            "Strip Mall",
-            "Worship Facility",
-            "Restaurant",
-            "Fire Station",
-            "Other",
-        ],
-        "property_count": [156, 130, 74, 54, 22, 19, 15, 14, 12, 12, 187],
-    }
+pie_query ="""
+WITH ranked AS (
+    SELECT
+        e.usetype,
+        COUNT(DISTINCT e.espmid) AS building_count,
+        SUM(TRY_CONVERT(INT, e.numbuildings)) AS building_sum,
+        ROW_NUMBER() OVER (
+            ORDER BY COUNT(DISTINCT e.espmid) DESC, e.usetype
+        ) AS usetype_rank
+    FROM ESPMFIRSTTEST e
+    WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+        AND TRY_CONVERT(INT, e.datayear) = 2025
+        AND EXISTS (
+            SELECT 1
+            FROM dbo.yearjoined y
+            WHERE y.espmid = e.espmid
+                AND TRY_CONVERT(INT, y.[year joined]) <= 2025
+        )
+    GROUP BY e.usetype
 )
+SELECT
+    2025 AS datayear,
+    CASE
+        WHEN usetype_rank <= 10 THEN usetype
+        ELSE 'Other'
+    END AS usetype,
+    SUM(building_count) AS building_count,
+    SUM(building_sum) AS building_sum
+FROM ranked
+GROUP BY
+    CASE
+        WHEN usetype_rank <= 10 THEN usetype
+        ELSE 'Other'
+    END
+ORDER BY
+    CASE WHEN
+        CASE WHEN usetype_rank <= 10 THEN usetype ELSE 'Other' END = 'Other'
+        THEN 1 ELSE 0
+    END,
+    SUM(building_count) DESC;
+"""
+pie_data=conn.query(pie_query)                                                                                     #PIE CHART
 
 fig_pie = px.pie(
     pie_data,
-    values="property_count",
+    values="building_count",
     names="usetype",
     title="Property Distribution by Type",
     category_orders={
@@ -252,7 +275,7 @@ fig_pie.update_traces(
     textinfo="percent+label",
     textfont_size=11,
     pull=[0.03] * len(pie_data),
-    hovertemplate="<b>%{label}</b><br>Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
+    hovertemplate="<b>%{label}</b><br>Unique Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
     rotation=180,
     direction="counterclockwise",
 )
@@ -262,289 +285,6 @@ fig_pie.update_layout(
 )
 st.plotly_chart(fig_pie, width="stretch")
 
-# graph_df = pd.DataFrame(columns=[''])
-# graph_df['category'] = graph_df['usetype'].map(use_type_mapping).fillna('Commercial')
-
-# category_summary = graph_df.groupby('category').agg({
-#     'total_sqft': 'sum',
-#     'building_count': 'sum',
-#     'avg_siteeui': 'mean'
-# }).round(2).reset_index()
-# category_summary['category'] = category_summary['category'].astype(str).str.strip()
-
-# # Bar Chart
-# fig_bar = px.bar(
-#     category_summary,
-#     x='category',
-#     y='total_sqft',
-#     title='Total Square Footage by Building Category',
-#     labels={'total_sqft': 'Total Square Footage (sq ft)', 'category': 'Building Category'},
-#     color='category',
-#     color_discrete_sequence=px.colors.qualitative.Set2,  
-#     text_auto='.2s'  # Formats numbers with K/M/B suffixes (e.g., 1.2M, 500K)
-# )
-
-# fig_bar.update_layout(
-#     xaxis_title="Building Category",
-#     yaxis_title="Total Square Footage (sq ft)",
-#     showlegend=False,
-#     height=500,
-#     margin=dict(l=50, r=50, t=80, b=50)
-# )
-# fig_bar.update_traces(
-#     textposition='outside',
-#     textfont_size=12
-# )
-# st.plotly_chart(fig_bar, use_container_width=True)
-
-# # Pie Chart
-# fig_pie = px.pie(
-#     category_summary,
-#     values='total_sqft',
-#     names='category',
-#     color='category',
-#     title='Square Footage Distribution by Building Category',
-#     category_orders={
-#         'category': ['Industrial', 'K-12', 'Multifamily', 'Commercial', 'Restaurant', 'Municipal']
-#     },
-#     color_discrete_map={
-#         'Multifamily': '#41AC49',
-#         'Industrial': '#878888',
-#         'Commercial': '#205330',
-#         'Restaurant': '#E67E22',
-#         'Municipal': '#3E6CF5',
-#         'K-12':'#F7C900'
-#     },
-# )
-
-# Improve pie chart layout
-# fig_pie.update_traces(
-#     textposition='outside',
-#     textinfo='percent+label',
-#     hoverinfo='label+percent+value',
-#     hovertemplate='<b>%{label}</b><br>Square Footage: %{value:,.0f}<br>Percentage: %{percent}<extra></extra>',
-#     rotation=180,
-#     direction='counterclockwise'
-# )
-
-# fig_pie.update_layout(
-#     height=500,
-#     margin=dict(l=50, r=50, t=80, b=50)
-# )
-# st.plotly_chart(fig_pie, use_container_width=True)
-
-# Filter to only include the target use types
-# target_usetypes = [
-#     'Residential Multifamily',
-#     'Office', 
-#     'K-12 School',
-#     'Other - Entertainment/Public Assembly',
-#     'Other - Recreation',
-# ]
-# df_filtered = df[df['usetype'].isin(target_usetypes)].copy()
-# df_filtered = df_filtered.sort_values('avg_siteeui', ascending=True)
-
-# fig_usetype = px.bar(
-#     df_filtered,
-#     x='avg_siteeui',
-#     y='usetype',
-#     orientation='h',  # Horizontal bar chart for better label readability
-#     title='Average Site EUI by Building Type (2025)',
-#     labels={
-#         'avg_siteeui': 'Average Site EUI (kBtu/ft^2)',
-#         'usetype': 'Building Type'
-#     },
-#     text='avg_siteeui',
-#     color_discrete_sequence=['#41AC49'],
-#     hover_data=['building_count', 'total_sqft'] 
-# )
-
-# # Customize the chart
-# fig_usetype.update_traces(
-#     texttemplate='%{text:.1f} kBtu/ft^2', 
-#     textposition='outside',
-#     textfont=dict(size=10),
-# )
-
-# fig_usetype.update_layout(
-#     height=500,
-#     xaxis=dict(title='Average Site EUI (kBtu/ft^2)'),
-#     yaxis=dict(title=''),
-#     coloraxis_showscale=False 
-# )
-
-# # Display the chart
-# st.plotly_chart(fig_usetype, use_container_width=True)
-
-# National Median Site EUI for each Use Type 
-# reference: https://portfoliomanager.energystar.gov/pdf/reference/US%20National%20Median%20Table.pdf
-# site_eui_benchmark = {
-#     'Other - Mall': 101.6,
-#     'Vehicle Dealership': 71.9,
-#     'Prison/Incarceration': 69.9,
-#     'Senior Living Community': 99.0,
-#     'Adult Education': 52.4,
-#     'Other - Lodging/Residential': 63.6,
-#     'Bar/Nightclub': 130.7,
-#     'Non-Refrigerated Warehouse': 22.7,
-#     'Other - Technology/Science': 40.1,
-#     'Fire Station': 63.5,
-#     'Other - Services': 47.9,
-#     'Mixed Use Property': 40.1,
-#     'Ice/Curling Rink': 50.8,
-#     'Other - Public Services': 40.1,
-#     'Library': 71.6,
-#     'Courthouse': 101.2,
-#     'Residence Hall/Dormitory': 57.9,
-#     'Other - Entertainment/Public Assembly': 56.2,
-#     'Multifamily Housing': 59.6,
-#     'K-12 School': 48.5,
-#     'Hotel': 63.0,
-#     'Other - Utility': 40.1,
-#     'Laboratory': 115.3,
-#     'Other - Education': 52.4,
-#     'Social/Meeting Hall': 56.1,
-#     'Wastewater Treatment Plant': 2.89,
-#     'Swimming Pool': 50.8,
-#     'Food Service': 270.3,
-#     'Drinking Water Treatment & Distribution': 2.27,
-#     'Retail Store': 51.4,
-#     'Museum': 56.2,
-#     'Medical Office': 97.7,
-#     'Office': 52.9,
-#     'Other - Recreation': 50.8,
-#     'Police Station': 63.5,
-#     'Financial Office': 52.9,
-#     'Other - Restaurant/Bar': 325.6,
-#     'Residential Care Facility': 99.0,
-#     'College/University': 84.3,
-#     'Worship Facility': 72.1,
-#     'Bowling Alley': 56.2,
-#     'Distribution Center': 22.7,
-#     'Supermarket/Grocery Store': 196.0,
-#     'Other': 40.1,
-#     'Strip Mall': 103.5,
-#     'Self-Storage Facility': 20.2,
-#     'Wholesale Club/Supercenter': 51.4,
-#     'Fitness Center/Health Club/Gym': 50.8,
-#     'Vehicle Repair Services': 47.9,
-#     'Energy/Power Station': 40.1,
-#     'Convenience Store without Gas Station': 350.9,
-#     'Personal Services (Health/Beauty, Dry Cleaning, etc)': 47.9,
-#     'Transportation Terminal/Station': 56.2,
-#     'Restaurant': 325.6,
-#     # Excluding following usetypes
-#     # 'Single Family Home': None,
-#     # 'Manufacturing/Industrial Plant': None,
-#     # 'Parking': None,
-
-# }
-
-# # Filter to only include use types that have benchmarks
-# df = df[df['usetype'].isin(site_eui_benchmark.keys())].copy()
-
-# # Add benchmark values to the dataframe
-# df['benchmark_eui'] = df['usetype'].map(site_eui_benchmark)
-
-# # Calculate performance metrics
-# df['performance_ratio'] = df['avg_siteeui'] / df['benchmark_eui']
-# df['performance_category'] = pd.cut(
-#     df['performance_ratio'],
-#     bins=[0, 1, 1.2, 1.5, float('inf')],
-#     labels=['Below or Equal to National Median', 'Slightly Above (1-20%)', 
-#             'Moderately Above (20-50%)', 'Significantly Above (>50%)']
-# )
-
-# # Create color mapping based on performance
-# def get_color(ratio):
-#     if ratio <= 1.0:
-#         return '#7DBF7A'  # Below or equal
-#     elif ratio <= 1.2:
-#         return '#41AC49'  # Slightly above
-#     elif ratio <= 1.5:
-#         return '#F7C900'  # Moderately above
-#     else:
-#         return '#E67E22'  # Significantly above
-
-# df['color'] = df['performance_ratio'].apply(get_color)
-
-# # Sort by square footage for better visualization
-# df = df.sort_values('total_sqft', ascending=False).reset_index(drop=True)
-
-# # Create custom hover text
-# hover_text = []
-# for idx, row in df.iterrows():
-#     text = f"<b>{row['usetype']}</b><br>"
-#     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
-#     text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
-#     text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
-
-#     hover_text.append(text)
-
-# # Create the treemap
-# fig = go.Figure(go.Treemap(
-#     labels=df['usetype'],
-#     parents=[''] * len(df),  # All at root level
-#     values=df['total_sqft'],
-#     text=df['usetype'],
-#     textinfo="label+value",
-#     texttemplate="<b>%{label}</b><br>%{value:,.0f} sq ft<br>",
-#     hovertext=hover_text,
-#     hoverinfo="text",
-#     marker=dict(
-#         colors=df['color'],
-#         line=dict(width=1, color='white')
-#     ),
-#     branchvalues="total",
-#     maxdepth=1,
-#     hovertemplate='%{hovertext}<extra></extra>'  # Use our custom hover text
-# ))
-
-# # Update layout
-# fig.update_layout(
-#     title={
-#         'text': "Building Type EUI Compared to National Median",
-#         'x': 0.5,
-#         'xanchor': 'center',
-#         'font': {'size': 20}
-#     },
-#     autosize=True,
-#     height=900,
-#     margin=dict(t=50, l=10, r=10, b=10),
-#     hoverlabel=dict(
-#         bgcolor="white",
-#         font_size=12,
-#         font_family="Arial"
-#     )
-# )
-
-# # Add a color legend as annotations
-# legend_x = 1.02
-# legend_y = 0.95
-# legend_items = [
-#     ('Below or Equal to National Median', '#CDEECD'),
-#     ('Slightly Above (1-20%)', '#41AC49'),
-#     ('Moderately Above (20-50%)', '#F7C900'),
-#     ('Significantly Above (>50%)', '#F1C40F')
-# ]
-
-# for i, (label, color) in enumerate(legend_items):
-#     fig.add_annotation(
-#         x=legend_x,
-#         y=legend_y - i*0.05,
-#         xref="paper",
-#         yref="paper",
-#         text=f"<span style='color:{color}'>{label}</span>",
-#         showarrow=False,
-#         font=dict(size=11),
-#         align="left",
-#         bgcolor="rgba(255,255,255,0.8)",
-#         bordercolor="#ccc",
-#         borderwidth=1,
-#         borderpad=4
-#     )
-
-# st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
 
 
 yearly_query = """
