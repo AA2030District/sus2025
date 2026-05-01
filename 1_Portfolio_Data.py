@@ -481,6 +481,72 @@ fig_wui_bar.update_xaxes(
     title_font=dict(size=16, color="black", family="Open Sans")                  
 )
 st.plotly_chart(fig_wui_bar, width="content")
+                        ###Solar graph
+
+solarquery="""
+SELECT
+    TRY_CONVERT(INT, e.datayear) AS datayear,
+    SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
+FROM ESPMFIRSTTEST e
+INNER JOIN (
+    SELECT
+        espmid,
+        MIN(TRY_CONVERT(INT, [year joined])) AS yearjoined
+    FROM dbo.yearjoined
+    GROUP BY espmid
+) y
+    ON e.espmid = y.espmid
+WHERE e.onSiteRenewableSystemGeneration IS NOT NULL
+    AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND TRY_CONVERT(INT, e.datayear) >= y.yearjoined
+GROUP BY TRY_CONVERT(INT, e.datayear)
+ORDER BY TRY_CONVERT(INT, e.datayear);
+"""
+
+solar_df = conn.query(solarquery)
+solar_df = solar_df.sort_values('datayear')
+solar_df['renewablesum'] = pd.to_numeric(solar_df['renewablesum'], errors='coerce')
+solar_df['datayear'] = solar_df['datayear'].astype(str)
+
+fig_solar = px.bar(
+    solar_df,
+    x='datayear',
+    y='renewablesum',
+    color_discrete_sequence=['#41AC49'],
+    text='renewablesum',
+    title='District Member Solar Generation By Year',
+    labels={'renewablesum': 'Solar Generation', 'datayear': 'Data Year'},
+)
+max_solar = solar_df['renewablesum'].max()
+fig_solar.update_traces(
+    texttemplate='%{text:,.0f}',
+    textposition='outside',
+    cliponaxis=False,
+    textfont=dict(color='black')
+)
+fig_solar.update_layout(
+    height=450,
+    legend_title_text='',
+    font_color="black",
+    margin=dict(r=100),
+)
+if pd.notna(max_solar):
+    fig_solar.update_yaxes(range=[0, max_solar * 1.15])
+fig_solar.update_yaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+fig_solar.update_xaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+st.plotly_chart(fig_solar, width="content")
+
+
 
 
                         #EMISSIONS GRAPH
