@@ -293,7 +293,9 @@ yearly_query = """
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
-        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target,
+        SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)))
+            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as market_based_ghg_per_sqft
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -317,7 +319,7 @@ yearly_query = """
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
-for col in ['avg_siteeui', 'baseline', 'target']:
+for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
 
 df_eui_bar_melted = df_yearly.melt(
