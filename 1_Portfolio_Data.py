@@ -351,7 +351,7 @@ fig_eui_bar = px.bar(
 )
 max_eui = df_eui_bar_melted['eui'].max()
 fig_eui_bar.update_traces(
-    texttemplate='%{text:.1f}',
+    texttemplate='%{text:.2f}',
     textposition='outside',
     cliponaxis=False,
     textfont=dict(color='black')
