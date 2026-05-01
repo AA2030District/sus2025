@@ -399,13 +399,20 @@ st.download_button(
 wateryear_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
-        COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN [dbo].[wuibaselines] wb
         ON e.[usetype] = wb.[usetype]
+    INNER JOIN (
+        SELECT
+            TRY_CONVERT(INT, [ESPMID]) AS espmid,
+            MIN(TRY_CONVERT(INT, [year joined])) AS yearjoined
+        FROM [dbo].[yearjoined]
+        GROUP BY TRY_CONVERT(INT, [ESPMID])
+    ) yj
+        ON TRY_CONVERT(INT, e.[espmid]) = yj.espmid
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
@@ -413,8 +420,8 @@ wateryear_query = """
         AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
         AND e.waterlessthan12months = 'OK' 
         AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
+        AND yj.yearjoined >= TRY_CAST(e.[datayear] AS INT)
     GROUP BY TRY_CAST(e.[datayear] AS INT)
-    HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
 df_water = conn.query(wateryear_query)
