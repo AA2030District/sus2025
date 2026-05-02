@@ -287,7 +287,13 @@ st.plotly_chart(fig_pie, width="stretch")
 
 
 
-yearly_query = """
+ghgemissionsfactor_dict = {2021:174.67, 2022:194.31, 2023:184.05, 2024:165.58, 2025:148.29}
+ghgemissionsfactor_sql = "\n".join(
+    f"            WHEN {year} THEN {factor}"
+    for year, factor in ghgemissionsfactor_dict.items()
+)
+
+yearly_query = f"""
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
@@ -302,7 +308,14 @@ yearly_query = """
             ELSE 0
         END),
         0
-    ) as market_based_ghg_per_sqft
+    ) as market_based_ghg_per_sqft,
+        MAX(CASE TRY_CAST(e.[datayear] AS INT)
+{ghgemissionsfactor_sql}
+        END) / 1000 * 209 as ghg_emissions_baseline,
+        MAX(CASE TRY_CAST(e.[datayear] AS INT)
+{ghgemissionsfactor_sql}
+        END) / 1000 * 209
+            * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as ghg_emissions_target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -326,7 +339,7 @@ yearly_query = """
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
-for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft']:
+for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
 
 df_eui_bar_melted = df_yearly.melt(
@@ -555,22 +568,39 @@ fig_solar.update_xaxes(
 )
 st.plotly_chart(fig_solar, width="content")
 
-ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft']].dropna().copy()
+ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']].copy()
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
+ghg_df = ghg_df.melt(
+    id_vars=['datayear'],
+    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft', 'ghg_emissions_target'],
+    var_name='series',
+    value_name='ghg'
+).dropna(subset=['ghg']).replace({'series': {
+    'ghg_emissions_baseline': 'Baseline GHG',
+    'market_based_ghg_per_sqft': 'Actual GHG',
+    'ghg_emissions_target': 'Target GHG',
+}})
 
 fig_ghg = px.bar(
     ghg_df,
     x='datayear',
-    y='market_based_ghg_per_sqft',
-    color_discrete_sequence=['#3E6CF5'],
-    text='market_based_ghg_per_sqft',
+    y='ghg',
+    color='series',
+    barmode='group',
+    text='ghg',
     title='yearly ghg emissions',
     labels={
-        'market_based_ghg_per_sqft': 'Market-Based GHG Emissions (kg CO2e/sq ft)',
+        'ghg': 'Market-Based GHG Emissions (kg CO2e/sq ft)',
         'datayear': 'Data Year',
+        'series': '',
+    },
+    color_discrete_map={
+        'Actual GHG': '#3E6CF5',
+        'Baseline GHG': '#878888',
+        'Target GHG': '#41AC49',
     },
 )
-max_ghg = ghg_df['market_based_ghg_per_sqft'].max()
+max_ghg = ghg_df['ghg'].max()
 fig_ghg.update_traces(
     texttemplate='%{text:.2f}',
     textposition='outside',
