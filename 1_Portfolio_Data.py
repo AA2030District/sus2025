@@ -309,12 +309,32 @@ yearly_query = f"""
         END),
         0
     ) as market_based_ghg_per_sqft,
-        MAX(CASE TRY_CAST(e.[datayear] AS INT)
+        (
+            SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
+            / NULLIF(
+                SUM(CASE
+                    WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
+                    THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                    ELSE 0
+                END),
+                0
+            )
+        ) * (209 / NULLIF(MAX(CASE TRY_CAST(e.[datayear] AS INT)
 {ghgemissionsfactor_sql}
-        END) / 1000 * 209 as ghg_emissions_baseline,
-        MAX(CASE TRY_CAST(e.[datayear] AS INT)
+        END), 0)) as ghg_emissions_baseline,
+        (
+            SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
+            / NULLIF(
+                SUM(CASE
+                    WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
+                    THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                    ELSE 0
+                END),
+                0
+            )
+        ) * (209 / NULLIF(MAX(CASE TRY_CAST(e.[datayear] AS INT)
 {ghgemissionsfactor_sql}
-        END) / 1000 * 209
+        END), 0))
             * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as ghg_emissions_target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
