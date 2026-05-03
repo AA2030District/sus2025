@@ -158,7 +158,8 @@ fig.update_layout(
         'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
     },
-    title_x=0.4,
+    title_x=0,
+    title_xanchor="left",
     title_font_family="Sans Serif",
 )
 fig.update_xaxes(type="category")
@@ -199,7 +200,9 @@ fig.update_layout(
     title={
         'text': "Total Building Area by Year",
         'font': {'size': 20}
-    }
+    },
+    title_x=0,
+    title_xanchor="left",
 )
 fig.update_xaxes(type="category")
 fig.update_yaxes(
@@ -311,6 +314,8 @@ fig_pie.update_layout(
     height=620,
     font_color="black",
     title_font=dict(size=20, color="black", family="Open Sans"),
+    title_x=0,
+    title_xanchor="left",
     margin=dict(l=130, r=130, t=110, b=130),
 )
 st.plotly_chart(fig_pie, width="stretch")
@@ -407,7 +412,8 @@ fig_eui_bar.update_traces(
 )
 fig_eui_bar.update_layout(
     height=450,
-    title_x=0.38,
+    title_x=0,
+    title_xanchor="left",
     legend_title_text='',
     legend=dict(
         orientation='h',
@@ -516,6 +522,8 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text='',
     font_color="black",
+    title_x=0,
+    title_xanchor="left",
 )
 fig_wui_bar.update_yaxes(
     range=[0, 45],
@@ -577,6 +585,8 @@ fig_solar.update_layout(
     height=450,
     legend_title_text='',
     font_color="black",
+    title_x=0,
+    title_xanchor="left",
     margin=dict(r=100),
 )
 if pd.notna(max_solar):
@@ -638,6 +648,8 @@ fig_ghg.update_layout(
     height=450,
     legend_title_text='',
     font_color="black",
+    title_x=0,
+    title_xanchor="left",
     margin=dict(r=100),
 )
 if pd.notna(max_ghg):
