@@ -287,13 +287,7 @@ st.plotly_chart(fig_pie, width="stretch")
 
 
 
-ghgemissionsfactor_dict = {2021:174.67, 2022:194.31, 2023:184.05, 2024:165.58, 2025:148.29}
-ghgemissionsfactor_sql = "\n".join(
-    f"            WHEN {year} THEN {factor}"
-    for year, factor in ghgemissionsfactor_dict.items()
-)
-
-yearly_query = f"""
+yearly_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
@@ -309,33 +303,11 @@ yearly_query = f"""
         END),
         0
     ) as market_based_ghg_per_sqft,
-        (
-            SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
-            / NULLIF(
-                SUM(CASE
-                    WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
-                    THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
-                    ELSE 0
-                END),
-                0
-            )
-        ) * (209 / NULLIF(MAX(CASE TRY_CAST(e.[datayear] AS INT)
-{ghgemissionsfactor_sql}
-        END), 0)) as ghg_emissions_baseline,
-        (
-            SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
-            / NULLIF(
-                SUM(CASE
-                    WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
-                    THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
-                    ELSE 0
-                END),
-                0
-            )
-        ) * (209 / NULLIF(MAX(CASE TRY_CAST(e.[datayear] AS INT)
-{ghgemissionsfactor_sql}
-        END), 0))
-            * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as ghg_emissions_target
+        SUM(
+            TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
+            * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+        ) * 0.17467
+            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as ghg_emissions_baseline
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -359,7 +331,7 @@ yearly_query = f"""
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
-for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']:
+for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
 
 df_eui_bar_melted = df_yearly.melt(
@@ -588,17 +560,16 @@ fig_solar.update_xaxes(
 )
 st.plotly_chart(fig_solar, width="content")
 
-ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']].copy()
+ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline']].copy()
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
 ghg_df = ghg_df.melt(
     id_vars=['datayear'],
-    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft', 'ghg_emissions_target'],
+    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft'],
     var_name='series',
     value_name='ghg'
 ).dropna(subset=['ghg']).replace({'series': {
     'ghg_emissions_baseline': 'Baseline GHG',
     'market_based_ghg_per_sqft': 'Actual GHG',
-    'ghg_emissions_target': 'Target GHG',
 }})
 
 fig_ghg = px.bar(
@@ -610,14 +581,13 @@ fig_ghg = px.bar(
     text='ghg',
     title='yearly ghg emissions',
     labels={
-        'ghg': 'Market-Based GHG Emissions (kg CO2e/sq ft)',
+        'ghg': 'GHG Emissions (kg CO2e/sq ft)',
         'datayear': 'Data Year',
         'series': '',
     },
     color_discrete_map={
         'Actual GHG': '#3E6CF5',
         'Baseline GHG': '#878888',
-        'Target GHG': '#41AC49',
     },
 )
 max_ghg = ghg_df['ghg'].max()
