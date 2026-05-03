@@ -174,7 +174,7 @@ fig.update_yaxes(
 )
 fig.update_xaxes(
     color="black",
-    linecolor="black",
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)
 )
@@ -217,7 +217,7 @@ fig.update_yaxes(
 )
 fig.update_xaxes(
     color="black",
-    linecolor="black",
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)
 )
@@ -400,7 +400,7 @@ fig_eui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Energy Use Intensity (EUI)',
-    labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Data Year', 'series': ''},
+    labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
     text='eui',
     color_discrete_map={
@@ -434,6 +434,7 @@ fig_eui_bar.update_yaxes(
 )
 fig_eui_bar.update_xaxes(
     color="black",                      
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
@@ -504,7 +505,7 @@ fig_wui_bar = px.bar(
     color='series',
     barmode='group',
     title='Average Water Use Intensity (WUI) by Data Year',
-    labels={'wui': 'WUI (gal/ft^2)', 'datayear': 'Data Year', 'series': ''},
+    labels={'wui': 'WUI (gal/ft^2)', 'datayear': 'Year', 'series': ''},
     category_orders={'series': ['Baseline WUI','Actual WUI', 'Target WUI']},
     text='wui',
     color_discrete_map={
@@ -535,6 +536,7 @@ fig_wui_bar.update_yaxes(
 )
 fig_wui_bar.update_xaxes(
     color="black",                      
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
@@ -573,7 +575,7 @@ fig_solar = px.bar(
     color_discrete_sequence=['#41AC49'],
     text='renewablesum',
     title='Annual Onsite Solar Generation',
-    labels={'renewablesum': 'Solar Generation(kwh)', 'datayear': 'Data Year'},
+    labels={'renewablesum': 'Solar Generation(kwh)', 'datayear': 'Year'},
 )
 max_solar = solar_df['renewablesum'].max()
 fig_solar.update_traces(
@@ -601,7 +603,7 @@ fig_solar.update_yaxes(
 )
 fig_solar.update_xaxes(
     color="black",
-    linecolor="black",
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)
 )
@@ -665,7 +667,7 @@ fig_ghg.update_yaxes(
 )
 fig_ghg.update_xaxes(
     color="black",
-    linecolor="black",
+    showline=False,
     tickfont=dict(size=14, color="black", family=CHART_FONT),
     title_font=dict(size=16, color="black", family=CHART_FONT)
 )
