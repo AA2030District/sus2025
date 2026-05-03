@@ -161,6 +161,18 @@ fig.update_layout(
     title_font_family="Sans Serif",
 )
 fig.update_xaxes(type="category")
+fig.update_yaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+fig.update_xaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(fig, width="content")
 
@@ -188,6 +200,18 @@ fig.update_layout(
     }
 )
 fig.update_xaxes(type="category")
+fig.update_yaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
+fig.update_xaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family="Open Sans"),
+    title_font=dict(size=16, color="black", family="Open Sans")
+)
 st.plotly_chart(fig, width="content")
 
 
@@ -283,6 +307,8 @@ fig_pie.update_traces(
 )
 fig_pie.update_layout(
     height=620,
+    font_color="black",
+    title_font=dict(size=20, color="black", family="Open Sans"),
     margin=dict(l=130, r=130, t=110, b=130),
 )
 st.plotly_chart(fig_pie, width="stretch")
