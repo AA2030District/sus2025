@@ -156,7 +156,8 @@ fig.update_layout(
     title={
         'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
-    }
+    },
+    title_font_family="Sans Serif",
 )
 fig.update_xaxes(type="category")
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
@@ -181,7 +182,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Square Footage",
     title={
-        'text': "Washtenaw 2030 Square Footage By Year",
+        'text': "Total Building Area by Year",
         'font': {'size': 20}
     }
 )
@@ -253,7 +254,7 @@ fig_pie = px.pie(
     pie_data,
     values="building_count",
     names="usetype",
-    title="Property Distribution by Type",
+    title="Total Building Area by Use Type",
     category_orders={
         "usetype": [
             "Multifamily Housing",
@@ -358,7 +359,7 @@ fig_eui_bar = px.bar(
     y='eui',
     color='series',
     barmode='group',
-    title='Average Site EUI by Data Year (Bar Chart)',
+    title='Average Energy Use Intensity (EUI)',
     labels={'eui': 'EUI (kBtu/ft^2)', 'datayear': 'Data Year', 'series': ''},
     category_orders={'series': ['Baseline EUI', 'Actual EUI', 'Target EUI']},
     text='eui',
@@ -533,7 +534,7 @@ fig_solar = px.bar(
     y='renewablesum',
     color_discrete_sequence=['#41AC49'],
     text='renewablesum',
-    title='District Member Solar Generation By Year',
+    title='Annual Onsite Solar Generation',
     labels={'renewablesum': 'Solar Generation(kwh)', 'datayear': 'Data Year'},
 )
 max_solar = solar_df['renewablesum'].max()
@@ -585,7 +586,7 @@ fig_ghg = px.bar(
     color='series',
     barmode='group',
     text='ghg',
-    title='yearly ghg emissions',
+    title='Annual GHG Emissions',
     labels={
         'ghg': 'GHG Emissions (kg CO2e/sq ft)',
         'datayear': 'Data Year',
