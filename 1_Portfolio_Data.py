@@ -6,18 +6,20 @@ import kaleido
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
+CHART_FONT = "Sans Serif"
+
                                                                         #FORMATTING
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap');
-h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
-.js-plotly-plot .plotly text {
-    font-family: 'Open Sans', sans-serif !important;
-    font-weight: 550 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+# st.markdown("""
+# <style>
+# @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap');
+# h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
+# .js-plotly-plot .plotly text {
+#     font-family: 'Open Sans', sans-serif !important;
+#     font-weight: 550 !important;
+# }
+# </style>
+# """, unsafe_allow_html=True)
 require_login()
 
 
@@ -160,20 +162,21 @@ fig.update_layout(
     },
     title_x=0,
     title_xanchor="left",
-    title_font_family="Sans Serif",
+    font_family=CHART_FONT,
+    title_font_family=CHART_FONT,
 )
 fig.update_xaxes(type="category")
 fig.update_yaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 fig.update_xaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(fig, width="content")
@@ -203,19 +206,20 @@ fig.update_layout(
     },
     title_x=0,
     title_xanchor="left",
+    font_family=CHART_FONT,
 )
 fig.update_xaxes(type="category")
 fig.update_yaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 fig.update_xaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 st.plotly_chart(fig, width="content")
 
@@ -313,7 +317,8 @@ fig_pie.update_traces(
 fig_pie.update_layout(
     height=620,
     font_color="black",
-    title_font=dict(size=20, color="black", family="Open Sans"),
+    font_family=CHART_FONT,
+    title_font=dict(size=20, color="black", family=CHART_FONT),
     title_x=0,
     title_xanchor="left",
     legend_title_text='',
@@ -413,6 +418,7 @@ fig_eui_bar.update_traces(
 )
 fig_eui_bar.update_layout(
     height=450,
+    font_family=CHART_FONT,
     title_x=0,
     title_xanchor="left",
     legend_title_text='',
@@ -423,13 +429,13 @@ if pd.notna(max_eui):
 fig_eui_bar.update_yaxes(
     color="black",                      
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")                  
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 fig_eui_bar.update_xaxes(
     color="black",                      
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")                  
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 eui_export_path = "fig_eui_bar.png"
 fig_eui_bar.write_image(eui_export_path, width=1200, height=450, scale=1)
@@ -516,6 +522,7 @@ fig_wui_bar.update_layout(
     height=450, 
     legend_title_text='',
     font_color="black",
+    font_family=CHART_FONT,
     title_x=0,
     title_xanchor="left",
 )
@@ -523,13 +530,13 @@ fig_wui_bar.update_yaxes(
     range=[0, 45],
     color="black",                      
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")                  
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 fig_wui_bar.update_xaxes(
     color="black",                      
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")                  
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 st.plotly_chart(fig_wui_bar, width="content")
                         ###Solar graph
@@ -579,6 +586,7 @@ fig_solar.update_layout(
     height=450,
     legend_title_text='',
     font_color="black",
+    font_family=CHART_FONT,
     title_x=0,
     title_xanchor="left",
     margin=dict(r=100),
@@ -588,14 +596,14 @@ if pd.notna(max_solar):
 fig_solar.update_yaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 fig_solar.update_xaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 st.plotly_chart(fig_solar, width="content")
 
@@ -642,6 +650,7 @@ fig_ghg.update_layout(
     height=450,
     legend_title_text='',
     font_color="black",
+    font_family=CHART_FONT,
     title_x=0,
     title_xanchor="left",
     margin=dict(r=100),
@@ -651,14 +660,14 @@ if pd.notna(max_ghg):
 fig_ghg.update_yaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 fig_ghg.update_xaxes(
     color="black",
     linecolor="black",
-    tickfont=dict(size=14, color="black", family="Open Sans"),
-    title_font=dict(size=16, color="black", family="Open Sans")
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 st.plotly_chart(fig_ghg, width="content")
 
