@@ -645,7 +645,6 @@ fig_ghg = px.bar(
         'Baseline GHG': '#878888',
         'Target GHG': '#41AC49',
     },
-    title_font=dict(size=20, color="black", family=CHART_FONT)
 )
 max_ghg = ghg_df['ghg'].max()
 fig_ghg.update_traces(
