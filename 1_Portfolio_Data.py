@@ -634,8 +634,8 @@ fig_ghg = px.bar(
         'series': '',
     },
     color_discrete_map={
-        'Actual GHG': '#3E6CF5',
-        'Baseline GHG': '#F48F3F',
+        'Actual GHG': '#F48F3F',
+        'Baseline GHG': '#878888',
         'Target GHG': '#41AC49',
     },
 )
