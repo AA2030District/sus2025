@@ -159,6 +159,7 @@ fig.update_layout(
     title={
         'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
+
     },
     title_x=0,
     title_xanchor="left",
@@ -423,6 +424,7 @@ fig_eui_bar.update_layout(
     title_xanchor="left",
     legend_title_text='',
     margin=dict(r=100),
+    title_font=dict(size=20, color="black", family=CHART_FONT),
 )
 if pd.notna(max_eui):
     fig_eui_bar.update_yaxes(range=[0, max_eui * 1.15])
@@ -513,6 +515,7 @@ fig_wui_bar = px.bar(
         'Baseline WUI': '#878888',
         'Target WUI': '#41AC49',
     },
+    title_font=dict(size=20, color="black", family=CHART_FONT),
 )
 
 fig_wui_bar.update_traces(
@@ -592,6 +595,8 @@ fig_solar.update_layout(
     title_x=0,
     title_xanchor="left",
     margin=dict(r=100),
+    title_font=dict(size=16, color="black", family=CHART_FONT)
+
 )
 if pd.notna(max_solar):
     fig_solar.update_yaxes(range=[0, max_solar * 1.15])
@@ -640,6 +645,7 @@ fig_ghg = px.bar(
         'Baseline GHG': '#878888',
         'Target GHG': '#41AC49',
     },
+    title_font=dict(size=20, color="black", family=CHART_FONT)
 )
 max_ghg = ghg_df['ghg'].max()
 fig_ghg.update_traces(
