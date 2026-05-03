@@ -307,7 +307,12 @@ yearly_query = """
             TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
             * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
         ) * 0.17467
-            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as ghg_emissions_baseline
+            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as ghg_emissions_baseline,
+        SUM(
+            TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
+            * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+        ) * 0.17467
+            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) * 0.5 as ghg_emissions_target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -331,7 +336,7 @@ yearly_query = """
 
 df_yearly = conn.query(yearly_query)
 df_yearly = df_yearly.sort_values('datayear')
-for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline']:
+for col in ['avg_siteeui', 'baseline', 'target', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
 
 df_eui_bar_melted = df_yearly.melt(
@@ -560,16 +565,17 @@ fig_solar.update_xaxes(
 )
 st.plotly_chart(fig_solar, width="content")
 
-ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline']].copy()
+ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']].copy()
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
 ghg_df = ghg_df.melt(
     id_vars=['datayear'],
-    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft'],
+    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft', 'ghg_emissions_target'],
     var_name='series',
     value_name='ghg'
 ).dropna(subset=['ghg']).replace({'series': {
     'ghg_emissions_baseline': 'Baseline GHG',
     'market_based_ghg_per_sqft': 'Actual GHG',
+    'ghg_emissions_target': 'Target GHG',
 }})
 
 fig_ghg = px.bar(
@@ -588,6 +594,7 @@ fig_ghg = px.bar(
     color_discrete_map={
         'Actual GHG': '#3E6CF5',
         'Baseline GHG': '#878888',
+        'Target GHG': '#41AC49',
     },
 )
 max_ghg = ghg_df['ghg'].max()
