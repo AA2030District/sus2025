@@ -157,6 +157,7 @@ fig.update_layout(
         'text': "Washtenaw 2030 Buildings By Year",
         'font': {'size': 20}
     },
+    title_x=0.5,
     title_font_family="Sans Serif",
 )
 fig.update_xaxes(type="category")
