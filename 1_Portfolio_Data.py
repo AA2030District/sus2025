@@ -89,7 +89,7 @@ WITH property_rollup AS (
     GROUP BY d.espmid
 )
 SELECT
-    COALESCE(SUM(energy_ok_buildings), 0) AS water_ok_buildings
+    COALESCE(SUM(WATER_ok_buildings), 0) AS water_ok_buildings
 FROM property_rollup;
 """
 water_ok_buildings_df = conn.query(water_ok_buildings_query)
