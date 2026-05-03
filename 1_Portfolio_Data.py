@@ -515,7 +515,6 @@ fig_wui_bar = px.bar(
         'Baseline WUI': '#878888',
         'Target WUI': '#41AC49',
     },
-    title_font=dict(size=20, color="black", family=CHART_FONT)
 )
 
 fig_wui_bar.update_traces(
@@ -529,6 +528,7 @@ fig_wui_bar.update_layout(
     font_family=CHART_FONT,
     title_x=0,
     title_xanchor="left",
+    title_font=dict(size=20, color="black", family=CHART_FONT)
 )
 fig_wui_bar.update_yaxes(
     range=[0, 45],
