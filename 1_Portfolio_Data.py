@@ -515,7 +515,7 @@ fig_wui_bar = px.bar(
         'Baseline WUI': '#878888',
         'Target WUI': '#41AC49',
     },
-    title_font=dict(size=20, color="black", family=CHART_FONT),
+    title_font=dict(size=20, color="black", family=CHART_FONT)
 )
 
 fig_wui_bar.update_traces(
