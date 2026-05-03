@@ -147,7 +147,8 @@ fig = px.bar(
 )
 fig.update_traces(
     texttemplate='%{text:,.0f}',
-    textposition='outside'
+    textposition='outside',
+    textfont=dict(color='black')
 )
 fig.update_layout(
     height=500,
@@ -188,7 +189,8 @@ fig = px.bar(
 )
 fig.update_traces(
     texttemplate='%{text:,.0f}',
-    textposition='outside'
+    textposition='outside',
+    textfont=dict(color='black')
 )
 fig.update_layout(
     height=500,
