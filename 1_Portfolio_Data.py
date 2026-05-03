@@ -316,12 +316,7 @@ fig_pie.update_layout(
     title_font=dict(size=20, color="black", family="Open Sans"),
     title_x=0,
     title_xanchor="left",
-    legend=dict(
-        x=1,
-        xanchor="right",
-        y=1,
-        yanchor="top",
-    ),
+    legend_title_text='',
     margin=dict(l=130, r=130, t=110, b=130),
 )
 st.plotly_chart(fig_pie, width="stretch")
@@ -421,13 +416,6 @@ fig_eui_bar.update_layout(
     title_x=0,
     title_xanchor="left",
     legend_title_text='',
-    legend=dict(
-        orientation='h',
-        yanchor='bottom',
-        y=1,
-        xanchor='right',
-        x=1,
-    ),
     margin=dict(r=100),
 )
 if pd.notna(max_eui):
@@ -530,13 +518,6 @@ fig_wui_bar.update_layout(
     font_color="black",
     title_x=0,
     title_xanchor="left",
-    legend=dict(
-        orientation='h',
-        yanchor='bottom',
-        y=1,
-        xanchor='right',
-        x=1,
-    ),
 )
 fig_wui_bar.update_yaxes(
     range=[0, 45],
@@ -663,13 +644,6 @@ fig_ghg.update_layout(
     font_color="black",
     title_x=0,
     title_xanchor="left",
-    legend=dict(
-        orientation='h',
-        yanchor='bottom',
-        y=1,
-        xanchor='right',
-        x=1,
-    ),
     margin=dict(r=100),
 )
 if pd.notna(max_ghg):
