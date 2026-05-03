@@ -72,14 +72,25 @@ else:
     energy_ok_buildings = 0
 
 water_ok_buildings_query = """
+WITH property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
+    FROM [dbo].[ESPMFIRSTTEST] d
+    LEFT JOIN [dbo].[yearjoined] yj
+        ON d.espmid = yj.ESPMID
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND TRY_CAST(d.datayear AS INT) = 2025
+      AND TRY_CAST(yj.[year joined] AS INT) <= 2025
+      AND d.[waterlessthan12months] = 'ok'
+      AND d.[haswatergaps] = 'ok'
+    GROUP BY d.espmid
+)
 SELECT
-    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) AS water_ok_buildings
-FROM [dbo].[ESPMFIRSTTEST]
-WHERE TRY_CAST([datayear] AS INT) = 2025
-    AND ISNULL(pmparentid, espmid) = espmid
-    AND ISNULL([donotinclude], 0) <> 1
-    AND [haswatergaps] = 'OK'
-    AND [waterlessthan12months] = 'OK'
+    COALESCE(SUM(energy_ok_buildings), 0) AS water_ok_buildings
+FROM property_rollup;
 """
 water_ok_buildings_df = conn.query(water_ok_buildings_query)
 if not water_ok_buildings_df.empty and pd.notna(water_ok_buildings_df['water_ok_buildings'].iloc[0]):
