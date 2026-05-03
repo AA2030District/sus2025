@@ -107,7 +107,6 @@ WITH years AS (
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
     SELECT 2025 UNION ALL
-    SELECT 2026
 ),
 property_rollup AS (
     SELECT
