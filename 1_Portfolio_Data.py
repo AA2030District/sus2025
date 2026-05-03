@@ -106,7 +106,7 @@ WITH years AS (
     SELECT 2022 UNION ALL
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
-    SELECT 2025 UNION ALL
+    SELECT 2025 
 ),
 property_rollup AS (
     SELECT
@@ -119,6 +119,7 @@ property_rollup AS (
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
+      AND datayear<2026
     GROUP BY d.espmid
 )
 SELECT
