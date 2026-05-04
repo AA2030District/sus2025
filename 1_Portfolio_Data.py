@@ -170,7 +170,7 @@ fig = px.bar(
 fig.update_traces(
     texttemplate='%{text:,.0f}',
     textposition='outside',
-    textfont=dict(color='black')
+    textfont=dict(color='black',size=12)
 )
 fig.update_layout(
     height=500,
@@ -215,7 +215,7 @@ fig = px.bar(
 fig.update_traces(
     texttemplate='%{text:,.0f}',
     textposition='outside',
-    textfont=dict(color='black')
+    textfont=dict(color='black',size=12)
 )
 fig.update_layout(
     height=500,
@@ -329,7 +329,7 @@ fig_pie = px.pie(
 fig_pie.update_traces(
     textposition="outside",
     textinfo="percent+label",
-    textfont_size=11,
+    textfont_size=12,
     pull=[0.03] * len(pie_data),
     hovertemplate="<b>%{label}</b><br>Unique Properties: %{value:,}<br>Share: %{percent}<extra></extra>",
     rotation=180,
@@ -435,7 +435,7 @@ fig_eui_bar.update_traces(
     texttemplate='%{text:.2f}',
     textposition='outside',
     cliponaxis=False,
-    textfont=dict(color='black')
+    textfont=dict(color='black',size=12)
 )
 fig_eui_bar.update_layout(
     height=450,
@@ -605,7 +605,7 @@ fig_solar.update_traces(
     texttemplate='%{text:,.0f}',
     textposition='outside',
     cliponaxis=False,
-    textfont=dict(color='black')
+    textfont=dict(color='black',size=12)
 )
 fig_solar.update_layout(
     height=450,
@@ -671,7 +671,7 @@ fig_ghg.update_traces(
     texttemplate='%{text:.2f}',
     textposition='outside',
     cliponaxis=False,
-    textfont=dict(color='black')
+    textfont=dict(color='black',size=12)
 )
 fig_ghg.update_layout(
     height=450,
