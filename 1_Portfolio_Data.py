@@ -630,6 +630,7 @@ base_data AS (
         TRY_CAST(e.espmid AS BIGINT) AS espmid,
         TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) AS electricity_kwh,
         TRY_CAST(e.greenPowerOffSite AS DECIMAL(18,4)) AS green_power_offsite,
+        TRY_CAST(e.onSiteRenewableSystemGeneration AS DECIMAL(18,4)) AS onsite_solar_kwh,
         TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) AS natural_gas,
         TRY_CAST(e.sqfootage AS DECIMAL(18,4)) AS sqfootage
     FROM dbo.ESPMFIRSTTEST e
@@ -686,21 +687,21 @@ SELECT
     ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_actual_per_sqft,
 
     CAST(0.71314946 AS DECIMAL(10,8)) AS electricity_emissions_factor_baseline,
-    SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946) AS electricity_emissions_baseline,
+    SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946) AS electricity_emissions_baseline,
     SUM(COALESCE(b.natural_gas, 0) * 0.053072) AS natural_gas_emissions_baseline,
     (
-        SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+        SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
       + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
     ) AS total_calculated_emissions_baseline,
     (
-        SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+        SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
       + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
     ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_baseline_per_sqft,
 
     (0.5265 - 0.026 * (2025 - b.datayear)) AS ghg_target_reduction_pct,
     (
         (
-            SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+            SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
           + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
         ) / NULLIF(SUM(b.sqfootage), 0)
     ) * (1 - (0.5265 - 0.026 * (2025 - b.datayear))) AS ghg_emissions_target
