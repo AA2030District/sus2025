@@ -177,7 +177,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Number of Buildings",
     title={
-        'text': "Washtenaw 2030 Buildings By Year",
+        'text': "Total Number of Buildings By Year",
         'font': {'size': 20}
 
     },
