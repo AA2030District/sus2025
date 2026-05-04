@@ -704,7 +704,7 @@ fig_ghg = px.bar(
     title='Annual GHG Emissions',
     labels={
         'ghg': 'GHG Emissions (kg CO2e/sq ft)',
-        'datayear': 'Data Year',
+        'datayear': 'Year',
         'series': '',
     },
     color_discrete_map={
