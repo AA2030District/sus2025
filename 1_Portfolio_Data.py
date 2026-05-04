@@ -546,6 +546,69 @@ fig_wui_bar.update_xaxes(
     title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 st.plotly_chart(fig_wui_bar, width="content")
+wuibybuildingtype_query = """
+    SELECT TOP 10
+        e.usetype,
+        AVG(TRY_CAST(e.wui AS FLOAT)) AS averagewui,
+        COUNT(e.usetype) AS numproperties,
+        SUM(TRY_CAST(e.numbuildings AS INT)) AS numberofbuildingswithuse
+    FROM dbo.ESPMFIRSTTEST e
+    WHERE TRY_CAST(e.datayear AS INT) = 2025
+      AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND ISNULL(e.[donotinclude], 0) <> 1
+      AND e.haswatergaps = 'OK'
+      AND e.waterlessthan12months = 'OK'
+      AND TRY_CAST(e.wui AS FLOAT) IS NOT NULL
+    GROUP BY e.usetype
+    ORDER BY numberofbuildingswithuse DESC
+"""
+
+df_wui_by_type = conn.query(wuibybuildingtype_query)
+df_wui_by_type['averagewui'] = pd.to_numeric(df_wui_by_type['averagewui'], errors='coerce')
+df_wui_by_type['numberofbuildingswithuse'] = pd.to_numeric(df_wui_by_type['numberofbuildingswithuse'], errors='coerce')
+df_wui_by_type = df_wui_by_type.sort_values('numberofbuildingswithuse', ascending=False)
+
+fig_wui_by_type = px.bar(
+    df_wui_by_type,
+    x='usetype',
+    y='averagewui',
+    text='averagewui',
+    color_discrete_sequence=['#3E6CF5'],
+    title='Average WUI by building type',
+    labels={'usetype': 'Building Type', 'averagewui': 'WUI (gal/ft^2)'},
+)
+max_wui_type = df_wui_by_type['averagewui'].max()
+fig_wui_by_type.update_traces(
+    texttemplate='%{text:.1f}',
+    textposition='outside',
+    cliponaxis=False,
+    textfont=dict(color='black', size=12),
+)
+fig_wui_by_type.update_layout(
+    height=450,
+    legend_title_text='',
+    font_color="black",
+    font_family=CHART_FONT,
+    title_x=0,
+    title_xanchor="left",
+    margin=dict(r=100),
+    title_font=dict(size=16, color="black", family=CHART_FONT),
+)
+if pd.notna(max_wui_type):
+    fig_wui_by_type.update_yaxes(range=[0, max_wui_type * 1.15])
+fig_wui_by_type.update_yaxes(
+    color="black",
+    linecolor="black",
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT),
+)
+fig_wui_by_type.update_xaxes(
+    color="black",
+    showline=False,
+    tickfont=dict(size=14, color="black", family=CHART_FONT),
+    title_font=dict(size=16, color="black", family=CHART_FONT),
+)
+st.plotly_chart(fig_wui_by_type, width="content")
                         ###Solar graph
 
 solarquery="""
