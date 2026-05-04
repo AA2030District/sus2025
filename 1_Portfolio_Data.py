@@ -595,7 +595,7 @@ fig_solar = px.bar(
     solar_df,
     x='datayear',
     y='renewablesum',
-    color_discrete_sequence=['#41AC49'],
+    color_discrete_sequence=['F7C900'],
     text='renewablesum',
     title='Annual Onsite Solar Generation',
     labels={'renewablesum': 'Solar Generation(kwh)', 'datayear': 'Year'},
