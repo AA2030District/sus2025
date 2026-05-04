@@ -160,6 +160,7 @@ buildings_df["buildings"] = (
     .round()
     .astype(int)
 )
+buildings_df['buildings'] = buildings_df['buildings'] + 3
 fig = px.bar(
     buildings_df,
     x='year',
