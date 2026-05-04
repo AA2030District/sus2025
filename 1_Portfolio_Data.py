@@ -672,7 +672,6 @@ WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024
   AND ISNULL(e.[donotinclude], 0) <> 1
   AND e.hasenergygaps = 'OK'
   AND e.energylessthan12months = 'OK'
-  AND TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)) IS NOT NULL
   AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
 GROUP BY TRY_CAST(e.datayear AS INT)
 ORDER BY TRY_CAST(e.datayear AS INT);
