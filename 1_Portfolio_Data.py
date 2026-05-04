@@ -354,7 +354,8 @@ yearly_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-        AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
+        SUM(TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)))
+            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target,
         SUM(
@@ -376,11 +377,12 @@ yearly_query = """
         SUM(
             CASE
                 WHEN nd.espmid IS NULL
-                THEN TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
-                    * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                THEN
+                    COALESCE(TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)), 0) * 0.71314946
+                    + COALESCE(TRY_CAST(e.[siteEnergyUseNaturalGas] AS DECIMAL(18,4)), 0) * 0.053072
                 ELSE 0
             END
-        ) * 0.17467
+        )
             / NULLIF(
                 SUM(
                     CASE
@@ -394,11 +396,12 @@ yearly_query = """
         SUM(
             CASE
                 WHEN nd.espmid IS NULL
-                THEN TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
-                    * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                THEN
+                    COALESCE(TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)), 0) * 0.71314946
+                    + COALESCE(TRY_CAST(e.[siteEnergyUseNaturalGas] AS DECIMAL(18,4)), 0) * 0.053072
                 ELSE 0
             END
-        ) * 0.17467
+        )
             / NULLIF(
                 SUM(
                     CASE
@@ -429,7 +432,7 @@ yearly_query = """
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK' 
         AND e.energylessthan12months = 'OK' 
-        AND e.siteeui is not NULL 
+        AND TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)) IS NOT NULL
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
