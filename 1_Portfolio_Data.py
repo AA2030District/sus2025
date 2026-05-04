@@ -354,8 +354,7 @@ yearly_query = """
     SELECT 
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-        SUM(TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)))
-            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as avg_siteeui,
+        AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
     FROM [dbo].[ESPMFIRSTTEST] e
@@ -372,7 +371,7 @@ yearly_query = """
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK' 
         AND e.energylessthan12months = 'OK' 
-        AND TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)) IS NOT NULL
+        AND e.weathernormalizedsiteeui IS NOT NULL
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
