@@ -653,7 +653,16 @@ SELECT
     (
         SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
       + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
-    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_baseline_per_sqft
+    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_baseline_per_sqft,
+    (0.5265 - 0.026 * (2025 - TRY_CAST(e.datayear AS INT))) AS ghg_target_reduction_pct,
+    (
+        (
+            SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
+          + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+        ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0)
+    ) * (
+        1 - (0.5265 - 0.026 * (2025 - TRY_CAST(e.datayear AS INT)))
+    ) AS ghg_emissions_target
 
 FROM dbo.ESPMFIRSTTEST e
 INNER JOIN emissions_factors ef
@@ -671,9 +680,6 @@ ORDER BY TRY_CAST(e.datayear AS INT);
 
 ghg_df=conn.query(ghg_query)
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
-ghg_df['ghg_emissions_target'] = (
-    pd.to_numeric(ghg_df['total_calculated_emissions_baseline_per_sqft'], errors='coerce') * 0.5
-)
 ghg_plot_df = ghg_df.melt(
     id_vars=['datayear'],
     value_vars=[
