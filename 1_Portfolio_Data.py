@@ -164,7 +164,7 @@ fig = px.bar(
     buildings_df,
     x='year',
     y='buildings',
-    color_discrete_sequence=['#41AC49'],
+    color_discrete_sequence=['#205330'],
     text='buildings'
 )
 fig.update_traces(
