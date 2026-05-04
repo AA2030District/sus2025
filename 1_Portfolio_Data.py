@@ -177,7 +177,7 @@ fig.update_layout(
     xaxis_title="Year",
     yaxis_title="Number of Buildings",
     title={
-        'text': "Total Number of Buildings By Year",
+        'text': "Number of Buildings By Year",
         'font': {'size': 20}
 
     },
