@@ -623,69 +623,93 @@ WITH emissions_factors AS (
     SELECT 2023, CAST(0.628 AS DECIMAL(10,6)) UNION ALL
     SELECT 2024, CAST(0.565 AS DECIMAL(10,6)) UNION ALL
     SELECT 2025, CAST(0.506 AS DECIMAL(10,6))
+),
+base_data AS (
+    SELECT
+        TRY_CAST(e.datayear AS INT) AS datayear,
+        TRY_CAST(e.espmid AS BIGINT) AS espmid,
+        TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) AS electricity_kwh,
+        TRY_CAST(e.greenPowerOffSite AS DECIMAL(18,4)) AS green_power_offsite,
+        TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) AS natural_gas,
+        TRY_CAST(e.sqfootage AS DECIMAL(18,4)) AS sqfootage
+    FROM dbo.ESPMFIRSTTEST e
+    INNER JOIN (
+        SELECT
+            TRY_CAST([espmid] AS BIGINT) AS espmid,
+            MIN(TRY_CAST([year joined] AS INT)) AS yearjoined
+        FROM dbo.yearjoined
+        WHERE TRY_CAST([espmid] AS BIGINT) IS NOT NULL
+          AND TRY_CAST([year joined] AS INT) IS NOT NULL
+        GROUP BY TRY_CAST([espmid] AS BIGINT)
+    ) yj
+        ON TRY_CAST(e.espmid AS BIGINT) = yj.espmid
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+      AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND ISNULL(e.[donotinclude], 0) <> 1
+      AND e.hasenergygaps = 'OK'
+      AND e.energylessthan12months = 'OK'
+      AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
+      AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
 )
 SELECT
-    TRY_CAST(e.datayear AS INT) AS datayear,
-    COUNT(DISTINCT TRY_CAST(e.espmid AS BIGINT)) AS building_count,
-    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4))) AS total_grid_purchase_kwh,
-    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4))) AS total_natural_gas,
-    SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))) AS total_sqft,
+    b.datayear,
+    COUNT(DISTINCT b.espmid) AS building_count,
+    SUM(b.electricity_kwh) AS total_grid_purchase_kwh,
+    SUM(b.natural_gas) AS total_natural_gas,
+    SUM(b.sqfootage) AS total_sqft,
 
     MAX(ef.factor) AS electricity_emissions_factor_actual,
-    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor) AS electricity_emissions_actual,
-    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072) AS natural_gas_emissions_actual,
+    SUM(
+        CASE
+            WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+            ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+        END * ef.factor
+    ) AS electricity_emissions_actual,
+    SUM(COALESCE(b.natural_gas, 0) * 0.053072) AS natural_gas_emissions_actual,
     (
-        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor)
-      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+        SUM(
+            CASE
+                WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+                ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+            END * ef.factor
+        )
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
     ) AS total_calculated_emissions_actual,
     (
-        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor)
-      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
-    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_actual_per_sqft,
+        SUM(
+            CASE
+                WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+                ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+            END * ef.factor
+        )
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_actual_per_sqft,
 
     CAST(0.71314946 AS DECIMAL(10,8)) AS electricity_emissions_factor_baseline,
-    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946) AS electricity_emissions_baseline,
-    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072) AS natural_gas_emissions_baseline,
+    SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946) AS electricity_emissions_baseline,
+    SUM(COALESCE(b.natural_gas, 0) * 0.053072) AS natural_gas_emissions_baseline,
     (
-        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
-      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+        SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
     ) AS total_calculated_emissions_baseline,
     (
-        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
-      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
-    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_baseline_per_sqft,
-    (0.5265 - 0.026 * (2025 - TRY_CAST(e.datayear AS INT))) AS ghg_target_reduction_pct,
+        SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_baseline_per_sqft,
+
+    (0.5265 - 0.026 * (2025 - b.datayear)) AS ghg_target_reduction_pct,
     (
         (
-            SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
-          + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
-        ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0)
-    ) * (
-        1 - (0.5265 - 0.026 * (2025 - TRY_CAST(e.datayear AS INT)))
-    ) AS ghg_emissions_target
+            SUM(COALESCE(b.electricity_kwh, 0) * 0.71314946)
+          + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+        ) / NULLIF(SUM(b.sqfootage), 0)
+    ) * (1 - (0.5265 - 0.026 * (2025 - b.datayear))) AS ghg_emissions_target
 
-FROM dbo.ESPMFIRSTTEST e
+FROM base_data b
 INNER JOIN emissions_factors ef
-    ON TRY_CAST(e.datayear AS INT) = ef.datayear
-INNER JOIN (
-    SELECT
-        TRY_CAST([espmid] AS BIGINT) AS espmid,
-        MIN(TRY_CAST([year joined] AS INT)) AS yearjoined
-    FROM dbo.yearjoined
-    WHERE TRY_CAST([espmid] AS BIGINT) IS NOT NULL
-      AND TRY_CAST([year joined] AS INT) IS NOT NULL
-    GROUP BY TRY_CAST([espmid] AS BIGINT)
-) yj
-    ON TRY_CAST(e.espmid AS BIGINT) = yj.espmid
-WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
-  AND ISNULL(e.pmparentid, e.espmid) = e.espmid
-  AND ISNULL(e.[donotinclude], 0) <> 1
-  AND e.hasenergygaps = 'OK'
-  AND e.energylessthan12months = 'OK'
-  AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
-  AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
-GROUP BY TRY_CAST(e.datayear AS INT)
-ORDER BY TRY_CAST(e.datayear AS INT);
+    ON b.datayear = ef.datayear
+GROUP BY b.datayear
+ORDER BY b.datayear;
 """
 
 ghg_df=conn.query(ghg_query)
