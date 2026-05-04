@@ -6,7 +6,7 @@ import kaleido
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
-CHART_FONT = "Sans Serif"
+CHART_FONT = "Sans-Serif"
 
                                                                         #FORMATTING
 
@@ -357,25 +357,58 @@ yearly_query = """
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target,
-        SUM(TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))) * 1000
+        SUM(
+            CASE
+                WHEN nd.espmid IS NULL
+                THEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4))
+                ELSE 0
+            END
+        ) * 1000
     / NULLIF(
         SUM(CASE
             WHEN TRY_CAST(e.[totalMarketBasedGHGEmissions] AS DECIMAL(18,4)) IS NOT NULL
+                 AND nd.espmid IS NULL
             THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
             ELSE 0
         END),
         0
     ) as market_based_ghg_per_sqft,
         SUM(
-            TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
-            * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+            CASE
+                WHEN nd.espmid IS NULL
+                THEN TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
+                    * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                ELSE 0
+            END
         ) * 0.17467
-            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) as ghg_emissions_baseline,
+            / NULLIF(
+                SUM(
+                    CASE
+                        WHEN nd.espmid IS NULL
+                        THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                        ELSE 0
+                    END
+                ),
+                0
+            ) as ghg_emissions_baseline,
         SUM(
-            TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
-            * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+            CASE
+                WHEN nd.espmid IS NULL
+                THEN TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(18,4))
+                    * TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                ELSE 0
+            END
         ) * 0.17467
-            / NULLIF(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))), 0) * 0.5 as ghg_emissions_target
+            / NULLIF(
+                SUM(
+                    CASE
+                        WHEN nd.espmid IS NULL
+                        THEN TRY_CAST(e.[sqfootage] AS DECIMAL(18,4))
+                        ELSE 0
+                    END
+                ),
+                0
+            ) * 0.5 as ghg_emissions_target
     FROM [dbo].[ESPMFIRSTTEST] e
     LEFT JOIN (
         SELECT
@@ -385,6 +418,12 @@ yearly_query = """
         GROUP BY TRY_CAST([espmid] AS BIGINT)
     ) b
         ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
+    LEFT JOIN (
+        SELECT DISTINCT TRY_CAST([espmid] AS BIGINT) AS espmid
+        FROM [dbo].[notdte]
+        WHERE TRY_CAST([espmid] AS BIGINT) IS NOT NULL
+    ) nd
+        ON TRY_CAST(e.[espmid] AS BIGINT) = nd.espmid
     WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
         AND ISNULL(e.[donotinclude], 0) <> 1
