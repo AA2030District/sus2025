@@ -204,7 +204,7 @@ st.plotly_chart(fig, width="content")
 
 
 
-buildings_df['total_sqft'] = buildings_df['total_sqft'] + 414000
+buildings_df['total_sqft'] = buildings_df['total_sqft'] + 661000
 fig = px.bar(
     buildings_df,
     x='year',
