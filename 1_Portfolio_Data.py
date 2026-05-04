@@ -667,12 +667,23 @@ SELECT
 FROM dbo.ESPMFIRSTTEST e
 INNER JOIN emissions_factors ef
     ON TRY_CAST(e.datayear AS INT) = ef.datayear
+INNER JOIN (
+    SELECT
+        TRY_CAST([espmid] AS BIGINT) AS espmid,
+        MIN(TRY_CAST([year joined] AS INT)) AS yearjoined
+    FROM dbo.yearjoined
+    WHERE TRY_CAST([espmid] AS BIGINT) IS NOT NULL
+      AND TRY_CAST([year joined] AS INT) IS NOT NULL
+    GROUP BY TRY_CAST([espmid] AS BIGINT)
+) yj
+    ON TRY_CAST(e.espmid AS BIGINT) = yj.espmid
 WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
   AND ISNULL(e.pmparentid, e.espmid) = e.espmid
   AND ISNULL(e.[donotinclude], 0) <> 1
   AND e.hasenergygaps = 'OK'
   AND e.energylessthan12months = 'OK'
   AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
+  AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
 GROUP BY TRY_CAST(e.datayear AS INT)
 ORDER BY TRY_CAST(e.datayear AS INT);
 """
