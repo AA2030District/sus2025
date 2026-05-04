@@ -616,21 +616,81 @@ fig_solar.update_xaxes(
 )
 st.plotly_chart(fig_solar, width="content")
 
-ghg_df = df_yearly[['datayear', 'market_based_ghg_per_sqft', 'ghg_emissions_baseline', 'ghg_emissions_target']].copy()
+ghg_query="""
+WITH emissions_factors AS (
+    SELECT 2021 AS datayear, CAST(0.596 AS DECIMAL(10,6)) AS factor UNION ALL
+    SELECT 2022, CAST(0.663 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2023, CAST(0.628 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2024, CAST(0.565 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2025, CAST(0.506 AS DECIMAL(10,6))
+)
+SELECT
+    TRY_CAST(e.datayear AS INT) AS datayear,
+    COUNT(DISTINCT TRY_CAST(e.espmid AS BIGINT)) AS building_count,
+    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4))) AS total_grid_purchase_kwh,
+    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4))) AS total_natural_gas,
+    SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))) AS total_sqft,
+
+    MAX(ef.factor) AS electricity_emissions_factor_actual,
+    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor) AS electricity_emissions_actual,
+    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072) AS natural_gas_emissions_actual,
+    (
+        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor)
+      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+    ) AS total_calculated_emissions_actual,
+    (
+        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * ef.factor)
+      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_actual_per_sqft,
+
+    CAST(0.71314946 AS DECIMAL(10,8)) AS electricity_emissions_factor_baseline,
+    SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946) AS electricity_emissions_baseline,
+    SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072) AS natural_gas_emissions_baseline,
+    (
+        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
+      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+    ) AS total_calculated_emissions_baseline,
+    (
+        SUM(TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) * 0.71314946)
+      + SUM(TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) * 0.053072)
+    ) / NULLIF(SUM(TRY_CAST(e.sqfootage AS DECIMAL(18,4))), 0) AS total_calculated_emissions_baseline_per_sqft
+
+FROM dbo.ESPMFIRSTTEST e
+INNER JOIN emissions_factors ef
+    ON TRY_CAST(e.datayear AS INT) = ef.datayear
+WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+  AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+  AND ISNULL(e.[donotinclude], 0) <> 1
+  AND e.hasenergygaps = 'OK'
+  AND e.energylessthan12months = 'OK'
+  AND TRY_CAST(e.[siteEnergyUseElectricityGridPurchaseKwh] AS DECIMAL(18,4)) IS NOT NULL
+  AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
+GROUP BY TRY_CAST(e.datayear AS INT)
+ORDER BY TRY_CAST(e.datayear AS INT);
+"""
+
+ghg_df=conn.query(ghg_query)
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
-ghg_df = ghg_df.melt(
+ghg_df['ghg_emissions_target'] = (
+    pd.to_numeric(ghg_df['total_calculated_emissions_baseline_per_sqft'], errors='coerce') * 0.5
+)
+ghg_plot_df = ghg_df.melt(
     id_vars=['datayear'],
-    value_vars=['ghg_emissions_baseline', 'market_based_ghg_per_sqft', 'ghg_emissions_target'],
+    value_vars=[
+        'total_calculated_emissions_baseline_per_sqft',
+        'total_calculated_emissions_actual_per_sqft',
+        'ghg_emissions_target',
+    ],
     var_name='series',
     value_name='ghg'
 ).dropna(subset=['ghg']).replace({'series': {
-    'ghg_emissions_baseline': 'Baseline GHG',
-    'market_based_ghg_per_sqft': 'Actual GHG',
+    'total_calculated_emissions_baseline_per_sqft': 'Baseline GHG',
+    'total_calculated_emissions_actual_per_sqft': 'Actual GHG',
     'ghg_emissions_target': 'Target GHG',
 }})
 
 fig_ghg = px.bar(
-    ghg_df,
+    ghg_plot_df,
     x='datayear',
     y='ghg',
     color='series',
@@ -648,7 +708,7 @@ fig_ghg = px.bar(
         'Target GHG': '#41AC49',
     },
 )
-max_ghg = ghg_df['ghg'].max()
+max_ghg = ghg_plot_df['ghg'].max()
 fig_ghg.update_traces(
     texttemplate='%{text:.2f}',
     textposition='outside',
@@ -679,6 +739,7 @@ fig_ghg.update_xaxes(
     title_font=dict(size=16, color="black", family=CHART_FONT)
 )
 st.plotly_chart(fig_ghg, width="content")
+
 
 
 
