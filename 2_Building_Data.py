@@ -512,26 +512,26 @@ else:
 def _prepare_pdf_chart_figure(figure):
     export_figure = go.Figure(figure)
     export_figure.update_layout(
-        font=dict(size=26),
-        title_font=dict(size=34),
-        legend=dict(font=dict(size=24)),
+        font=dict(size=28),
+        title_font=dict(size=30),
+        legend=dict(font=dict(size=28)),
         margin=dict(l=80, r=40, t=90, b=70),
     )
     export_figure.update_xaxes(
-        tickfont=dict(size=22),
-        title_font=dict(size=24),
+        tickfont=dict(size=28),
+        title_font=dict(size=30),
     )
     export_figure.update_yaxes(
-        tickfont=dict(size=22),
-        title_font=dict(size=24),
+        tickfont=dict(size=28),
+        title_font=dict(size=30),
     )
     for trace in export_figure.data:
         if trace.type == "bar":
-            trace.textfont = dict(size=24)
+            trace.textfont = dict(size=28)
         elif trace.type == "pie":
-            trace.textfont = dict(size=24)
-            trace.insidetextfont = dict(size=24)
-            trace.outsidetextfont = dict(size=24)
+            trace.textfont = dict(size=28)
+            trace.insidetextfont = dict(size=28)
+            trace.outsidetextfont = dict(size=28)
     return export_figure
 
 
@@ -647,9 +647,9 @@ top_chart_h = (charts_h - gap) * 0.62
 bottom_chart_h = charts_h - top_chart_h - gap
 chart_w = (content_w - gap) / 2
 
-_pdf_add_chart_card(fig_eui, "EUI by Year", margin, charts_y, chart_w, top_chart_h)
-_pdf_add_chart_card(fig_wui, "WUI by Year", margin + chart_w + gap, charts_y, chart_w, top_chart_h)
-_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", margin, charts_y + top_chart_h + gap, content_w, bottom_chart_h)
+_pdf_add_chart_card(fig_eui, margin, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_wui, margin + chart_w + gap, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_pie, margin, charts_y + top_chart_h + gap, content_w, bottom_chart_h)
 
 pdf.set_text_color(0, 0, 0)
 
