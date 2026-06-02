@@ -4,6 +4,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from auth_helper import require_login
 from humanize import number
+import kaleido
+from fpdf import FPDF
 
 require_login()
 

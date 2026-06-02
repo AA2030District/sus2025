@@ -743,10 +743,11 @@ try:
     dict_data = xmltodict.parse(response.content)
     for entry in dict_data['response']['links']['link']:
         idlist.append(entry['@id'])
+    placeholders = ",".join("?" for _ in idlist)
+    query = f"DELETE FROM ESPMFIRSTTEST WHERE espmid NOT IN ({placeholders})"
+    cursor.execute(query, *idlist)
+    connection.commit()
     #these are causing problems and we don't have access to them for some reason they still show up
-    idlist.remove('25096219')
-    idlist.remove('51914193')
-    idlist.remove('48488294')
     
     batch_size = 350  # safe under the 2,000,000 limit
 
