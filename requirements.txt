@@ -16,3 +16,4 @@ streamlit-aggrid
 humanize
 kaleido
 fpdf
+numpy

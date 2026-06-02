@@ -6,6 +6,7 @@ from auth_helper import require_login
 from humanize import number
 import kaleido
 from fpdf import FPDF
+import numpy as np
 
 require_login()
 
