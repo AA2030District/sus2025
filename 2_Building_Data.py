@@ -647,9 +647,9 @@ top_chart_h = (charts_h - gap) * 0.62
 bottom_chart_h = charts_h - top_chart_h - gap
 chart_w = (content_w - gap) / 2
 
-_pdf_add_chart_card(fig_eui, margin, charts_y, chart_w, top_chart_h)
-_pdf_add_chart_card(fig_wui, margin + chart_w + gap, charts_y, chart_w, top_chart_h)
-_pdf_add_chart_card(fig_pie, margin, charts_y + top_chart_h + gap, content_w, bottom_chart_h)
+_pdf_add_chart_card(fig_eui, "EUI by Year", margin, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_wui, "WUI by Year", margin + chart_w + gap, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", margin, charts_y + top_chart_h + gap, content_w, bottom_chart_h)
 
 pdf.set_text_color(0, 0, 0)
 
