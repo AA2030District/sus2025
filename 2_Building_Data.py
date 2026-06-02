@@ -512,26 +512,26 @@ else:
 def _prepare_pdf_chart_figure(figure):
     export_figure = go.Figure(figure)
     export_figure.update_layout(
-        font=dict(size=28),
-        title_font=dict(size=30),
-        legend=dict(font=dict(size=28)),
+        font=dict(size=38),
+        title_font=dict(size=40),
+        legend=dict(font=dict(size=38)),
         margin=dict(l=80, r=40, t=90, b=70),
     )
     export_figure.update_xaxes(
-        tickfont=dict(size=28),
-        title_font=dict(size=30),
+        tickfont=dict(size=38),
+        title_font=dict(size=40),
     )
     export_figure.update_yaxes(
-        tickfont=dict(size=28),
-        title_font=dict(size=30),
+        tickfont=dict(size=38),
+        title_font=dict(size=40),
     )
     for trace in export_figure.data:
         if trace.type == "bar":
-            trace.textfont = dict(size=28)
+            trace.textfont = dict(size=38)
         elif trace.type == "pie":
-            trace.textfont = dict(size=28)
-            trace.insidetextfont = dict(size=28)
-            trace.outsidetextfont = dict(size=28)
+            trace.textfont = dict(size=38)
+            trace.insidetextfont = dict(size=38)
+            trace.outsidetextfont = dict(size=38)
     return export_figure
 
 
