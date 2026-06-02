@@ -509,7 +509,7 @@ else:
     st.warning("No energy data available for 2025 to display pie chart")
 
 
-pdf = FPDF(orientation="L")
+pdf = FPDF()
 pdf.set_auto_page_break(auto=False)
 pdf.add_page()
 
@@ -563,8 +563,8 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
     )
     pdf.image(chart_image, x=x + 3, y=y + 10, w=w - 6, h=h - 13)
 
-margin = 10
-gap = 5
+margin = 0
+gap = 0
 content_w = pdf.w - (2 * margin)
 
 pdf.set_font("Helvetica", "B", 16)
