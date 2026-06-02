@@ -8,6 +8,7 @@ import kaleido
 from fpdf import FPDF
 import numpy as np
 import io
+from pathlib import Path
 
 require_login()
 
@@ -563,45 +564,59 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
     )
     pdf.image(chart_image, x=x + 3, y=y + 10, w=w - 6, h=h - 13)
 
-margin = 0
-gap = 0
+BASE_DIR = Path(__file__).resolve().parent
+logo_path = BASE_DIR / "Washtenaw Established Logo_Export112425.png"
+
+margin = 8
+gap = 4
 content_w = pdf.w - (2 * margin)
 
+header_y = 8
+logo_w = 34
+logo_h = 18
+
 pdf.set_font("Helvetica", "B", 16)
-pdf.set_xy(margin, 8)
-pdf.cell(content_w, 7, "Building Energy Analysis", align="C")
+pdf.set_xy(margin, header_y)
+pdf.cell(content_w - logo_w - 4, 7, "Building Energy Analysis", align="L")
 
 pdf.set_font("Helvetica", "B", 11)
-pdf.set_xy(margin, 17)
-pdf.cell(content_w, 6, _pdf_clean_text(selected_building), align="C")
+pdf.set_xy(margin, header_y + 9)
+pdf.cell(content_w - logo_w - 4, 6, _pdf_clean_text(selected_building), align="L")
 
-metrics_y = 28
-metric_w = (content_w - (2 * gap)) / 2
-metric_h = 19
-for i, (label, value) in enumerate(metric_items):
-    col = i % 3
-    row = i // 3
-    x = margin + col * (metric_w + gap)
-    y = metrics_y + row * (metric_h + gap)
-    _pdf_add_metric_card(label, value, x, y, metric_w, metric_h)
+try:
+    pdf.image(str(logo_path), x=pdf.w - margin - logo_w, y=header_y, w=logo_w, h=logo_h)
+except Exception:
+    pass
 
-charts_y = metrics_y + (2 * metric_h) + gap + 6
-chart_w = (content_w - gap) / 2
-chart_h = 74
-_pdf_add_chart_card(fig_eui, "EUI by Year", margin, charts_y, chart_w, chart_h)
-_pdf_add_chart_card(fig_wui, "WUI by Year", margin + chart_w + gap, charts_y, chart_w, chart_h)
+layout_top = 28
+layout_h = pdf.h - layout_top - 8
+stats_w = (content_w - gap) / 3
+graphs_w = content_w - stats_w - gap
+stats_x = margin
+graphs_x = stats_x + stats_w + gap
 
-bottom_y = charts_y + chart_h + gap
-pie_w = 100
-_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", margin, bottom_y, pie_w, 58)
-
-_pdf_card(margin + pie_w + gap, bottom_y, content_w - pie_w - gap, 58)
-pdf.set_xy(margin + pie_w + gap + 3, bottom_y + 3)
-pdf.set_font("Helvetica", "B", 9)
+_pdf_card(stats_x, layout_top, stats_w, layout_h)
+pdf.set_xy(stats_x + 3, layout_top + 3)
+pdf.set_font("Helvetica", "B", 10)
 pdf.set_text_color(31, 41, 55)
-pdf.set_xy(margin + pie_w + gap + 3, bottom_y + 12)
-pdf.set_font("Helvetica", "", 8)
-pdf.set_text_color(17, 24, 39)
+pdf.cell(stats_w - 6, 5, "Building Summary", border=0)
+
+sidebar_metrics = metric_items + [("All Recorded Years", years_display)]
+metric_card_gap = 3
+metric_area_top = layout_top + 11
+metric_h = (layout_h - 14 - ((len(sidebar_metrics) - 1) * metric_card_gap)) / len(sidebar_metrics)
+for i, (label, value) in enumerate(sidebar_metrics):
+    card_y = metric_area_top + i * (metric_h + metric_card_gap)
+    _pdf_add_metric_card(label, value, stats_x + 3, card_y, stats_w - 6, metric_h)
+
+top_chart_h = (layout_h - gap) * 0.52
+bottom_chart_h = layout_h - top_chart_h - gap
+top_chart_w = (graphs_w - gap) / 2
+
+_pdf_add_chart_card(fig_eui, "EUI by Year", graphs_x, layout_top, top_chart_w, top_chart_h)
+_pdf_add_chart_card(fig_wui, "WUI by Year", graphs_x + top_chart_w + gap, layout_top, top_chart_w, top_chart_h)
+_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", graphs_x, layout_top + top_chart_h + gap, graphs_w, bottom_chart_h)
+
 pdf.set_text_color(0, 0, 0)
 
 pdf_bytes = bytes(pdf.output())
