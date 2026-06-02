@@ -567,8 +567,8 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
 BASE_DIR = Path(__file__).resolve().parent
 logo_path = BASE_DIR / "Washtenaw Established Logo_Export112425.png"
 
-margin = 8
-gap = 4
+margin = 0
+gap = 0
 content_w = pdf.w - (2 * margin)
 
 header_y = 8
@@ -590,7 +590,7 @@ except Exception:
 
 layout_top = 28
 layout_h = pdf.h - layout_top - 8
-stats_w = (content_w - gap) / 3
+stats_w = (content_w - gap) / 4
 graphs_w = content_w - stats_w - gap
 stats_x = margin
 graphs_x = stats_x + stats_w + gap
