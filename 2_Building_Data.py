@@ -576,7 +576,7 @@ pdf.set_xy(margin, 17)
 pdf.cell(content_w, 6, _pdf_clean_text(selected_building), align="C")
 
 metrics_y = 28
-metric_w = (content_w - (2 * gap)) / 3
+metric_w = (content_w - (2 * gap)) / 2
 metric_h = 19
 for i, (label, value) in enumerate(metric_items):
     col = i % 3
