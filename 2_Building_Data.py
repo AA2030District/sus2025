@@ -553,16 +553,36 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
         pdf.set_font("Helvetica", "", 8)
         pdf.cell(w - 6, 5, "No data available", border=0)
         return
+    export_w = 900
+    export_h = 540
     chart_image = io.BytesIO(
         figure.to_image(
             format="png",
             engine="kaleido",
-            width=760,
-            height=430,
+            width=export_w,
+            height=export_h,
             scale=2,
         )
     )
-    pdf.image(chart_image, x=x + 3, y=y + 10, w=w - 6, h=h - 13)
+    image_area_x = x + 3
+    image_area_y = y + 10
+    image_area_w = w - 6
+    image_area_h = h - 13
+
+    image_ratio = export_w / export_h
+    area_ratio = image_area_w / image_area_h
+
+    if image_ratio > area_ratio:
+        render_w = image_area_w
+        render_h = render_w / image_ratio
+    else:
+        render_h = image_area_h
+        render_w = render_h * image_ratio
+
+    render_x = image_area_x + (image_area_w - render_w) / 2
+    render_y = image_area_y + (image_area_h - render_h) / 2
+
+    pdf.image(chart_image, x=render_x, y=render_y, w=render_w, h=render_h)
 
 BASE_DIR = Path(__file__).resolve().parent
 logo_path = BASE_DIR / "Washtenaw Established Logo_Export112425.png"
@@ -590,7 +610,7 @@ except Exception:
 
 layout_top = 28
 layout_h = pdf.h - layout_top - 8
-stats_w = (content_w - gap) / 6
+stats_w = (content_w - gap) / 5
 graphs_w = content_w - stats_w - gap
 stats_x = margin
 graphs_x = stats_x + stats_w + gap
