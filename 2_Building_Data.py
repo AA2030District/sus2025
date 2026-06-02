@@ -553,8 +553,13 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
         pdf.set_font("Helvetica", "", 8)
         pdf.cell(w - 6, 5, "No data available", border=0)
         return
-    export_w = 1280
-    export_h = 720
+    image_area_x = x + 3
+    image_area_y = y + 10
+    image_area_w = w - 6
+    image_area_h = h - 13
+
+    export_w = max(1600, int(image_area_w * 12))
+    export_h = max(900, int(image_area_h * 12))
     chart_image = io.BytesIO(
         figure.to_image(
             format="png",
@@ -564,10 +569,6 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
             scale=2,
         )
     )
-    image_area_x = x + 3
-    image_area_y = y + 10
-    image_area_w = w - 6
-    image_area_h = h - 13
 
     image_ratio = export_w / export_h
     area_ratio = image_area_w / image_area_h
