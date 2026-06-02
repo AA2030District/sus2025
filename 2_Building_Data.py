@@ -532,5 +532,12 @@ image = io.BytesIO(image_data)
 pdf = FPDF()
 pdf.add_page()
 pdf.image(image, w=pdf.epw)  # Width of the image is equal to the width of the page
-pdf.output("plotly_demo.pdf")
+pdf_bytes = bytes(pdf.output())
+
+st.download_button(
+    label="Download PDF",
+    data=pdf_bytes,
+    file_name="plotly_demo.pdf",
+    mime="application/pdf",
+)
 
