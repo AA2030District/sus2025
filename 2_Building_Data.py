@@ -506,7 +506,7 @@ else:
 
 
 # Convert the figure to png using kaleido
-image_data = pie_df.to_image(format="png", engine="kaleido")
+image_data = fig_pie.to_image(format="png", engine="kaleido")
 
 # Create an io.BytesIO object which can be used by FPDF2
 image = io.BytesIO(image_data)
