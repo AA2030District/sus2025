@@ -7,6 +7,7 @@ from humanize import number
 import kaleido
 from fpdf import FPDF
 import numpy as np
+import io
 
 require_login()
 
