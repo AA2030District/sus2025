@@ -610,32 +610,33 @@ except Exception:
 
 layout_top = 28
 layout_h = pdf.h - layout_top - 8
-stats_w = (content_w - gap) / 5
-graphs_w = content_w - stats_w - gap
-stats_x = margin
-graphs_x = stats_x + stats_w + gap
-
-_pdf_card(stats_x, layout_top, stats_w, layout_h)
-pdf.set_xy(stats_x + 3, layout_top + 3)
+pdf.set_xy(margin, layout_top)
 pdf.set_font("Helvetica", "B", 10)
 pdf.set_text_color(31, 41, 55)
-pdf.cell(stats_w - 6, 5, "Building Summary", border=0)
+pdf.cell(content_w, 5, "Building Summary", border=0)
 
-sidebar_metrics = metric_items + [("All Recorded Years", years_display)]
+summary_metrics = metric_items + [("All Recorded Years", years_display)]
 metric_card_gap = 3
-metric_area_top = layout_top + 11
-metric_h = (layout_h - 14 - ((len(sidebar_metrics) - 1) * metric_card_gap)) / len(sidebar_metrics)
-for i, (label, value) in enumerate(sidebar_metrics):
-    card_y = metric_area_top + i * (metric_h + metric_card_gap)
-    _pdf_add_metric_card(label, value, stats_x + 3, card_y, stats_w - 6, metric_h)
+metrics_y = layout_top + 8
+metric_cols = 4
+metric_w = (content_w - ((metric_cols - 1) * metric_card_gap)) / metric_cols
+metric_h = 16
+for i, (label, value) in enumerate(summary_metrics):
+    col = i % metric_cols
+    row = i // metric_cols
+    card_x = margin + col * (metric_w + metric_card_gap)
+    card_y = metrics_y + row * (metric_h + metric_card_gap)
+    _pdf_add_metric_card(label, value, card_x, card_y, metric_w, metric_h)
 
-top_chart_h = (layout_h - gap) * 0.78
-bottom_chart_h = layout_h - top_chart_h - gap
-top_chart_w = (graphs_w - gap) / 2
+charts_y = metrics_y + (2 * metric_h) + metric_card_gap + 6
+charts_h = pdf.h - charts_y - 8
+top_chart_h = (charts_h - gap) * 0.62
+bottom_chart_h = charts_h - top_chart_h - gap
+chart_w = (content_w - gap) / 2
 
-_pdf_add_chart_card(fig_eui, "EUI by Year", graphs_x, layout_top, top_chart_w, top_chart_h)
-_pdf_add_chart_card(fig_wui, "WUI by Year", graphs_x + top_chart_w + gap, layout_top, top_chart_w, top_chart_h)
-_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", graphs_x, layout_top + top_chart_h + gap, graphs_w, bottom_chart_h)
+_pdf_add_chart_card(fig_eui, "EUI by Year", margin, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_wui, "WUI by Year", margin + chart_w + gap, charts_y, chart_w, top_chart_h)
+_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", margin, charts_y + top_chart_h + gap, content_w, bottom_chart_h)
 
 pdf.set_text_color(0, 0, 0)
 
