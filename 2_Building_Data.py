@@ -590,7 +590,7 @@ except Exception:
 
 layout_top = 28
 layout_h = pdf.h - layout_top - 8
-stats_w = (content_w - gap) / 5
+stats_w = (content_w - gap) / 6
 graphs_w = content_w - stats_w - gap
 stats_x = margin
 graphs_x = stats_x + stats_w + gap
