@@ -283,6 +283,10 @@ baseline_eui_value = site_eui_benchmark.get(use_type, None)
 use_type_key = str(use_type).strip().lower() if pd.notna(use_type) else ""
 baseline_wui_value = site_wui_benchmark.get(use_type_key, None)
 
+fig_eui = None
+fig_wui = None
+fig_pie = None
+
 
 # EUI bar chart by year
 if not this_building_df.empty and this_building_df['siteeui'].notna().any():
@@ -505,20 +509,73 @@ else:
     st.warning("No energy data available for 2025 to display pie chart")
 
 
-# Convert the figure to png using kaleido
-image_data = fig_pie.to_image(format="png", engine="kaleido")
-
-# Create an io.BytesIO object which can be used by FPDF2
-image = io.BytesIO(image_data)
 pdf = FPDF()
 pdf.add_page()
-pdf.image(image, w=pdf.epw)  # Width of the image is equal to the width of the page
+
+def _pdf_clean_text(value):
+    if value is None:
+        return "Not Available"
+    try:
+        if pd.isna(value):
+            return "Not Available"
+    except (TypeError, ValueError):
+        pass
+    return str(value).replace("Â²", "^2").encode("latin-1", "replace").decode("latin-1")
+
+def _pdf_add_section_title(title):
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(31, 41, 55)
+    pdf.cell(0, 8, _pdf_clean_text(title), ln=True)
+    pdf.set_text_color(0, 0, 0)
+
+def _pdf_add_metric(label, value):
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.cell(58, 7, _pdf_clean_text(label) + ":", border=0)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.multi_cell(0, 7, _pdf_clean_text(value), border=0)
+
+def _pdf_add_plotly_chart(figure, title):
+    if figure is None:
+        return
+    if pdf.get_y() > 175:
+        pdf.add_page()
+    _pdf_add_section_title(title)
+    chart_image = io.BytesIO(
+        figure.to_image(
+            format="png",
+            engine="kaleido",
+            width=900,
+            height=520,
+            scale=2,
+        )
+    )
+    pdf.image(chart_image, w=pdf.epw)
+    pdf.ln(5)
+
+pdf.set_font("Helvetica", "B", 18)
+pdf.cell(0, 10, "Building Energy Analysis", ln=True, align="C")
+pdf.ln(2)
+
+pdf.set_font("Helvetica", "B", 14)
+pdf.cell(0, 9, _pdf_clean_text(selected_building), ln=True, align="C")
+pdf.ln(6)
+
+_pdf_add_section_title("Building Summary")
+for label, value in metric_items:
+    _pdf_add_metric(label, value)
+_pdf_add_metric("All Recorded Years", years_display)
+pdf.ln(4)
+
+_pdf_add_plotly_chart(fig_eui, "EUI by Year")
+_pdf_add_plotly_chart(fig_wui, "WUI by Year")
+_pdf_add_plotly_chart(fig_pie, "Fuel Mix Breakdown")
+
 pdf_bytes = bytes(pdf.output())
 
 st.download_button(
-    label="Download PDF",
+    label="Download Building PDF",
     data=pdf_bytes,
-    file_name="plotly_demo.pdf",
+    file_name=f"{selected_building}_building_energy_report.pdf",
     mime="application/pdf",
 )
 
