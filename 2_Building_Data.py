@@ -509,7 +509,8 @@ else:
     st.warning("No energy data available for 2025 to display pie chart")
 
 
-pdf = FPDF()
+pdf = FPDF(orientation="L")
+pdf.set_auto_page_break(auto=False)
 pdf.add_page()
 
 def _pdf_clean_text(value):
@@ -520,60 +521,90 @@ def _pdf_clean_text(value):
             return "Not Available"
     except (TypeError, ValueError):
         pass
-    return str(value).replace("Â²", "^2").encode("latin-1", "replace").decode("latin-1")
+    return str(value).replace("Â²", "^2").replace("²", "^2").encode("latin-1", "replace").decode("latin-1")
 
-def _pdf_add_section_title(title):
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_text_color(31, 41, 55)
-    pdf.cell(0, 8, _pdf_clean_text(title), ln=True)
+def _pdf_card(x, y, w, h):
+    pdf.set_draw_color(220, 220, 220)
+    pdf.set_fill_color(250, 250, 250)
+    pdf.rect(x, y, w, h, style="DF")
+
+def _pdf_add_metric_card(label, value, x, y, w, h):
+    _pdf_card(x, y, w, h)
+    pdf.set_xy(x + 2, y + 2)
+    pdf.set_font("Helvetica", "B", 7)
+    pdf.set_text_color(107, 114, 128)
+    pdf.multi_cell(w - 4, 3.5, _pdf_clean_text(label), border=0)
+    pdf.set_xy(x + 2, y + 9)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_text_color(17, 24, 39)
+    pdf.multi_cell(w - 4, 4.5, _pdf_clean_text(value), border=0)
     pdf.set_text_color(0, 0, 0)
 
-def _pdf_add_metric(label, value):
-    if pdf.get_y() > 265:
-        pdf.add_page()
-    pdf.set_x(pdf.l_margin)
+def _pdf_add_chart_card(figure, title, x, y, w, h):
+    _pdf_card(x, y, w, h)
+    pdf.set_xy(x + 3, y + 3)
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(0, 5, _pdf_clean_text(label) + ":", ln=True, border=0)
-    pdf.set_x(pdf.l_margin)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, _pdf_clean_text(value), border=0)
-    pdf.ln(1)
-
-def _pdf_add_plotly_chart(figure, title):
+    pdf.set_text_color(31, 41, 55)
+    pdf.cell(w - 6, 5, _pdf_clean_text(title), border=0)
+    pdf.set_text_color(0, 0, 0)
     if figure is None:
+        pdf.set_xy(x + 3, y + 12)
+        pdf.set_font("Helvetica", "", 8)
+        pdf.cell(w - 6, 5, "No data available", border=0)
         return
-    if pdf.get_y() > 175:
-        pdf.add_page()
-    _pdf_add_section_title(title)
     chart_image = io.BytesIO(
         figure.to_image(
             format="png",
             engine="kaleido",
-            width=900,
-            height=520,
+            width=760,
+            height=430,
             scale=2,
         )
     )
-    pdf.image(chart_image, w=pdf.epw)
-    pdf.ln(5)
+    pdf.image(chart_image, x=x + 3, y=y + 10, w=w - 6, h=h - 13)
 
-pdf.set_font("Helvetica", "B", 18)
-pdf.cell(0, 10, "Building Energy Analysis", ln=True, align="C")
-pdf.ln(2)
+margin = 10
+gap = 5
+content_w = pdf.w - (2 * margin)
 
-pdf.set_font("Helvetica", "B", 14)
-pdf.cell(0, 9, _pdf_clean_text(selected_building), ln=True, align="C")
-pdf.ln(6)
+pdf.set_font("Helvetica", "B", 16)
+pdf.set_xy(margin, 8)
+pdf.cell(content_w, 7, "Building Energy Analysis", align="C")
 
-_pdf_add_section_title("Building Summary")
-for label, value in metric_items:
-    _pdf_add_metric(label, value)
-_pdf_add_metric("All Recorded Years", years_display)
-pdf.ln(4)
+pdf.set_font("Helvetica", "B", 11)
+pdf.set_xy(margin, 17)
+pdf.cell(content_w, 6, _pdf_clean_text(selected_building), align="C")
 
-_pdf_add_plotly_chart(fig_eui, "EUI by Year")
-_pdf_add_plotly_chart(fig_wui, "WUI by Year")
-_pdf_add_plotly_chart(fig_pie, "Fuel Mix Breakdown")
+metrics_y = 28
+metric_w = (content_w - (2 * gap)) / 3
+metric_h = 19
+for i, (label, value) in enumerate(metric_items):
+    col = i % 3
+    row = i // 3
+    x = margin + col * (metric_w + gap)
+    y = metrics_y + row * (metric_h + gap)
+    _pdf_add_metric_card(label, value, x, y, metric_w, metric_h)
+
+charts_y = metrics_y + (2 * metric_h) + gap + 6
+chart_w = (content_w - gap) / 2
+chart_h = 74
+_pdf_add_chart_card(fig_eui, "EUI by Year", margin, charts_y, chart_w, chart_h)
+_pdf_add_chart_card(fig_wui, "WUI by Year", margin + chart_w + gap, charts_y, chart_w, chart_h)
+
+bottom_y = charts_y + chart_h + gap
+pie_w = 100
+_pdf_add_chart_card(fig_pie, "Fuel Mix Breakdown", margin, bottom_y, pie_w, 58)
+
+_pdf_card(margin + pie_w + gap, bottom_y, content_w - pie_w - gap, 58)
+pdf.set_xy(margin + pie_w + gap + 3, bottom_y + 3)
+pdf.set_font("Helvetica", "B", 9)
+pdf.set_text_color(31, 41, 55)
+pdf.cell(content_w - pie_w - gap - 6, 5, "All Recorded Years", border=0)
+pdf.set_xy(margin + pie_w + gap + 3, bottom_y + 12)
+pdf.set_font("Helvetica", "", 8)
+pdf.set_text_color(17, 24, 39)
+pdf.multi_cell(content_w - pie_w - gap - 6, 4.5, _pdf_clean_text(years_display), border=0)
+pdf.set_text_color(0, 0, 0)
 
 pdf_bytes = bytes(pdf.output())
 
