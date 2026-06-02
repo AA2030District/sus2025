@@ -509,6 +509,31 @@ if not pie_df.empty:
 else:
     st.warning("No energy data available for 2025 to display pie chart")
 
+def _prepare_pdf_chart_figure(figure):
+    export_figure = go.Figure(figure)
+    export_figure.update_layout(
+        font=dict(size=18),
+        title_font=dict(size=24),
+        legend=dict(font=dict(size=18)),
+        margin=dict(l=80, r=40, t=90, b=70),
+    )
+    export_figure.update_xaxes(
+        tickfont=dict(size=16),
+        title_font=dict(size=18),
+    )
+    export_figure.update_yaxes(
+        tickfont=dict(size=16),
+        title_font=dict(size=18),
+    )
+    for trace in export_figure.data:
+        if trace.type == "bar":
+            trace.textfont = dict(size=18)
+        elif trace.type == "pie":
+            trace.textfont = dict(size=18)
+            trace.insidetextfont = dict(size=18)
+            trace.outsidetextfont = dict(size=18)
+    return export_figure
+
 
 pdf = FPDF()
 pdf.set_auto_page_break(auto=False)
@@ -560,8 +585,9 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
 
     export_w = max(1600, int(image_area_w * 16))
     export_h = max(900, int(image_area_h * 16))
+    export_figure = _prepare_pdf_chart_figure(figure)
     chart_image = io.BytesIO(
-        figure.to_image(
+        export_figure.to_image(
             format="png",
             engine="kaleido",
             width=export_w,
