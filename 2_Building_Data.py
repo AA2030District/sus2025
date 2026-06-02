@@ -529,10 +529,15 @@ def _pdf_add_section_title(title):
     pdf.set_text_color(0, 0, 0)
 
 def _pdf_add_metric(label, value):
+    if pdf.get_y() > 265:
+        pdf.add_page()
+    pdf.set_x(pdf.l_margin)
     pdf.set_font("Helvetica", "B", 9)
-    pdf.cell(58, 7, _pdf_clean_text(label) + ":", border=0)
+    pdf.cell(0, 5, _pdf_clean_text(label) + ":", ln=True, border=0)
+    pdf.set_x(pdf.l_margin)
     pdf.set_font("Helvetica", "", 9)
-    pdf.multi_cell(0, 7, _pdf_clean_text(value), border=0)
+    pdf.multi_cell(pdf.w - pdf.l_margin - pdf.r_margin, 5, _pdf_clean_text(value), border=0)
+    pdf.ln(1)
 
 def _pdf_add_plotly_chart(figure, title):
     if figure is None:
