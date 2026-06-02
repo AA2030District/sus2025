@@ -629,7 +629,7 @@ for i, (label, value) in enumerate(sidebar_metrics):
     card_y = metric_area_top + i * (metric_h + metric_card_gap)
     _pdf_add_metric_card(label, value, stats_x + 3, card_y, stats_w - 6, metric_h)
 
-top_chart_h = (layout_h - gap) * 0.52
+top_chart_h = (layout_h - gap) * 0.78
 bottom_chart_h = layout_h - top_chart_h - gap
 top_chart_w = (graphs_w - gap) / 2
 
