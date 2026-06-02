@@ -558,8 +558,8 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
     image_area_w = w - 6
     image_area_h = h - 13
 
-    export_w = max(1600, int(image_area_w * 12))
-    export_h = max(900, int(image_area_h * 12))
+    export_w = max(1600, int(image_area_w * 16))
+    export_h = max(900, int(image_area_h * 16))
     chart_image = io.BytesIO(
         figure.to_image(
             format="png",
@@ -569,21 +569,7 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
             scale=2,
         )
     )
-
-    image_ratio = export_w / export_h
-    area_ratio = image_area_w / image_area_h
-
-    if image_ratio > area_ratio:
-        render_w = image_area_w
-        render_h = render_w / image_ratio
-    else:
-        render_h = image_area_h
-        render_w = render_h * image_ratio
-
-    render_x = image_area_x + (image_area_w - render_w) / 2
-    render_y = image_area_y + (image_area_h - render_h) / 2
-
-    pdf.image(chart_image, x=render_x, y=render_y, w=render_w, h=render_h)
+    pdf.image(chart_image, x=image_area_x, y=image_area_y, w=image_area_w, h=image_area_h)
 
 BASE_DIR = Path(__file__).resolve().parent
 logo_path = BASE_DIR / "Washtenaw Established Logo_Export112425.png"
