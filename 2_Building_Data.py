@@ -602,7 +602,6 @@ pdf.set_text_color(31, 41, 55)
 pdf.set_xy(margin + pie_w + gap + 3, bottom_y + 12)
 pdf.set_font("Helvetica", "", 8)
 pdf.set_text_color(17, 24, 39)
-pdf.multi_cell(content_w - pie_w - gap - 6, 4.5, _pdf_clean_text(years_display), border=0)
 pdf.set_text_color(0, 0, 0)
 
 pdf_bytes = bytes(pdf.output())
