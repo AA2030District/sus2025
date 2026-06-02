@@ -520,6 +520,8 @@ def _prepare_pdf_chart_figure(figure):
     export_figure.update_xaxes(
         tickfont=dict(size=38),
         title_font=dict(size=40),
+        tickangle=0,
+        automargin=True,
     )
     export_figure.update_yaxes(
         tickfont=dict(size=38),
