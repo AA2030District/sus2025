@@ -553,8 +553,8 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
         pdf.set_font("Helvetica", "", 8)
         pdf.cell(w - 6, 5, "No data available", border=0)
         return
-    export_w = 900
-    export_h = 540
+    export_w = 1280
+    export_h = 720
     chart_image = io.BytesIO(
         figure.to_image(
             format="png",
