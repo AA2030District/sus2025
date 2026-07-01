@@ -14,6 +14,7 @@ import time
 from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 import os
+import io
 
 load_dotenv("secrets.env")
 user = os.environ.get("ENERGY_STAR_PORTFOLIO_MANAGER_USERNAME")

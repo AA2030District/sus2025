@@ -25,6 +25,8 @@ base_list_query = """
      SELECT
     e.*,
     p.[portfolio] AS portfolio,
+    p.[Contact] AS Contact,
+    p.[ContactEmail] AS ContactEmail,
     b.baseline as baselines
 FROM [dbo].[ESPMFIRSTTEST] e
 left JOIN [dbo].[portfolios] p
