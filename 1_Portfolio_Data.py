@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
-import kaleido
 from plotly.subplots import make_subplots
 from auth_helper import require_login
 
