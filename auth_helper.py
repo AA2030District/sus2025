@@ -1,3 +1,5 @@
+#switched to sqlalchemy
+
 import streamlit as st
 
 AUTH_TENANTS = st.secrets["auth"]

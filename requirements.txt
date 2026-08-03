@@ -7,7 +7,7 @@ streamlit==1.39.0
 rich>=10.14.0,<14
 pandas>=2.0.0
 plotly>=6.6.0
-pymssql>=2.2.0
+pymssql>=2.3.13
 sqlalchemy>=2.0.0
 geopy>=2.4.0
 statsmodels>=0.14.0
