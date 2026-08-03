@@ -7,14 +7,15 @@ import requests
 from requests.auth import HTTPBasicAuth 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from auth_helper import get_connection, require_login
+from auth_helper import get_connection, get_tenant_secret, require_login
 import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
 import streamlit.components.v1 as components
 
-user=st.secrets["espm"]['username']
-pw=st.secrets["espm"]['password']
+espm_creds = get_tenant_secret("espm")
+user = espm_creds["username"]
+pw = espm_creds["password"]
 st.markdown("""
 <style>
 h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }

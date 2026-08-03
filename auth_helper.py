@@ -24,16 +24,24 @@ def get_current_tenant():
     return st.session_state.tenant
 
 
-def get_connection_name(alias="sql"):
+def get_connection_name(alias="washtenawsql"):
     tenant = get_current_tenant()
     if tenant and tenant in TENANT_CONNECTIONS and alias in TENANT_CONNECTIONS[tenant]:
         return TENANT_CONNECTIONS[tenant][alias]
     return alias
 
 
-def get_connection(alias="sql", **kwargs):
+def get_connection(alias="washtenawsql", **kwargs):
     kwargs.setdefault("type", "sql")
     return st.connection(get_connection_name(alias), **kwargs)
+
+
+def get_tenant_secret(section_name, default_tenant="washtenaw"):
+    tenant = get_current_tenant() or default_tenant
+    section = st.secrets[section_name]
+    if tenant in section:
+        return section[tenant]
+    return section[default_tenant]
 
 
 def require_login():
