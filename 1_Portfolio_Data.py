@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from plotly.subplots import make_subplots
-from auth_helper import require_login
+from auth_helper import get_connection, require_login
 
 CHART_FONT = "Sans-Serif"
 
@@ -23,7 +23,7 @@ require_login()
 
                                                         ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
-conn = st.connection("sql", type="sql")
+conn = get_connection()
 
 summary_query = """
 WITH latest_year AS (

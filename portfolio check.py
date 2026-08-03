@@ -2,7 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from auth_helper import require_login
+from auth_helper import get_connection, require_login
 
 st.markdown("""
 <style>
@@ -13,7 +13,7 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 require_login()
 
 st.title("Portfolio Analysis")
-conn = st.connection("sql", type="sql")
+conn = get_connection()
 new_query = f"""
 SELECT
     e.espmid,

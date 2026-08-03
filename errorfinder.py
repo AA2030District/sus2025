@@ -7,7 +7,7 @@ import requests
 from requests.auth import HTTPBasicAuth 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from auth_helper import require_login
+from auth_helper import get_connection, require_login
 import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
@@ -40,7 +40,7 @@ session.mount("https://", adapter)
 session.mount("http://", adapter)
 st.title("Error Finder")
 
-conn = st.connection("sql", type="sql")
+conn = get_connection()
 
 
 def _build_meter_df(meter_dict):

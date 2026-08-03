@@ -1,5 +1,5 @@
 import streamlit as st
-from auth_helper import require_login
+from auth_helper import get_connection, require_login
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
@@ -18,7 +18,7 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 require_login()
 st.title("Washtenaw 2030 District Full Building Portfolio")
 
-conn = st.connection("sql", type="sql")
+conn = get_connection()
 
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """

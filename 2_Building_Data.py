@@ -2,7 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from auth_helper import require_login
+from auth_helper import get_connection, require_login
 from humanize import number
 import kaleido
 from fpdf import FPDF
@@ -14,7 +14,7 @@ require_login()
 
 st.title("Building Energy Analysis")
 
-conn = st.connection("sql", type="sql")
+conn = get_connection()
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap');
