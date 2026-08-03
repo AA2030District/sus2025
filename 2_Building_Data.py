@@ -105,7 +105,7 @@ site_wui_benchmark = {
 buildings_query = """
     SELECT DISTINCT [espmid],
         [buildingname]
-    FROM [dbo].[ESPMFIRSTTEST]
+    FROM [dbo].[PrimaryDataBase]
     WHERE [buildingname] IS NOT NULL
     AND [espmid] IS NOT NULL
     ORDER BY [buildingname]
@@ -132,7 +132,7 @@ building_info = buildings_df.loc[buildings_df['buildingname'] == selected_buildi
 # Get all data for this building using parameterized query
 this_building_query = f"""
     SELECT *
-    FROM [dbo].[ESPMFIRSTTEST]
+    FROM [dbo].[PrimaryDataBase]
     WHERE [espmid] = '{selected_espmid}'
     ORDER BY [datayear] DESC
 """
@@ -157,7 +157,7 @@ if not this_building_df.empty:
                 SELECT
                     [espmid],
                     TRY_CAST([energystarscore] AS FLOAT) AS energystarscore
-                FROM [dbo].[ESPMFIRSTTEST]
+                FROM [dbo].[PrimaryDataBase]
                 WHERE [usetype] = '{use_type_sql}'
                   AND [datayear] = '{most_current_year_sql}'
                   AND TRY_CAST([energystarscore] AS FLOAT) IS NOT NULL
@@ -269,7 +269,7 @@ usetype_averages_query = f"""
     AVG(TRY_CAST([wui] AS FLOAT)) as avg_wui,
     COUNT(DISTINCT [espmid]) as building_count,
     COUNT(*) as row_count
-FROM [dbo].[ESPMFIRSTTEST]
+FROM [dbo].[PrimaryDataBase]
 WHERE [usetype] = '{use_type}'
     AND [siteeui] IS NOT NULL 
     AND [wui] IS NOT NULL
@@ -663,4 +663,5 @@ st.download_button(
     file_name=f"{selected_building}_building_energy_report.pdf",
     mime="application/pdf",
 )
+
 

@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 from auth_helper import get_connection, require_login
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
@@ -28,14 +28,14 @@ base_list_query = """
     p.[Contact] AS Contact,
     p.[ContactEmail] AS ContactEmail,
     b.baseline as baselines
-FROM [dbo].[ESPMFIRSTTEST] e
+FROM [dbo].[PrimaryDataBase] e
 left JOIN [dbo].[portfolios] p
     ON e.[espmid] = p.[espmid]
 left JOIN [dbo].[Baselines] b
     ON e.[espmid] = b.[espmid]
 WHERE TRY_CONVERT(INT, e.datayear) = (
       SELECT MAX(TRY_CONVERT(INT, e2.datayear))
-      FROM [dbo].[ESPMFIRSTTEST] e2
+      FROM [dbo].[PrimaryDataBase] e2
       WHERE e2.espmid = e.espmid
         AND TRY_CONVERT(INT, e2.datayear) IS NOT NULL
       )
@@ -163,3 +163,4 @@ if st.button("Clear Streamlit Cache"):
     st.cache_data.clear()
     st.cache_resource.clear()
     st.rerun()
+

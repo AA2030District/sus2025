@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -28,7 +28,7 @@ conn = get_connection()
 summary_query = """
 WITH latest_year AS (
     SELECT MAX(TRY_CAST([datayear] AS INT)) AS report_year
-    FROM [dbo].[ESPMFIRSTTEST]
+    FROM [dbo].[PrimaryDataBase]
     WHERE TRY_CAST([datayear] AS INT) IS NOT NULL
       AND ISNULL([donotinclude], 0) <> 1
 )
@@ -36,7 +36,7 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-FROM [dbo].[ESPMFIRSTTEST] e
+FROM [dbo].[PrimaryDataBase] e
 CROSS JOIN latest_year ly
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND TRY_CAST(e.[datayear] AS INT) = ly.report_year
@@ -50,7 +50,7 @@ WITH property_rollup AS (
         d.espmid,
         MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
-    FROM [dbo].[ESPMFIRSTTEST] d
+    FROM [dbo].[PrimaryDataBase] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
@@ -75,7 +75,7 @@ WITH property_rollup AS (
         d.espmid,
         MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
-    FROM [dbo].[ESPMFIRSTTEST] d
+    FROM [dbo].[PrimaryDataBase] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
@@ -132,7 +132,7 @@ property_rollup AS (
         MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS numbuildings,
         MAX(TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))) AS sqfootage
-    FROM [dbo].[ESPMFIRSTTEST] d
+    FROM [dbo].[PrimaryDataBase] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
@@ -253,7 +253,7 @@ SELECT
     COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
     AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
     COUNT(DISTINCT [espmid]) as property_count
-FROM [dbo].[ESPMFIRSTTEST]
+FROM [dbo].[PrimaryDataBase]
 WHERE [datayear] = 2025
 AND ISNULL(pmparentid,espmid)=espmid 
 AND ISNULL([donotinclude], 0) <> 1
@@ -270,7 +270,7 @@ WITH ranked AS (
         ROW_NUMBER() OVER (
             ORDER BY COUNT(DISTINCT e.espmid) DESC, e.usetype
         ) AS usetype_rank
-    FROM ESPMFIRSTTEST e
+    FROM PrimaryDataBase e
     WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND TRY_CONVERT(INT, e.datayear) = 2025
         AND EXISTS (
@@ -355,7 +355,7 @@ yearly_query = """
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
         AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
-    FROM [dbo].[ESPMFIRSTTEST] e
+    FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN (
         SELECT
             TRY_CAST([espmid] AS BIGINT) AS espmid,
@@ -460,7 +460,7 @@ wateryear_query = """
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
-    FROM [dbo].[ESPMFIRSTTEST] e
+    FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN [dbo].[wuibaselines] wb
         ON e.[usetype] = wb.[usetype]
     INNER JOIN (
@@ -550,7 +550,7 @@ wuibybuildingtype_query = """
         AVG(TRY_CAST(e.wui AS FLOAT)) AS averagewui,
         COUNT(e.usetype) AS numproperties,
         SUM(TRY_CAST(e.numbuildings AS INT)) AS numberofbuildingswithuse
-    FROM dbo.ESPMFIRSTTEST e
+    FROM dbo.PrimaryDataBase e
     WHERE TRY_CAST(e.datayear AS INT) = 2025
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
@@ -613,7 +613,7 @@ solarquery="""
 SELECT
     TRY_CONVERT(INT, e.datayear) AS datayear,
     SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
-FROM ESPMFIRSTTEST e
+FROM PrimaryDataBase e
 INNER JOIN (
     SELECT
         espmid,
@@ -694,7 +694,7 @@ base_data AS (
         TRY_CAST(e.onSiteRenewableSystemGeneration AS DECIMAL(18,4)) AS onsite_solar_kwh,
         TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) AS natural_gas,
         TRY_CAST(e.sqfootage AS DECIMAL(18,4)) AS sqfootage
-    FROM dbo.ESPMFIRSTTEST e
+    FROM dbo.PrimaryDataBase e
     INNER JOIN (
         SELECT
             TRY_CAST([espmid] AS BIGINT) AS espmid,
@@ -918,6 +918,7 @@ st.plotly_chart(fig_ghg, width="content")
 #     st.metric(" Total kWh Saved", f"{total_kwh_saved:,}")
 # with col2:
 #     st.metric("?? Total Lightbulbs Saved", f"{total_lightbulbs_saved:,.0f}")
+
 
 
 

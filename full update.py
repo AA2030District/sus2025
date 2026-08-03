@@ -156,7 +156,7 @@ try:
 
     # Define the CREATE TABLE SQL query
     create_table_query = """
-    CREATE TABLE ESPMFIRSTTEST (
+    CREATE TABLE PrimaryDataBase (
         espmid INT PRIMARY KEY,
         buildingname NVARCHAR(100),
         sqfootage NVARCHAR(100),
@@ -181,8 +181,8 @@ try:
             
             # Add new columns if they don't exist (for existing tables)
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD occupancy NVARCHAR(100)")
-                print("Added 'occupancy' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD occupancy NVARCHAR(100)")
+                print("Added 'occupancy' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -191,8 +191,8 @@ try:
                     print(f"Warning: Could not add 'occupancy' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD numbuildings NVARCHAR(100)")
-                print("Added 'numbuildings' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD numbuildings NVARCHAR(100)")
+                print("Added 'numbuildings' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -201,8 +201,8 @@ try:
                     print(f"Warning: Could not add 'numbuildings' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD usetype NVARCHAR(100)")
-                print("Added 'usetype' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD usetype NVARCHAR(100)")
+                print("Added 'usetype' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -211,8 +211,8 @@ try:
                     print(f"Warning: Could not add 'usetype' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD yearbuilt NVARCHAR(100)")
-                print("Added 'yearbuilt' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD yearbuilt NVARCHAR(100)")
+                print("Added 'yearbuilt' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -254,7 +254,7 @@ try:
             
             # Use merge to insert only new ID
             merge_query = """
-                MERGE ESPMFIRSTTEST AS target
+                MERGE PrimaryDataBase AS target
                 USING #TempESPMIDs AS source
                 ON target.espmid = source.espmid
                 WHEN NOT MATCHED THEN
@@ -287,7 +287,7 @@ try:
             try:
                 # Try using INSERT with error handling - batch in chunks for better performance
                 batch_size = 1000  # Process in batches to avoid memory issues
-                insert_query = "INSERT INTO ESPMFIRSTTEST (espmid) VALUES (?)"
+                insert_query = "INSERT INTO PrimaryDataBase (espmid) VALUES (?)"
                 
                 total_inserted = 0
                 for i in range(0, len(idlist_int), batch_size):
@@ -387,7 +387,7 @@ try:
             
             # Use MERGE to update only where values differ
             merge_query = """
-                MERGE ESPMFIRSTTEST AS target
+                MERGE PrimaryDataBase AS target
                 USING #TempPropertyData AS source
                 ON target.espmid = source.espmid
                 WHEN MATCHED AND (
@@ -422,7 +422,7 @@ try:
             # Drop temp table
             cursor.execute("DROP TABLE #TempPropertyData")
             
-            print(f"Successfully updated {rows_affected} rows in ESPMFIRSTTEST table.")
+            print(f"Successfully updated {rows_affected} rows in PrimaryDataBase table.")
             
         except pyodbc.Error as e:
             # Ensure temp table is cleaned up
@@ -1632,3 +1632,4 @@ finally:
     if connection:
         connection.close()
     print("Connection closed.")
+

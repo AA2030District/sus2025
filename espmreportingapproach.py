@@ -1,4 +1,4 @@
-import pyodbc
+﻿import pyodbc
 import random
 import datetime
 import pandas as pd
@@ -250,11 +250,11 @@ def generatereport(espmidlist):
 def errordbhandling():
     espmyearsort="""
     CREATE INDEX ix_espmid_datayear
-    ON ESPMFIRSTTEST (espmid, datayear DESC);
+    ON PrimaryDataBase (espmid, datayear DESC);
     """
     try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD has_issue bit")
-                print("Added 'has_issue' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD has_issue bit")
+                print("Added 'has_issue' column to PrimaryDataBase table.")
                 connection.commit()
     except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -262,10 +262,10 @@ def errordbhandling():
                 else:
                     print(f"Warning: Could not add 'has_issue' column: {e}")
     try:
-        cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 0")
-        cursor.execute("UPDATE ESPMFIRSTTEST SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
+        cursor.execute("UPDATE PrimaryDataBase SET has_issue = 0")
+        cursor.execute("UPDATE PrimaryDataBase SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
         connection.commit()
-        cursor.execute("CREATE INDEX ix_espm_issue ON ESPMFIRSTTEST (espmid, datayear DESC) WHERE has_issue = 1 WITH (DROP_EXISTING = ON);")
+        cursor.execute("CREATE INDEX ix_espm_issue ON PrimaryDataBase (espmid, datayear DESC) WHERE has_issue = 1 WITH (DROP_EXISTING = ON);")
         connection.commit()
     except pyodbc.Error as e:
         print(e)
@@ -281,7 +281,7 @@ try:
 
     # Define the CREATE TABLE SQL query
     create_table_query = """
-    CREATE TABLE ESPMFIRSTTEST (
+    CREATE TABLE PrimaryDataBase (
         espmid INT NOT NULL,
         buildingname NVARCHAR(100),
         sqfootage INT,
@@ -311,7 +311,7 @@ try:
         energylessthan12months NVARCHAR(100),
         waterlessthan12months NVARCHAR(100),
         pmparentid INT,
-        CONSTRAINT PK_ESPMFIRSTTEST PRIMARY KEY (espmid, datayear)
+        CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear)
     )
     """ 
     # Execute the query
@@ -327,8 +327,8 @@ try:
             
             # Add new columns if they don't exist (for existing tables)
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD occupancy NVARCHAR(100)")
-                print("Added 'occupancy' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD occupancy NVARCHAR(100)")
+                print("Added 'occupancy' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -337,8 +337,8 @@ try:
                     print(f"Warning: Could not add 'occupancy' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD numbuildings NVARCHAR(100)")
-                print("Added 'numbuildings' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD numbuildings NVARCHAR(100)")
+                print("Added 'numbuildings' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -347,8 +347,8 @@ try:
                     print(f"Warning: Could not add 'numbuildings' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD usetype NVARCHAR(100)")
-                print("Added 'usetype' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD usetype NVARCHAR(100)")
+                print("Added 'usetype' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -357,8 +357,8 @@ try:
                     print(f"Warning: Could not add 'usetype' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD datayear NVARCHAR(100)")
-                print("Added 'datayear' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD datayear NVARCHAR(100)")
+                print("Added 'datayear' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -368,7 +368,7 @@ try:
 
             try:
                 cursor.execute("""
-                UPDATE ESPMFIRSTTEST
+                UPDATE PrimaryDataBase
                 SET datayear = 'UNKNOWN'
                 WHERE datayear IS NULL;
                 """)
@@ -382,22 +382,22 @@ try:
                 SELECT @pk_name = kc.name
                 FROM sys.key_constraints kc
                 JOIN sys.tables t ON kc.parent_object_id = t.object_id
-                WHERE kc.[type] = 'PK' AND t.name = 'ESPMFIRSTTEST';
+                WHERE kc.[type] = 'PK' AND t.name = 'PrimaryDataBase';
 
                 IF @pk_name IS NOT NULL
-                    EXEC('ALTER TABLE ESPMFIRSTTEST DROP CONSTRAINT [' + @pk_name + ']');
+                    EXEC('ALTER TABLE PrimaryDataBase DROP CONSTRAINT [' + @pk_name + ']');
 
-                ALTER TABLE ESPMFIRSTTEST ALTER COLUMN datayear NVARCHAR(100) NOT NULL;
-                ALTER TABLE ESPMFIRSTTEST ADD CONSTRAINT PK_ESPMFIRSTTEST PRIMARY KEY (espmid, datayear);
+                ALTER TABLE PrimaryDataBase ALTER COLUMN datayear NVARCHAR(100) NOT NULL;
+                ALTER TABLE PrimaryDataBase ADD CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear);
                 """)
                 connection.commit()
-                print("Updated primary key to (espmid, datayear) on ESPMFIRSTTEST.")
+                print("Updated primary key to (espmid, datayear) on PrimaryDataBase.")
             except pyodbc.Error as e:
-                print(f"Warning: Could not update primary key on ESPMFIRSTTEST: {e}")
+                print(f"Warning: Could not update primary key on PrimaryDataBase: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD yearbuilt NVARCHAR(100)")
-                print("Added 'yearbuilt' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD yearbuilt NVARCHAR(100)")
+                print("Added 'yearbuilt' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -406,8 +406,8 @@ try:
                     print(f"Warning: Could not add 'yearbuilt' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD yearcreatedinespm INT")
-                print("Added 'yearcreatedinespm' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD yearcreatedinespm INT")
+                print("Added 'yearcreatedinespm' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -416,8 +416,8 @@ try:
                     print(f"Warning: Could not add 'yearcreatedinespm' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD siteeui FLOAT")
-                print("Added 'siteeui' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD siteeui FLOAT")
+                print("Added 'siteeui' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -426,8 +426,8 @@ try:
                     print(f"Warning: Could not add 'siteeui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui FLOAT")
-                print("Added 'weathernormalizedsiteeui' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD weathernormalizedsiteeui FLOAT")
+                print("Added 'weathernormalizedsiteeui' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -436,8 +436,8 @@ try:
                     print(f"Warning: Could not add 'weathernormalizedsiteeui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energystarscore INT")
-                print("Added 'energystarscore' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energystarscore INT")
+                print("Added 'energystarscore' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -446,8 +446,8 @@ try:
                     print(f"Warning: Could not add 'energystarscore' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD wui NVARCHAR(100)")
-                print("Added 'wui' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD wui NVARCHAR(100)")
+                print("Added 'wui' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -456,8 +456,8 @@ try:
                     print(f"Warning: Could not add 'wui' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycost FLOAT")
-                print("Added 'energycost' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycost FLOAT")
+                print("Added 'energycost' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -466,8 +466,8 @@ try:
                     print(f"Warning: Could not add 'energycost' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostintensity FLOAT")
-                print("Added 'energycostintensity' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostintensity FLOAT")
+                print("Added 'energycostintensity' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -476,8 +476,8 @@ try:
                     print(f"Warning: Could not add 'energycostintensity' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostelectricitygridpurchase FLOAT")
-                print("Added 'energycostelectricitygridpurchase' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostelectricitygridpurchase FLOAT")
+                print("Added 'energycostelectricitygridpurchase' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -486,8 +486,8 @@ try:
                     print(f"Warning: Could not add 'energycostelectricitygridpurchase' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energycostnaturalgas FLOAT")
-                print("Added 'energycostnaturalgas' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostnaturalgas FLOAT")
+                print("Added 'energycostnaturalgas' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -505,17 +505,17 @@ try:
             ]:
                 try:
                     cursor.execute(f"""
-                    IF COL_LENGTH('ESPMFIRSTTEST', '{column_name}') IS NULL
-                        ALTER TABLE ESPMFIRSTTEST ADD {column_name} FLOAT NULL;
+                    IF COL_LENGTH('PrimaryDataBase', '{column_name}') IS NULL
+                        ALTER TABLE PrimaryDataBase ADD {column_name} FLOAT NULL;
                     """)
-                    print(f"Ensured '{column_name}' column exists as FLOAT on ESPMFIRSTTEST table.")
+                    print(f"Ensured '{column_name}' column exists as FLOAT on PrimaryDataBase table.")
                     connection.commit()
                 except pyodbc.Error as e:
                     print(f"Warning: Could not ensure '{column_name}' FLOAT column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD hasenergygaps NVARCHAR(100)")
-                print("Added 'hasenergygaps' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD hasenergygaps NVARCHAR(100)")
+                print("Added 'hasenergygaps' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -524,8 +524,8 @@ try:
                     print(f"Warning: Could not add 'hasenergygaps' column: {e}")
             
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD haswatergaps NVARCHAR(100)")
-                print("Added 'haswatergaps' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD haswatergaps NVARCHAR(100)")
+                print("Added 'haswatergaps' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -534,8 +534,8 @@ try:
                     print(f"Warning: Could not add 'haswatergaps' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD energylessthan12months NVARCHAR(100)")
-                print("Added 'energylessthan12months' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energylessthan12months NVARCHAR(100)")
+                print("Added 'energylessthan12months' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -544,8 +544,8 @@ try:
                     print(f"Warning: Could not add 'energylessthan12months' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE ESPMFIRSTTEST ADD waterlessthan12months NVARCHAR(100)")
-                print("Added 'waterlessthan12months' column to ESPMFIRSTTEST table.")
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD waterlessthan12months NVARCHAR(100)")
+                print("Added 'waterlessthan12months' column to PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
@@ -555,182 +555,182 @@ try:
             
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'sqfootage') IS NULL
+                IF COL_LENGTH('PrimaryDataBase', 'sqfootage') IS NULL
                 BEGIN
-                    ALTER TABLE ESPMFIRSTTEST ADD sqfootage INT NULL;
+                    ALTER TABLE PrimaryDataBase ADD sqfootage INT NULL;
                 END
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'sqfootage'
                       AND t.name <> 'int'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET sqfootage = NULL
                     WHERE sqfootage IS NOT NULL
                       AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', ''))) IS NULL;
 
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET sqfootage = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', '')))
                     WHERE sqfootage IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN sqfootage INT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN sqfootage INT NULL;
                 END
                 """)
-                print("Ensured 'sqfootage' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'sqfootage' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'sqfootage' INT column: {e}")
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'siteeui') IS NULL
+                IF COL_LENGTH('PrimaryDataBase', 'siteeui') IS NULL
                 BEGIN
-                    ALTER TABLE ESPMFIRSTTEST ADD siteeui FLOAT NULL;
+                    ALTER TABLE PrimaryDataBase ADD siteeui FLOAT NULL;
                 END
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'siteeui'
                       AND t.name <> 'float'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET siteeui = NULL
                     WHERE siteeui IS NOT NULL
                       AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
 
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET siteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
                     WHERE siteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN siteeui FLOAT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN siteeui FLOAT NULL;
                 END
                 """)
-                print("Ensured 'siteeui' column exists as FLOAT on ESPMFIRSTTEST table.")
+                print("Ensured 'siteeui' column exists as FLOAT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'siteeui' FLOAT column: {e}")
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'weathernormalizedsiteeui') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD weathernormalizedsiteeui FLOAT NULL;
+                IF COL_LENGTH('PrimaryDataBase', 'weathernormalizedsiteeui') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD weathernormalizedsiteeui FLOAT NULL;
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'weathernormalizedsiteeui'
                       AND t.name <> 'float'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET weathernormalizedsiteeui = NULL
                     WHERE weathernormalizedsiteeui IS NOT NULL
                       AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
 
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET weathernormalizedsiteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
                     WHERE weathernormalizedsiteeui IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN weathernormalizedsiteeui FLOAT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN weathernormalizedsiteeui FLOAT NULL;
                 END
                 """)
-                print("Ensured 'weathernormalizedsiteeui' column exists as FLOAT on ESPMFIRSTTEST table.")
+                print("Ensured 'weathernormalizedsiteeui' column exists as FLOAT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'weathernormalizedsiteeui' FLOAT column: {e}")
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'energystarscore') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD energystarscore INT NULL;
+                IF COL_LENGTH('PrimaryDataBase', 'energystarscore') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD energystarscore INT NULL;
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'energystarscore'
                       AND t.name <> 'int'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET energystarscore = NULL
                     WHERE energystarscore IS NOT NULL
                       AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', ''))) IS NULL;
 
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET energystarscore = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', '')))
                     WHERE energystarscore IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN energystarscore INT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN energystarscore INT NULL;
                 END
                 """)
-                print("Ensured 'energystarscore' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'energystarscore' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'energystarscore' INT column: {e}")
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'yearcreatedinespm') IS NULL
-                    ALTER TABLE ESPMFIRSTTEST ADD yearcreatedinespm INT NULL;
+                IF COL_LENGTH('PrimaryDataBase', 'yearcreatedinespm') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD yearcreatedinespm INT NULL;
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'yearcreatedinespm'
                       AND t.name <> 'int'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET yearcreatedinespm = NULL
                     WHERE yearcreatedinespm IS NOT NULL
                       AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(yearcreatedinespm, ',', ''))) IS NULL;
 
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET yearcreatedinespm = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(yearcreatedinespm, ',', '')))
                     WHERE yearcreatedinespm IS NOT NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN yearcreatedinespm INT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN yearcreatedinespm INT NULL;
                 END
                 """)
-                print("Ensured 'yearcreatedinespm' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'yearcreatedinespm' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'yearcreatedinespm' INT column: {e}")
 
             try:
                 cursor.execute("""
-                IF COL_LENGTH('ESPMFIRSTTEST', 'pmparentid') IS NULL
+                IF COL_LENGTH('PrimaryDataBase', 'pmparentid') IS NULL
                 BEGIN
-                    ALTER TABLE ESPMFIRSTTEST ADD pmparentid INT NULL;
+                    ALTER TABLE PrimaryDataBase ADD pmparentid INT NULL;
                 END
                 ELSE IF EXISTS (
                     SELECT 1
                     FROM sys.columns c
                     JOIN sys.types t ON c.user_type_id = t.user_type_id
-                    WHERE c.object_id = OBJECT_ID('ESPMFIRSTTEST')
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
                       AND c.name = 'pmparentid'
                       AND t.name <> 'int'
                 )
                 BEGIN
-                    UPDATE ESPMFIRSTTEST
+                    UPDATE PrimaryDataBase
                     SET pmparentid = NULL
                     WHERE pmparentid IS NOT NULL
                       AND TRY_CONVERT(INT, pmparentid) IS NULL;
 
-                    ALTER TABLE ESPMFIRSTTEST ALTER COLUMN pmparentid INT NULL;
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN pmparentid INT NULL;
                 END
                 """)
-                print("Ensured 'pmparentid' column exists as INT on ESPMFIRSTTEST table.")
+                print("Ensured 'pmparentid' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
             except pyodbc.Error as e:
                 print(f"Warning: Could not ensure 'pmparentid' INT column: {e}")
@@ -745,19 +745,19 @@ try:
     for entry in dict_data['response']['links']['link']:
         idlist.append(entry['@id'])
     placeholders = ",".join("?" for _ in idlist)
-    query = f"DELETE FROM ESPMFIRSTTEST WHERE espmid NOT IN ({placeholders})"
+    query = f"DELETE FROM PrimaryDataBase WHERE espmid NOT IN ({placeholders})"
     cursor.execute(query, *idlist)
     connection.commit()
     #these are causing problems and we don't have access to them for some reason they still show up
     
     batch_size = 350  # safe under the 2,000,000 limit
 
-    # Create temp table with same schema as ESPMFIRSTTEST for session-scoped processing
+    # Create temp table with same schema as PrimaryDataBase for session-scoped processing
     create_temp_table_query = """
-    IF OBJECT_ID('tempdb..#ESPMFIRSTTESTTEMP') IS NOT NULL
-        DROP TABLE #ESPMFIRSTTESTTEMP;
+    IF OBJECT_ID('tempdb..#PrimaryDataBaseTEMP') IS NOT NULL
+        DROP TABLE #PrimaryDataBaseTEMP;
 
-    CREATE TABLE #ESPMFIRSTTESTTEMP (
+    CREATE TABLE #PrimaryDataBaseTEMP (
         espmid INT NOT NULL,
         buildingname NVARCHAR(100),
         sqfootage INT,
@@ -787,11 +787,11 @@ try:
         energylessthan12months NVARCHAR(100),
         waterlessthan12months NVARCHAR(100),
         pmparentid INT,
-        CONSTRAINT PK_ESPMFIRSTTESTTEMP PRIMARY KEY (espmid, datayear)
+        CONSTRAINT PK_PrimaryDataBaseTEMP PRIMARY KEY (espmid, datayear)
     )
     """
     cursor.execute(create_temp_table_query)
-    print("Temp table '#ESPMFIRSTTESTTEMP' created successfully.")
+    print("Temp table '#PrimaryDataBaseTEMP' created successfully.")
     report_output = generatereport(idlist)
 
     ##create a list of tuples of all building data
@@ -897,15 +897,15 @@ try:
                 onsiterenewablesystemgeneration = safe_to_decimal(metric_value)
         buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,yearcreatedinespm,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,siteenergyuseelectricitygridpurchasekwh,siteenergyusenaturalgas,totalmarketbasedghgemissions,greenpoweroffsite,onsiterenewablesystemelectricityexported,onsiterenewablesystemgeneration,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
     temp_insert_query = """
-                INSERT INTO #ESPMFIRSTTESTTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                INSERT INTO #PrimaryDataBaseTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
     cursor.executemany(temp_insert_query, buildingdatalist)
     merge_query = """
-                MERGE ESPMFIRSTTEST AS target
-                USING #ESPMFIRSTTESTTEMP AS source
+                MERGE PrimaryDataBase AS target
+                USING #PrimaryDataBaseTEMP AS source
                 ON target.espmid = source.espmid
                    AND target.datayear = source.datayear
                 WHEN MATCHED AND (
@@ -972,8 +972,8 @@ try:
     if buildingdatalist:
         cursor.execute(merge_query)
         connection.commit()
-        print("MERGE committed to ESPMFIRSTTEST.")
-        cursor.execute("DROP TABLE #ESPMFIRSTTESTTEMP")
+        print("MERGE committed to PrimaryDataBase.")
+        cursor.execute("DROP TABLE #PrimaryDataBaseTEMP")
         errordbhandling()
 
 
@@ -990,3 +990,4 @@ finally:
     if connection:
         connection.close()
     print("Connection closed.")
+

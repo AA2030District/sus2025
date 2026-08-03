@@ -23,7 +23,7 @@ SELECT
     TRY_CAST(e.sqfootage AS DECIMAL(10,2)) AS total_sqft,
     TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui,
     CAST(p.portfolio AS NVARCHAR(255)) AS portfolio_name
-FROM espmfirsttest e
+FROM PrimaryDataBase e
 INNER JOIN portfolios p
     ON e.espmid = p.espmid
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
@@ -312,3 +312,4 @@ fig_building_eui.update_layout(
     xaxis=dict(type='category', categoryorder='array', categoryarray=x_order)
 )
 st.plotly_chart(fig_building_eui, use_container_width=True)
+
