@@ -24,7 +24,6 @@ require_login()
                                                         ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
 conn = get_connection()
-st.write(conn)
 
 summary_query = """
 WITH latest_year AS (
@@ -160,7 +159,7 @@ buildings_df["buildings"] = (
     .round()
     .astype(int)
 )
-buildings_df['buildings'] = buildings_df['buildings'] + 3
+buildings_df['buildings'] = buildings_df['buildings']
 fig = px.bar(
     buildings_df,
     x='year',
