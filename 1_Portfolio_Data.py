@@ -24,7 +24,7 @@ require_login()
                                                         ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
 conn = get_connection()
-print(conn)
+st.write(conn)
 
 summary_query = """
 WITH latest_year AS (
