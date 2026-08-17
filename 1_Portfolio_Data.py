@@ -43,6 +43,7 @@ WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND ISNULL(e.[donotinclude], 0) <> 1
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
+print(summary_df)
 
 energy_ok_buildings_query = """
 WITH property_rollup AS (
@@ -201,9 +202,6 @@ fig.update_xaxes(
 # fig.update_xaxes(tickvals=[2018, 2019, 2021, 2022, 2023, 2024, 2025])
 st.plotly_chart(fig, width="content")
 
-
-
-buildings_df['total_sqft'] = buildings_df['total_sqft'] + 661000
 fig = px.bar(
     buildings_df,
     x='year',
