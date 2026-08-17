@@ -24,6 +24,7 @@ require_login()
                                                         ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
 conn = get_connection()
+print(conn)
 
 summary_query = """
 WITH latest_year AS (
@@ -43,7 +44,7 @@ WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND ISNULL(e.[donotinclude], 0) <> 1
 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
 summary_df = conn.query(summary_query)
-print(summary_df)
+
 
 energy_ok_buildings_query = """
 WITH property_rollup AS (
