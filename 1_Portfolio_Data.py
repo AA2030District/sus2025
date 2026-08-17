@@ -188,7 +188,9 @@ site_eui_first_slot = st.empty()
 
 # Building counts by year from DB:
 # include a property's building count when report_year >= year joined
-buildings_by_year_query = """
+def buildings_by_year_query_builder(tenant):
+    if tenant == "washtenaw":
+        buildings_by_year_query = f"""
 WITH years AS (
     SELECT 2018 AS report_year UNION ALL
     SELECT 2019 UNION ALL
@@ -197,7 +199,7 @@ WITH years AS (
     SELECT 2022 UNION ALL
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
-    SELECT 2025 
+    SELECT {most_recent_full_calendar_year}
 ),
 property_rollup AS (
     SELECT
@@ -210,7 +212,7 @@ property_rollup AS (
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND datayear<2026
+      AND TRY_CAST(d.datayear AS INT) < {most_recent_full_calendar_year + 1}
     GROUP BY d.espmid
 )
 SELECT
@@ -223,7 +225,44 @@ LEFT JOIN property_rollup pr
 GROUP BY y.report_year
 ORDER BY y.report_year
 """
-buildings_df = conn.query(buildings_by_year_query)
+        return buildings_by_year_query
+    else:
+        buildings_by_year_query = f"""
+WITH years AS (
+    SELECT 2018 AS report_year UNION ALL
+    SELECT 2019 UNION ALL
+    SELECT 2020 UNION ALL
+    SELECT 2021 UNION ALL
+    SELECT 2022 UNION ALL
+    SELECT 2023 UNION ALL
+    SELECT 2024 UNION ALL
+    SELECT {most_recent_full_calendar_year}
+),
+property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(d.[yearcreatedinespm] AS INT)) AS year_joined,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS numbuildings,
+        MAX(TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))) AS sqfootage
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND TRY_CAST(d.datayear AS INT) < {most_recent_full_calendar_year + 1}
+    GROUP BY d.espmid
+)
+SELECT
+    y.report_year AS [year],
+    COALESCE(SUM(pr.numbuildings), 0) AS buildings,
+    COALESCE(SUM(pr.sqfootage), 0) AS total_sqft
+FROM years y
+LEFT JOIN property_rollup pr
+    ON pr.year_joined <= y.report_year
+GROUP BY y.report_year
+ORDER BY y.report_year
+"""
+        return buildings_by_year_query
+
+buildings_df = conn.query(buildings_by_year_query_builder(tenant))
 buildings_df["year"] = buildings_df["year"].astype(str)
 buildings_df["buildings"] = (
     pd.to_numeric(buildings_df["buildings"], errors="coerce")
