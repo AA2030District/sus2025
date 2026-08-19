@@ -13,6 +13,9 @@ from datetime import datetime
 from xml.parsers.expat import ExpatError
 import streamlit.components.v1 as components
 
+###Todo - add the option to rerun a report using ONLY the buildings in the table and take it off the error list if so, real time updating error list.
+
+
 espm_creds = get_tenant_secret("espm")
 user = espm_creds["username"]
 pw = espm_creds["password"]
@@ -348,12 +351,12 @@ portfolio_options = ["All Portfolios"] + sorted(
     buildings_df["portfolio_name"].dropna().astype(str).unique().tolist()
 )
 
-select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 if "selected_row_index" not in st.session_state:
     st.session_state.selected_row_index = None
 if "last_table_selected_row" not in st.session_state:
     st.session_state.last_table_selected_row = None
 selected_portfolio = st.selectbox("Select Portfolio", portfolio_options)
+select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 if st.session_state.get("errorfinder_last_portfolio") != selected_portfolio:
     st.session_state.selected_row_index = None
     st.session_state.last_table_selected_row = None
