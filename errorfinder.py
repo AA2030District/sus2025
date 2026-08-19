@@ -312,23 +312,27 @@ def findgaps(selection):
 buildings_query = """
     ;WITH ranked AS (
     SELECT
-        espmid,
-        buildingname,
-        datayear,
-        hasenergygaps,
-        haswatergaps,
-        energylessthan12months,
-        waterlessthan12months,
+        e.espmid,
+        e.buildingname,
+        COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
+        e.datayear,
+        e.hasenergygaps,
+        e.haswatergaps,
+        e.energylessthan12months,
+        e.waterlessthan12months,
         ROW_NUMBER() OVER (
-            PARTITION BY espmid
-            ORDER BY datayear DESC
+            PARTITION BY e.espmid
+            ORDER BY e.datayear DESC
         ) AS rn
-    FROM PrimaryDataBase
-    WHERE has_issue = 1
+    FROM PrimaryDataBase e
+    LEFT JOIN portfolios p
+        ON e.espmid = p.espmid
+    WHERE e.has_issue = 1
 )
 SELECT
     espmid,
     buildingname,
+    portfolio_name,
     datayear,
     hasenergygaps,
     haswatergaps,
@@ -340,71 +344,94 @@ ORDER BY espmid;
 """
 
 buildings_df = conn.query(buildings_query)
-column_configuration = {
-    col: st.column_config.Column(col)
-    for col in buildings_df.columns
-}
+portfolio_options = ["All Portfolios"] + sorted(
+    buildings_df["portfolio_name"].dropna().astype(str).unique().tolist()
+)
+
 select, errors = st.tabs(["Select Buildings", "Identify Errors"])
 if "selected_row_index" not in st.session_state:
     st.session_state.selected_row_index = None
 if "last_table_selected_row" not in st.session_state:
     st.session_state.last_table_selected_row = None
+selected_portfolio = st.selectbox("Select Portfolio", portfolio_options)
+if st.session_state.get("errorfinder_last_portfolio") != selected_portfolio:
+    st.session_state.selected_row_index = None
+    st.session_state.last_table_selected_row = None
+    st.session_state.errorfinder_last_portfolio = selected_portfolio
+
+df = buildings_df.copy()
+if selected_portfolio != "All Portfolios":
+    df = df[df["portfolio_name"].astype(str) == selected_portfolio].reset_index(drop=True)
+else:
+    df = df.reset_index(drop=True)
+
+replace_text = "Not Checked (See Possible Issues)"
+df = df.replace(replace_text, "No Meters in Property Metrics")
+column_configuration = {
+    col: st.column_config.Column(col)
+    for col in df.columns
+}
+column_configuration["portfolio_name"] = st.column_config.TextColumn("Portfolio")
+
 with select: # Add select tab #############################################
-    st.header("All Buildings With Errors")
-
-    df = buildings_df
-    replace_text = "Not Checked (See Possible Issues)"
-    df = df.replace(replace_text, "No Meters in Property Metrics")
-
-
-    event = st.dataframe(
-        df,
-        use_container_width=True,
-        column_config=column_configuration,
-        hide_index=True,
-        on_select="rerun",
-        selection_mode="single-row",
-    )
-
-    building = event.selection.rows
-    if building:
-        table_selected_row = building[0]
-        if st.session_state.last_table_selected_row != table_selected_row:
-            st.session_state.selected_row_index = table_selected_row
-            st.session_state.last_table_selected_row = table_selected_row
-with errors:
-    selected_row_index = st.session_state.get("selected_row_index")
-    if selected_row_index is not None and 0 <= selected_row_index < len(df):
-        selected_row_index = st.session_state.selected_row_index
-        filtered_df = df.iloc[[selected_row_index]]
-        st.caption(
-            f"Selected: {filtered_df['buildingname'].iloc[0]} "
-            f"({selected_row_index + 1}/{len(df)})"
-        )
-        errordicts = findgaps(filtered_df)
-        energy_df = _build_meter_df(errordicts.get("energy", {}))
-        water_df = _build_meter_df(errordicts.get("water", {}))
-
-        if not energy_df.empty:
-            st.subheader("Energy Meter Errors")
-            st.markdown(energy_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-        if not water_df.empty:
-            st.subheader("Water Meter Errors")
-            st.markdown(water_df.to_html(escape=False, index=False), unsafe_allow_html=True)
-
-        if energy_df.empty and water_df.empty:
-            st.write("No errors returned for this building.")
-
-        _, col_prev, col_next = st.columns([6, 1, 1])
-        with col_prev:
-            if st.button("Previous Building"):
-                st.session_state.selected_row_index = (selected_row_index - 1) % len(df)
-                st.rerun()
-        with col_next:
-            if st.button("Next Building"):
-                st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
-                st.rerun()
+    if selected_portfolio == "All Portfolios":
+        st.header("All Buildings With Errors")
     else:
-        st.write("No Building Selected")
+        st.header(f"Buildings With Errors: {selected_portfolio}")
 
+    if df.empty:
+        st.info("No buildings with errors found for the selected portfolio.")
+    else:
+        event = st.dataframe(
+            df,
+            use_container_width=True,
+            column_config=column_configuration,
+            hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
+        )
+
+        building = event.selection.rows
+        if building:
+            table_selected_row = building[0]
+            if st.session_state.last_table_selected_row != table_selected_row:
+                st.session_state.selected_row_index = table_selected_row
+                st.session_state.last_table_selected_row = table_selected_row
+with errors:
+    if df.empty:
+        st.write("No buildings available for the selected portfolio.")
+    else:
+        selected_row_index = st.session_state.get("selected_row_index")
+        if selected_row_index is not None and 0 <= selected_row_index < len(df):
+            selected_row_index = st.session_state.selected_row_index
+            filtered_df = df.iloc[[selected_row_index]]
+            st.caption(
+                f"Selected: {filtered_df['buildingname'].iloc[0]} "
+                f"({selected_row_index + 1}/{len(df)})"
+            )
+            errordicts = findgaps(filtered_df)
+            energy_df = _build_meter_df(errordicts.get("energy", {}))
+            water_df = _build_meter_df(errordicts.get("water", {}))
+
+            if not energy_df.empty:
+                st.subheader("Energy Meter Errors")
+                st.markdown(energy_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+            if not water_df.empty:
+                st.subheader("Water Meter Errors")
+                st.markdown(water_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
+            if energy_df.empty and water_df.empty:
+                st.write("No errors returned for this building.")
+
+            _, col_prev, col_next = st.columns([6, 1, 1])
+            with col_prev:
+                if st.button("Previous Building"):
+                    st.session_state.selected_row_index = (selected_row_index - 1) % len(df)
+                    st.rerun()
+            with col_next:
+                if st.button("Next Building"):
+                    st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
+                    st.rerun()
+        else:
+            st.write("No Building Selected")
