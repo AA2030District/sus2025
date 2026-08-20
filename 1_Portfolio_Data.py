@@ -26,6 +26,7 @@ require_login()
 st.title("Portfolio Data")
 conn = get_connection()
 tenant = get_current_tenant()
+print(tenant)
 most_recent_full_calendar_year = time.localtime().tm_year - 1
 
 def summary_query_builder(tenant):
