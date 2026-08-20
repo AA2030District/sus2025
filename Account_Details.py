@@ -1,5 +1,5 @@
 ﻿import streamlit as st
-from auth_helper import get_connection, require_login
+from auth_helper import get_connection, require_login, get_current_tenant
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
@@ -16,8 +16,10 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 </style>
 """, unsafe_allow_html=True)
 require_login()
+
 st.title("Washtenaw 2030 District Full Building Portfolio")
 
+tenant = get_current_tenant()
 conn = get_connection()
 
 # excluded espmid, 865 entries for total portfolio in
