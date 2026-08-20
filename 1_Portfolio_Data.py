@@ -355,22 +355,46 @@ st.plotly_chart(fig, width="content")
 
 
 
-# CHANGE THIS TO 2025
-current_query = """
-SELECT 
-    [usetype],
-    COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-    AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-    COUNT(DISTINCT [espmid]) as property_count
-FROM [dbo].[PrimaryDataBase]
-WHERE [datayear] = 2025
-AND ISNULL(pmparentid,espmid)=espmid 
-AND ISNULL([donotinclude], 0) <> 1
-GROUP BY [usetype]
-HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0
+def current_query_builder(tenant):
+    if tenant == "washtenaw":
+        return f"""
+SELECT
+    e.[usetype],
+    COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) AS total_sqft,
+    AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) AS avg_siteeui,
+    COUNT(DISTINCT e.[espmid]) AS property_count
+FROM [dbo].[PrimaryDataBase] e
+WHERE TRY_CONVERT(INT, e.[datayear]) = {most_recent_full_calendar_year}
+    AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND ISNULL(e.[donotinclude], 0) <> 1
+    AND EXISTS (
+        SELECT 1
+        FROM dbo.yearjoined y
+        WHERE y.espmid = e.espmid
+            AND TRY_CONVERT(INT, y.[year joined]) <= {most_recent_full_calendar_year}
+    )
+GROUP BY e.[usetype]
+HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
+"""
+    return f"""
+SELECT
+    e.[usetype],
+    COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) AS total_sqft,
+    AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) AS avg_siteeui,
+    COUNT(DISTINCT e.[espmid]) AS property_count
+FROM [dbo].[PrimaryDataBase] e
+WHERE TRY_CONVERT(INT, e.[datayear]) = {most_recent_full_calendar_year}
+    AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND ISNULL(e.[donotinclude], 0) <> 1
+    AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= {most_recent_full_calendar_year}
+GROUP BY e.[usetype]
+HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
 """
 
-pie_query ="""
+
+def pie_query_builder(tenant):
+    if tenant == "washtenaw":
+        return f"""
 WITH ranked AS (
     SELECT
         e.usetype,
@@ -379,19 +403,20 @@ WITH ranked AS (
         ROW_NUMBER() OVER (
             ORDER BY COUNT(DISTINCT e.espmid) DESC, e.usetype
         ) AS usetype_rank
-    FROM PrimaryDataBase e
+    FROM [dbo].[PrimaryDataBase] e
     WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-        AND TRY_CONVERT(INT, e.datayear) = 2025
+        AND TRY_CONVERT(INT, e.datayear) = {most_recent_full_calendar_year}
+        AND ISNULL(e.[donotinclude], 0) <> 1
         AND EXISTS (
             SELECT 1
             FROM dbo.yearjoined y
             WHERE y.espmid = e.espmid
-                AND TRY_CONVERT(INT, y.[year joined]) <= 2025
+                AND TRY_CONVERT(INT, y.[year joined]) <= {most_recent_full_calendar_year}
         )
     GROUP BY e.usetype
 )
 SELECT
-    2025 AS datayear,
+    {most_recent_full_calendar_year} AS datayear,
     CASE
         WHEN usetype_rank <= 10 THEN usetype
         ELSE 'Other'
@@ -411,6 +436,47 @@ ORDER BY
     END,
     SUM(building_count) DESC;
 """
+    return f"""
+WITH ranked AS (
+    SELECT
+        e.usetype,
+        COUNT(DISTINCT e.espmid) AS building_count,
+        SUM(TRY_CONVERT(INT, e.numbuildings)) AS building_sum,
+        ROW_NUMBER() OVER (
+            ORDER BY COUNT(DISTINCT e.espmid) DESC, e.usetype
+        ) AS usetype_rank
+    FROM [dbo].[PrimaryDataBase] e
+    WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+        AND TRY_CONVERT(INT, e.datayear) = {most_recent_full_calendar_year}
+        AND ISNULL(e.[donotinclude], 0) <> 1
+        AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= {most_recent_full_calendar_year}
+    GROUP BY e.usetype
+)
+SELECT
+    {most_recent_full_calendar_year} AS datayear,
+    CASE
+        WHEN usetype_rank <= 10 THEN usetype
+        ELSE 'Other'
+    END AS usetype,
+    SUM(building_count) AS building_count,
+    SUM(building_sum) AS building_sum
+FROM ranked
+GROUP BY
+    CASE
+        WHEN usetype_rank <= 10 THEN usetype
+        ELSE 'Other'
+    END
+ORDER BY
+    CASE WHEN
+        CASE WHEN usetype_rank <= 10 THEN usetype ELSE 'Other' END = 'Other'
+        THEN 1 ELSE 0
+    END,
+    SUM(building_count) DESC;
+"""
+
+
+current_query = current_query_builder(tenant)
+pie_query = pie_query_builder(tenant)
 pie_data=conn.query(pie_query)                                                                                     #PIE CHART
 
 fig_pie = px.pie(
