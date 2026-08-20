@@ -76,20 +76,39 @@ def energy_ok_buildings_query_builder(tenant):
 WITH property_rollup AS (
     SELECT
         d.espmid,
-        MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
+        MIN(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
     FROM [dbo].[PrimaryDataBase] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND TRY_CAST(d.datayear AS INT) = {most_recent_full_calendar_year}
-      AND TRY_CAST(yj.[year joined] AS INT) <= {most_recent_full_calendar_year}
     GROUP BY d.espmid
+),
+qualifying_properties AS (
+    SELECT
+        pr.espmid
+    FROM property_rollup pr
+    JOIN [dbo].[PrimaryDataBase] d
+        ON d.espmid = pr.espmid
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND pr.year_joined IS NOT NULL
+      AND pr.year_joined <= {most_recent_full_calendar_year}
+      AND TRY_CAST(d.[datayear] AS INT) BETWEEN pr.year_joined AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid, pr.year_joined
+    HAVING COUNT(DISTINCT TRY_CAST(d.[datayear] AS INT)) = {most_recent_full_calendar_year} - pr.year_joined + 1
+       AND COUNT(DISTINCT CASE
+            WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
+             AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
+            THEN TRY_CAST(d.[datayear] AS INT)
+        END) = {most_recent_full_calendar_year} - pr.year_joined + 1
 )
 SELECT
-    COALESCE(SUM(energy_ok_buildings), 0) AS energy_ok_buildings
-FROM property_rollup;
+    COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
+FROM property_rollup pr
+JOIN qualifying_properties qp
+    ON pr.espmid = qp.espmid;
 """
         return energy_ok_buildings_query
     else:
@@ -97,18 +116,37 @@ FROM property_rollup;
 WITH property_rollup AS (
     SELECT
         d.espmid,
-        MAX(TRY_CAST(d.[yearcreatedinespm] AS INT)) AS year_joined,
+        MIN(TRY_CAST(d.[yearcreatedinespm] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
     FROM [dbo].[PrimaryDataBase] d
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND TRY_CAST(d.datayear AS INT) = {most_recent_full_calendar_year}
-      AND TRY_CAST(d.[yearcreatedinespm] AS INT) <= {most_recent_full_calendar_year}
     GROUP BY d.espmid
+),
+qualifying_properties AS (
+    SELECT
+        pr.espmid
+    FROM property_rollup pr
+    JOIN [dbo].[PrimaryDataBase] d
+        ON d.espmid = pr.espmid
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND pr.year_joined IS NOT NULL
+      AND pr.year_joined <= {most_recent_full_calendar_year}
+      AND TRY_CAST(d.[datayear] AS INT) BETWEEN pr.year_joined AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid, pr.year_joined
+    HAVING COUNT(DISTINCT TRY_CAST(d.[datayear] AS INT)) = {most_recent_full_calendar_year} - pr.year_joined + 1
+       AND COUNT(DISTINCT CASE
+            WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
+             AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
+            THEN TRY_CAST(d.[datayear] AS INT)
+        END) = {most_recent_full_calendar_year} - pr.year_joined + 1
 )
 SELECT
-    COALESCE(SUM(energy_ok_buildings), 0) AS energy_ok_buildings
-FROM property_rollup;
+    COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
+FROM property_rollup pr
+JOIN qualifying_properties qp
+    ON pr.espmid = qp.espmid;
 """
         return energy_ok_buildings_query
 
