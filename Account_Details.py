@@ -16,11 +16,9 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 </style>
 """, unsafe_allow_html=True)
 require_login()
-
-st.title("Washtenaw 2030 District Full Building Portfolio")
-
 tenant = get_current_tenant()
 conn = get_connection()
+st.title("{tenant} 2030 District Full Building Portfolio")
 
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """
