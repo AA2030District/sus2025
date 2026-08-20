@@ -20,9 +20,9 @@ tenant = get_current_tenant()
 conn = get_connection()
 if tenant == "washtenaw":
     tenantname="Washtenaw"
-else if tenant == "migbc":
+elif tenant == "migbc":
     tenantname='Grand Rapids and Lansing'
-else if tenant =='detroit':
+elif tenant =='detroit':
     tenantname="Detroit"
 st.title(f"{tenantname} 2030 District Full Building Portfolio")
 
