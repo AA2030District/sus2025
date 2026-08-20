@@ -523,8 +523,10 @@ st.plotly_chart(fig_pie, width="stretch")
 
 
 
-yearly_query = """
-    SELECT 
+def yearly_query_builder(tenant):
+    if tenant == "washtenaw":
+        return f"""
+    SELECT
         TRY_CAST(e.[datayear] AS INT) as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
@@ -539,19 +541,55 @@ yearly_query = """
         GROUP BY TRY_CAST([espmid] AS BIGINT)
     ) b
         ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
-        AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
+    INNER JOIN (
+        SELECT
+            TRY_CONVERT(INT, [ESPMID]) AS espmid,
+            MIN(TRY_CONVERT(INT, [year joined])) AS yearjoined
+        FROM [dbo].[yearjoined]
+        GROUP BY TRY_CONVERT(INT, [ESPMID])
+    ) yj
+        ON TRY_CONVERT(INT, e.[espmid]) = yj.espmid
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+        AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
-        AND e.hasenergygaps = 'OK' 
-        AND e.energylessthan12months = 'OK' 
+        AND e.hasenergygaps = 'OK'
+        AND e.energylessthan12months = 'OK'
         AND e.weathernormalizedsiteeui IS NOT NULL
+        AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
+    GROUP BY TRY_CAST(e.[datayear] AS INT)
+    HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
+    ORDER BY datayear
+"""
+    return f"""
+    SELECT
+        TRY_CAST(e.[datayear] AS INT) as datayear,
+        COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
+        AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
+        AVG(b.zerotool_baseline) as baseline,
+        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+    FROM [dbo].[PrimaryDataBase] e
+    LEFT JOIN (
+        SELECT
+            TRY_CAST([espmid] AS BIGINT) AS espmid,
+            MAX(TRY_CAST([baseline] AS DECIMAL(10,2))) AS zerotool_baseline
+        FROM [dbo].[baselines]
+        GROUP BY TRY_CAST([espmid] AS BIGINT)
+    ) b
+        ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+        AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+        AND ISNULL(e.[donotinclude], 0) <> 1
+        AND e.hasenergygaps = 'OK'
+        AND e.energylessthan12months = 'OK'
+        AND e.weathernormalizedsiteeui IS NOT NULL
+        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
 
 
-df_yearly = conn.query(yearly_query)
+df_yearly = conn.query(yearly_query_builder(tenant))
 df_yearly = df_yearly.sort_values('datayear')
 for col in ['avg_siteeui', 'baseline', 'target']:
     df_yearly[col] = pd.to_numeric(df_yearly[col], errors='coerce')
@@ -629,8 +667,10 @@ st.download_button(
 )
                                         #WUI GRAPH
 ### query buildings with water gaps 
-wateryear_query = """
-    SELECT 
+def wateryear_query_builder(tenant):
+    if tenant == "washtenaw":
+        return f"""
+    SELECT
         TRY_CAST(e.[datayear] AS INT) as datayear,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
@@ -646,18 +686,40 @@ wateryear_query = """
         GROUP BY TRY_CONVERT(INT, [ESPMID])
     ) yj
         ON TRY_CONVERT(INT, e.[espmid]) = yj.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
-        AND ISNULL(e.pmparentid, e.espmid) = e.espmid 
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+        AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
-        AND e.haswatergaps = 'OK' 
+        AND e.haswatergaps = 'OK'
         AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
-        AND e.waterlessthan12months = 'OK' 
+        AND e.waterlessthan12months = 'OK'
         AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
-        AND yj.yearjoined >= TRY_CAST(e.[datayear] AS INT)
+        AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
     GROUP BY TRY_CAST(e.[datayear] AS INT)
     ORDER BY datayear
 """
-df_water = conn.query(wateryear_query)
+    return f"""
+    SELECT
+        TRY_CAST(e.[datayear] AS INT) as datayear,
+        AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+    FROM [dbo].[PrimaryDataBase] e
+    LEFT JOIN [dbo].[wuibaselines] wb
+        ON e.[usetype] = wb.[usetype]
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+        AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+        AND ISNULL(e.[donotinclude], 0) <> 1
+        AND e.haswatergaps = 'OK'
+        AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
+        AND e.waterlessthan12months = 'OK'
+        AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
+        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
+    GROUP BY TRY_CAST(e.[datayear] AS INT)
+    ORDER BY datayear
+"""
+
+
+df_water = conn.query(wateryear_query_builder(tenant))
 df_water = df_water.sort_values('datayear')
 df_water[['avg_wui', 'baseline', 'target']] = df_water[['avg_wui', 'baseline', 'target']].apply(
     pd.to_numeric,
@@ -719,24 +781,53 @@ fig_wui_bar.update_xaxes(
     title_font=dict(size=16, color="black", family=CHART_FONT)                  
 )
 st.plotly_chart(fig_wui_bar, width="content")
-wuibybuildingtype_query = """
+def wuibybuildingtype_query_builder(tenant):
+    if tenant == "washtenaw":
+        return f"""
     SELECT TOP 10
         e.usetype,
         AVG(TRY_CAST(e.wui AS FLOAT)) AS averagewui,
         COUNT(e.usetype) AS numproperties,
         SUM(TRY_CAST(e.numbuildings AS INT)) AS numberofbuildingswithuse
     FROM dbo.PrimaryDataBase e
-    WHERE TRY_CAST(e.datayear AS INT) = 2025
+    INNER JOIN (
+        SELECT
+            TRY_CONVERT(INT, [ESPMID]) AS espmid,
+            MIN(TRY_CONVERT(INT, [year joined])) AS yearjoined
+        FROM dbo.yearjoined
+        GROUP BY TRY_CONVERT(INT, [ESPMID])
+    ) yj
+        ON TRY_CONVERT(INT, e.espmid) = yj.espmid
+    WHERE TRY_CAST(e.datayear AS INT) = {most_recent_full_calendar_year}
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
       AND e.haswatergaps = 'OK'
       AND e.waterlessthan12months = 'OK'
       AND TRY_CAST(e.wui AS FLOAT) IS NOT NULL
+      AND TRY_CAST(e.datayear AS INT) >= yj.yearjoined
+    GROUP BY e.usetype
+    ORDER BY numberofbuildingswithuse DESC
+"""
+    return f"""
+    SELECT TOP 10
+        e.usetype,
+        AVG(TRY_CAST(e.wui AS FLOAT)) AS averagewui,
+        COUNT(e.usetype) AS numproperties,
+        SUM(TRY_CAST(e.numbuildings AS INT)) AS numberofbuildingswithuse
+    FROM dbo.PrimaryDataBase e
+    WHERE TRY_CAST(e.datayear AS INT) = {most_recent_full_calendar_year}
+      AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND ISNULL(e.[donotinclude], 0) <> 1
+      AND e.haswatergaps = 'OK'
+      AND e.waterlessthan12months = 'OK'
+      AND TRY_CAST(e.wui AS FLOAT) IS NOT NULL
+      AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= {most_recent_full_calendar_year}
     GROUP BY e.usetype
     ORDER BY numberofbuildingswithuse DESC
 """
 
-df_wui_by_type = conn.query(wuibybuildingtype_query)
+
+df_wui_by_type = conn.query(wuibybuildingtype_query_builder(tenant))
 df_wui_by_type['averagewui'] = pd.to_numeric(df_wui_by_type['averagewui'], errors='coerce')
 df_wui_by_type['numberofbuildingswithuse'] = pd.to_numeric(df_wui_by_type['numberofbuildingswithuse'], errors='coerce')
 df_wui_by_type = df_wui_by_type.sort_values('numberofbuildingswithuse', ascending=False)
@@ -784,27 +875,41 @@ fig_wui_by_type.update_xaxes(
 st.plotly_chart(fig_wui_by_type, width="content")
                         ###Solar graph
 
-solarquery="""
+def solar_query_builder(tenant):
+    if tenant == "washtenaw":
+        return """
 SELECT
     TRY_CONVERT(INT, e.datayear) AS datayear,
     SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
 FROM PrimaryDataBase e
 INNER JOIN (
     SELECT
-        espmid,
+        TRY_CONVERT(INT, espmid) AS espmid,
         MIN(TRY_CONVERT(INT, [year joined])) AS yearjoined
     FROM dbo.yearjoined
-    GROUP BY espmid
+    GROUP BY TRY_CONVERT(INT, espmid)
 ) y
-    ON e.espmid = y.espmid
+    ON TRY_CONVERT(INT, e.espmid) = y.espmid
 WHERE e.onSiteRenewableSystemGeneration IS NOT NULL
     AND ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND TRY_CONVERT(INT, e.datayear) >= y.yearjoined
 GROUP BY TRY_CONVERT(INT, e.datayear)
 ORDER BY TRY_CONVERT(INT, e.datayear);
 """
+    return """
+SELECT
+    TRY_CONVERT(INT, e.datayear) AS datayear,
+    SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
+FROM PrimaryDataBase e
+WHERE e.onSiteRenewableSystemGeneration IS NOT NULL
+    AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= TRY_CONVERT(INT, e.datayear)
+GROUP BY TRY_CONVERT(INT, e.datayear)
+ORDER BY TRY_CONVERT(INT, e.datayear);
+"""
 
-solar_df = conn.query(solarquery)
+
+solar_df = conn.query(solar_query_builder(tenant))
 solar_df = solar_df.sort_values('datayear')
 solar_df['renewablesum'] = pd.to_numeric(solar_df['renewablesum'], errors='coerce')
 solar_df['datayear'] = solar_df['datayear'].astype(str)
@@ -852,7 +957,9 @@ fig_solar.update_xaxes(
 )
 st.plotly_chart(fig_solar, width="content")
 
-ghg_query="""
+def ghg_query_builder(tenant):
+    if tenant == "washtenaw":
+        return """
 WITH emissions_factors AS (
     SELECT 2021 AS datayear, CAST(0.596 AS DECIMAL(10,6)) AS factor UNION ALL
     SELECT 2022, CAST(0.663 AS DECIMAL(10,6)) UNION ALL
@@ -948,8 +1055,95 @@ INNER JOIN emissions_factors ef
 GROUP BY b.datayear
 ORDER BY b.datayear;
 """
+    return """
+WITH emissions_factors AS (
+    SELECT 2021 AS datayear, CAST(0.596 AS DECIMAL(10,6)) AS factor UNION ALL
+    SELECT 2022, CAST(0.663 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2023, CAST(0.628 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2024, CAST(0.565 AS DECIMAL(10,6)) UNION ALL
+    SELECT 2025, CAST(0.506 AS DECIMAL(10,6))
+),
+base_data AS (
+    SELECT
+        TRY_CAST(e.datayear AS INT) AS datayear,
+        TRY_CAST(e.espmid AS BIGINT) AS espmid,
+        TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) AS electricity_kwh,
+        TRY_CAST(e.greenPowerOffSite AS DECIMAL(18,4)) AS green_power_offsite,
+        TRY_CAST(e.onSiteRenewableSystemGeneration AS DECIMAL(18,4)) AS onsite_solar_kwh,
+        TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) AS natural_gas,
+        TRY_CAST(e.sqfootage AS DECIMAL(18,4)) AS sqfootage
+    FROM dbo.PrimaryDataBase e
+    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+      AND ISNULL(e.pmparentid, e.espmid) = e.espmid
+      AND ISNULL(e.[donotinclude], 0) <> 1
+      AND e.hasenergygaps = 'OK'
+      AND e.energylessthan12months = 'OK'
+      AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
+      AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
+)
+SELECT
+    b.datayear,
+    COUNT(DISTINCT b.espmid) AS building_count,
+    SUM(b.electricity_kwh) AS total_grid_purchase_kwh,
+    SUM(b.natural_gas) AS total_natural_gas,
+    SUM(b.sqfootage) AS total_sqft,
 
-ghg_df=conn.query(ghg_query)
+    MAX(ef.factor) AS electricity_emissions_factor_actual,
+    SUM(
+        CASE
+            WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+            ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+        END * ef.factor
+    ) AS electricity_emissions_actual,
+    SUM(COALESCE(b.natural_gas, 0) * 0.053072) AS natural_gas_emissions_actual,
+    (
+        SUM(
+            CASE
+                WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+                ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+            END * ef.factor
+        )
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) AS total_calculated_emissions_actual,
+    (
+        SUM(
+            CASE
+                WHEN COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0) < 0 THEN 0
+                ELSE COALESCE(b.electricity_kwh, 0) - COALESCE(b.green_power_offsite, 0)
+            END * ef.factor
+        )
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_actual_per_sqft,
+
+    CAST(0.71314946 AS DECIMAL(10,8)) AS electricity_emissions_factor_baseline,
+    SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946) AS electricity_emissions_baseline,
+    SUM(COALESCE(b.natural_gas, 0) * 0.053072) AS natural_gas_emissions_baseline,
+    (
+        SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) AS total_calculated_emissions_baseline,
+    (
+        SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
+      + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+    ) / NULLIF(SUM(b.sqfootage), 0) AS total_calculated_emissions_baseline_per_sqft,
+
+    (0.5265 - 0.026 * (2025 - b.datayear)) AS ghg_target_reduction_pct,
+    (
+        (
+            SUM((COALESCE(b.electricity_kwh, 0) + COALESCE(b.onsite_solar_kwh, 0)) * 0.71314946)
+          + SUM(COALESCE(b.natural_gas, 0) * 0.053072)
+        ) / NULLIF(SUM(b.sqfootage), 0)
+    ) * (1 - (0.5265 - 0.026 * (2025 - b.datayear))) AS ghg_emissions_target
+
+FROM base_data b
+INNER JOIN emissions_factors ef
+    ON b.datayear = ef.datayear
+GROUP BY b.datayear
+ORDER BY b.datayear;
+"""
+
+
+ghg_df=conn.query(ghg_query_builder(tenant))
 ghg_df['datayear'] = ghg_df['datayear'].astype(str)
 ghg_plot_df = ghg_df.melt(
     id_vars=['datayear'],
