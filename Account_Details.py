@@ -18,7 +18,13 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif !important; }
 require_login()
 tenant = get_current_tenant()
 conn = get_connection()
-st.title(f"{tenant} 2030 District Full Building Portfolio")
+if tenant == "washtenaw":
+    tenantname="Washtenaw"
+else if tenant == "migbc":
+    tenantname='Grand Rapids and Lansing'
+else if tenant =='detroit':
+    tenantname="Detroit"
+st.title(f"{tenantname} 2030 District Full Building Portfolio")
 
 # excluded espmid, 865 entries for total portfolio in
 base_list_query = """
