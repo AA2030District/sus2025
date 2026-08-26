@@ -22,10 +22,13 @@ SELECT
     TRY_CAST(e.datayear AS INT) AS datayear,
     TRY_CAST(e.sqfootage AS DECIMAL(10,2)) AS total_sqft,
     TRY_CAST(e.siteeui AS DECIMAL(10,2)) AS avg_siteeui,
+    TRY_CAST(b.baseline AS DECIMAL(10,2)) AS baseline_eui,
     CAST(p.portfolio AS NVARCHAR(255)) AS portfolio_name
 FROM PrimaryDataBase e
 INNER JOIN portfolios p
     ON e.espmid = p.espmid
+LEFT JOIN [dbo].[Baselines] b
+    ON e.espmid = b.espmid
 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
   AND TRY_CAST(e.datayear AS INT) IS NOT NULL
   AND e.hasenergygaps = 'OK'
@@ -61,6 +64,12 @@ if df.empty:
     st.stop()
 
 df['building_label'] = df['buildingname']
+df['avg_siteeui'] = pd.to_numeric(df['avg_siteeui'], errors='coerce')
+df['baseline_eui'] = pd.to_numeric(df['baseline_eui'], errors='coerce')
+
+
+def format_eui(value):
+    return f"{value:.2f}" if pd.notna(value) else "N/A"
 
 
 site_eui_benchmark = {
@@ -154,6 +163,14 @@ df['color'] = df['performance_ratio'].apply(get_color)
 
 # Sort by square footage for better visualization
 df = df.sort_values('total_sqft', ascending=False).reset_index(drop=True)
+df['heatmap_text'] = df.apply(
+    lambda row: (
+        f"<b>{row['building_label']}</b><br>"
+        f"{row['total_sqft']:,.0f} sq ft<br>"
+        f"EUI {format_eui(row['avg_siteeui'])} | Base {format_eui(row['baseline_eui'])}"
+    ),
+    axis=1,
+)
 
 # Create custom hover text
 hover_text = []
@@ -161,8 +178,9 @@ for idx, row in df.iterrows():
     text = f"<b>{row['building_label']}</b><br>"
     text += f"Use Type: {row['usetype']}<br>"
     text += f"Total Sq Ft: {row['total_sqft']:,.0f}<br>"
-    text += f"Actual EUI: {row['avg_siteeui']:.2f}<br>"
-    text += f"Benchmark EUI: {row['benchmark_eui']:.2f}<br>"
+    text += f"Actual EUI: {format_eui(row['avg_siteeui'])}<br>"
+    text += f"Baseline EUI: {format_eui(row['baseline_eui'])}<br>"
+    text += f"Benchmark EUI: {format_eui(row['benchmark_eui'])}<br>"
 
     hover_text.append(text)
 
@@ -172,9 +190,9 @@ fig = go.Figure(go.Treemap(
     labels=df['building_label'],
     parents=[''] * len(df),  # All at root level
     values=df['total_sqft'],
-    text=df['building_label'],
-    textinfo="label+value",
-    texttemplate="<b>%{label}</b><br>%{value:,.0f} sq ft<br>",
+    text=df['heatmap_text'],
+    textinfo="text",
+    texttemplate="%{text}",
     hovertext=hover_text,
     hoverinfo="text",
     marker=dict(
