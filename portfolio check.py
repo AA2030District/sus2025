@@ -222,32 +222,6 @@ fig.update_layout(
     )
 )
 
-# Add a color legend as annotations
-legend_x = 1.02
-legend_y = 0.95
-legend_items = [
-    ('Below or Equal to National Median', '#2ECC71'),
-    ('Slightly Above (1-20%)', '#F1C40F'),
-    ('Moderately Above (20-50%)', '#E67E22'),
-    ('Significantly Above (>50%)', '#E74C3C')
-]
-
-for i, (label, color) in enumerate(legend_items):
-    fig.add_annotation(
-        x=legend_x,
-        y=legend_y - i*0.05,
-        xref="paper",
-        yref="paper",
-        text=f"<span style='color:{color}'>{label}</span>",
-        showarrow=False,
-        font=dict(size=11),
-        align="left",
-        bgcolor="rgba(255,255,255,0.8)",
-        bordercolor="#ccc",
-        borderwidth=1,
-        borderpad=4
-    )
-
 st.plotly_chart(fig, use_container_width=True, config={"responsive": True})
 # Building-level EUI bar chart across all years for selected portfolio
 df_building_eui = df_all_years.copy()
