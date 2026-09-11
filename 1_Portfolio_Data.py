@@ -238,6 +238,7 @@ WITH years AS (
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
     SELECT {most_recent_full_calendar_year}
+    Select 2026 UNION ALL
 ),
 property_rollup AS (
     SELECT
@@ -275,6 +276,7 @@ WITH years AS (
     SELECT 2023 UNION ALL
     SELECT 2024 UNION ALL
     SELECT {most_recent_full_calendar_year}
+    SELECT 2026 UNION ALL
 ),
 property_rollup AS (
     SELECT
