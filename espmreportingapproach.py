@@ -6,7 +6,7 @@ import requests
 import time
 import sqlite3
 from requests.auth import HTTPBasicAuth 
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as et  
 import xmltodict
 from requests.adapters import HTTPAdapter
 import os
