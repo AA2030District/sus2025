@@ -19,6 +19,6 @@ page3 = st.Page("errorfinder.py", title="Error Finder")
 page4 = st.Page("portfolio check.py", title="Portfolio Analysis")
 page5= st.Page("5_Portfolios.py",title="Assign Owners")
 
-pg = st.navigation([home, page1,page2,page3,page4])
+pg = st.navigation([home, page1,page2,page3,page4,page5])
 
 pg.run()
