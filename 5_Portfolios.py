@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 from auth_helper import get_connection, require_login,get_current_tenant
 from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
-
+st.header("Update Portfolio Ownership")
 CHART_FONT = "Sans-Serif"
 require_login()
 conn = get_connection()
