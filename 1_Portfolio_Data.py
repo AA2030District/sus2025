@@ -24,14 +24,12 @@ require_login()
 
                                                         ###SUMMARY DATA - total sqfootage, buildings with complete data  
 st.title("Portfolio Data")
-
-if st.button("Refresh data"):
-    st.cache_data.clear()
-    st.rerun()
-
 conn = get_connection()
 tenant = get_current_tenant()
 most_recent_full_calendar_year = time.localtime().tm_year - 1
+if st.button("Refresh data"):
+    st.cache_data.clear()
+    st.rerun()
 
 def summary_query_builder(tenant):
     if tenant=='washtenaw':
