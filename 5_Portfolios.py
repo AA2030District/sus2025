@@ -26,6 +26,7 @@ def get_portfolio_database_query(tenant):
 SELECT
     d.buildingname,
     d.address,
+    p.espmid,
     p.portfolio,
     p.Contact,
     p.ContactEmail
@@ -54,7 +55,7 @@ LEFT JOIN dbo.portfolios AS p
     ON p.espmid = d.espmid
 WHERE d.row_num = 1;"""
     return query
-
+st.button()
 portfolioquery=conn.query(get_portfolio_database_query(tenant))
 gb = GridOptionsBuilder.from_dataframe(portfolioquery)
 gb.configure_default_column(
