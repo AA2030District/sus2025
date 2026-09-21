@@ -58,8 +58,10 @@ LEFT JOIN dbo.portfolios AS p
 WHERE d.row_num = 1;"""
     return query
 uploadedfile=st.file_uploader("Upload Portfolio Associations",type=['xlsx,csv'])
-current_grid_df = pd.DataFrame(grid_response["data"])
-if st.button("Save Portfolio Changes", type="primary"):
+save_button_placeholder = st.empty()
+
+
+def save_portfolio_changes(current_grid_df):
     update_rows = []
 
     for record in current_grid_df.to_dict("records"):
@@ -208,4 +210,8 @@ def clean_optional_text(value):
     return cleaned_value or None
 
 
+current_grid_df = pd.DataFrame(grid_response["data"])
+
+if save_button_placeholder.button("Save Portfolio Changes", type="primary"):
+    save_portfolio_changes(current_grid_df)
 
