@@ -154,6 +154,56 @@ else:
     energy_ok_buildings = 0
 
 def water_ok_buildings_query_builder(tenant):
+    if tenant == "detroit":
+        return f"""
+WITH property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+    GROUP BY d.espmid
+),
+water_data_start AS (
+    SELECT
+        d.espmid,
+        MIN(TRY_CAST(d.[datayear] AS INT)) AS first_water_data_year
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND TRY_CAST(d.[datayear] AS INT) <= {most_recent_full_calendar_year}
+      AND TRY_CAST(d.[wui] AS DECIMAL(18,2)) IS NOT NULL
+    GROUP BY d.espmid
+),
+qualifying_properties AS (
+    SELECT
+        pr.espmid
+    FROM property_rollup pr
+    JOIN water_data_start ws
+        ON ws.espmid = pr.espmid
+    JOIN [dbo].[PrimaryDataBase] d
+        ON d.espmid = pr.espmid
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND TRY_CAST(d.[datayear] AS INT)
+          BETWEEN ws.first_water_data_year AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid, ws.first_water_data_year
+    HAVING COUNT(DISTINCT TRY_CAST(d.[datayear] AS INT))
+               = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
+       AND COUNT(DISTINCT CASE
+            WHEN UPPER(ISNULL(d.[haswatergaps], '')) = 'OK'
+             AND UPPER(ISNULL(d.[waterlessthan12months], '')) = 'OK'
+            THEN TRY_CAST(d.[datayear] AS INT)
+        END) = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
+)
+SELECT
+    COALESCE(SUM(pr.water_ok_buildings), 0) AS water_ok_buildings
+FROM property_rollup pr
+JOIN qualifying_properties qp
+    ON pr.espmid = qp.espmid;
+"""
+
     return f"""
 WITH property_rollup AS (
     SELECT
