@@ -55,7 +55,7 @@ LEFT JOIN dbo.portfolios AS p
     ON p.espmid = d.espmid
 WHERE d.row_num = 1;"""
     return query
-st.button()
+uploadedfile=st.file_uploader("Upload Portfolio Associations",type=['xlsx,csv'])
 portfolioquery=conn.query(get_portfolio_database_query(tenant))
 gb = GridOptionsBuilder.from_dataframe(portfolioquery)
 gb.configure_default_column(
