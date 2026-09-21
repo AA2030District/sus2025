@@ -266,7 +266,22 @@ def errordbhandling():
         cursor.execute("UPDATE PrimaryDataBase SET has_issue = 0")
         cursor.execute("UPDATE PrimaryDataBase SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
         connection.commit()
-        cursor.execute("CREATE INDEX ix_espm_issue ON PrimaryDataBase (espmid, datayear DESC) WHERE has_issue = 1 WITH (DROP_EXISTING = ON);")
+        cursor.execute("""
+            IF EXISTS (
+                SELECT 1
+                FROM sys.indexes
+                WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                  AND name = 'ix_espm_issue'
+            )
+                CREATE INDEX ix_espm_issue
+                ON dbo.PrimaryDataBase (espmid, datayear DESC)
+                WHERE has_issue = 1
+                WITH (DROP_EXISTING = ON);
+            ELSE
+                CREATE INDEX ix_espm_issue
+                ON dbo.PrimaryDataBase (espmid, datayear DESC)
+                WHERE has_issue = 1;
+        """)
         connection.commit()
     except pyodbc.Error as e:
         print(e)
@@ -361,6 +376,7 @@ try:
                 cursor.execute("""
                 DECLARE @datayear_type SYSNAME;
                 DECLARE @pk_name SYSNAME;
+                DECLARE @drop_pk_sql NVARCHAR(MAX);
 
                 IF COL_LENGTH('dbo.PrimaryDataBase', 'datayear') IS NULL
                     ALTER TABLE dbo.PrimaryDataBase ADD datayear INT NULL;
@@ -404,7 +420,12 @@ try:
                       AND kc.[type] = 'PK';
 
                     IF @pk_name IS NOT NULL
-                        EXEC(N'ALTER TABLE dbo.PrimaryDataBase DROP CONSTRAINT ' + QUOTENAME(@pk_name));
+                    BEGIN
+                        SET @drop_pk_sql =
+                            N'ALTER TABLE dbo.PrimaryDataBase DROP CONSTRAINT '
+                            + QUOTENAME(@pk_name);
+                        EXEC sys.sp_executesql @drop_pk_sql;
+                    END;
 
                     ALTER TABLE dbo.PrimaryDataBase ALTER COLUMN datayear INT NOT NULL;
                 END;

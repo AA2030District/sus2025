@@ -29,9 +29,7 @@ tenant = get_current_tenant()
 most_recent_full_calendar_year = time.localtime().tm_year - 1
 energy_data_start_year = 2021
 water_data_start_year = 2021
-if st.button("Refresh data"):
-    st.cache_data.clear()
-    st.rerun()
+
 
 def summary_query_builder(tenant):
     if tenant=='washtenaw':
