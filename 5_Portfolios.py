@@ -75,17 +75,19 @@ set_filter_params = {
     "defaultToNothingSelected": False,
 }
 gb.configure_column(
-    "Portfolio",
+    "portfolio",
     filter="agTextColumnFilter",
     editable=True,
 )
 gb.configure_column(
     "Contact",
     filter="agTextColumnFilter",
+    editable=True,
 )
 gb.configure_column(
     "ContactEmail",
     filter="agTextColumnFilter",
+    editable=True,
 )
 grid_options = gb.build()
 grid_response = AgGrid(
