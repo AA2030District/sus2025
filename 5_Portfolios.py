@@ -58,67 +58,6 @@ LEFT JOIN dbo.portfolios AS p
 WHERE d.row_num = 1;"""
     return query
 uploadedfile=st.file_uploader("Upload Portfolio Associations",type=['xlsx,csv'])
-portfolioquery=conn.query(get_portfolio_database_query(tenant))
-gb = GridOptionsBuilder.from_dataframe(portfolioquery)
-gb.configure_default_column(
-    filter=True,
-    sortable=True,
-    resizable=True,
-    minWidth=80,
-    suppressHeaderFilterButton=False,
-    floatingFilter=True,
-)
-gb.configure_grid_options(
-    autoSizeStrategy={"type": "fitCellContents"}
-)
-set_filter_params = {
-    "buttons": ["apply", "reset"],
-    "closeOnApply": True,
-    "suppressMiniFilter": False,
-    "defaultToNothingSelected": False,
-}
-gb.configure_column(
-    "espmid",
-    hide=True,
-)
-gb.configure_column(
-    "portfolio",
-    filter="agTextColumnFilter",
-    editable=True,
-)
-gb.configure_column(
-    "Contact",
-    filter="agTextColumnFilter",
-    editable=True,
-)
-gb.configure_column(
-    "ContactEmail",
-    filter="agTextColumnFilter",
-    editable=True,
-)
-grid_options = gb.build()
-grid_response = AgGrid(
-    portfolioquery,
-    gridOptions=grid_options,
-    height=1000,
-    use_container_width=True,
-    update_mode="VALUE_CHANGED",
-    data_return_mode="AS_INPUT",
-    key="base_list_grid",
-    allow_unsafe_jscode=True,
-)
-
-
-def clean_optional_text(value):
-    if value is None or pd.isna(value):
-        return None
-
-    cleaned_value = str(value).strip()
-    return cleaned_value or None
-
-
-current_grid_df = pd.DataFrame(grid_response["data"])
-
 if st.button("Save Portfolio Changes", type="primary"):
     update_rows = []
 
@@ -209,3 +148,65 @@ if st.button("Save Portfolio Changes", type="primary"):
         else:
             st.cache_data.clear()
             st.rerun()
+portfolioquery=conn.query(get_portfolio_database_query(tenant))
+gb = GridOptionsBuilder.from_dataframe(portfolioquery)
+gb.configure_default_column(
+    filter=True,
+    sortable=True,
+    resizable=True,
+    minWidth=80,
+    suppressHeaderFilterButton=False,
+    floatingFilter=True,
+)
+gb.configure_grid_options(
+    autoSizeStrategy={"type": "fitCellContents"}
+)
+set_filter_params = {
+    "buttons": ["apply", "reset"],
+    "closeOnApply": True,
+    "suppressMiniFilter": False,
+    "defaultToNothingSelected": False,
+}
+gb.configure_column(
+    "espmid",
+    hide=True,
+)
+gb.configure_column(
+    "portfolio",
+    filter="agTextColumnFilter",
+    editable=True,
+)
+gb.configure_column(
+    "Contact",
+    filter="agTextColumnFilter",
+    editable=True,
+)
+gb.configure_column(
+    "ContactEmail",
+    filter="agTextColumnFilter",
+    editable=True,
+)
+grid_options = gb.build()
+grid_response = AgGrid(
+    portfolioquery,
+    gridOptions=grid_options,
+    height=1000,
+    use_container_width=True,
+    update_mode="VALUE_CHANGED",
+    data_return_mode="AS_INPUT",
+    key="base_list_grid",
+    allow_unsafe_jscode=True,
+)
+
+
+def clean_optional_text(value):
+    if value is None or pd.isna(value):
+        return None
+
+    cleaned_value = str(value).strip()
+    return cleaned_value or None
+
+
+current_grid_df = pd.DataFrame(grid_response["data"])
+
+
