@@ -181,6 +181,48 @@ def execute_with_retry(query, params=None, max_retries=3):
 def chunks(items, size):
     for i in range(0, len(items), size):
         yield items[i:i + size]
+
+def add_missing_portfolio_ids(connection, cursor, espmids):
+    portfolio_ids = sorted(
+        {
+            parsed_id
+            for espmid in espmids
+            if (parsed_id := safe_to_int(espmid)) is not None
+        }
+    )
+    if not portfolio_ids:
+        print("No valid ESPM IDs found to sync to dbo.portfolios.")
+        return
+
+    cursor.execute("""
+        IF OBJECT_ID('tempdb..#PortfolioIds') IS NOT NULL
+            DROP TABLE #PortfolioIds;
+
+        CREATE TABLE #PortfolioIds (
+            espmid INT NOT NULL PRIMARY KEY
+        );
+    """)
+    cursor.fast_executemany = True
+    cursor.executemany(
+        "INSERT INTO #PortfolioIds (espmid) VALUES (?)",
+        [(espmid,) for espmid in portfolio_ids],
+    )
+    cursor.execute("""
+        INSERT INTO dbo.portfolios (espmid)
+        SELECT source.espmid
+        FROM #PortfolioIds AS source
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.portfolios AS target
+            WHERE target.espmid = source.espmid
+        );
+    """)
+    cursor.execute("SELECT @@ROWCOUNT")
+    inserted_count = cursor.fetchone()[0]
+    cursor.execute("DROP TABLE #PortfolioIds")
+    connection.commit()
+    print(f"Added {inserted_count} missing ESPM IDs to dbo.portfolios.")
+
 def generatereport(espmidlist):
     ##This property is bugged - isn't shared with us and I can't unshare it so it's in the list and causing problems 
     ids_xml = "\n".join(f"          <id>{espmid}</id>" for espmid in espmidlist)
@@ -792,6 +834,7 @@ try:
     dict_data = xmltodict.parse(response.content)
     for entry in dict_data['response']['links']['link']:
         idlist.append(entry['@id'])
+    add_missing_portfolio_ids(connection, cursor, idlist)
     placeholders = ",".join("?" for _ in idlist)
     query = f"DELETE FROM PrimaryDataBase WHERE espmid NOT IN ({placeholders})"
     cursor.execute(query, *idlist)

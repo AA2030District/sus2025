@@ -14,9 +14,46 @@ tenant = get_current_tenant()
 
 def get_portfolio_database_query(tenant):
     if tenant == 'washtenaw':
-        query="""select * from portfolios"""
+        query="""WITH latest_buildings AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY espmid
+            ORDER BY TRY_CONVERT(INT, datayear) DESC
+        ) AS row_num
+    FROM dbo.PrimaryDataBase
+)
+SELECT
+    d.buildingname,
+    d.address,
+    p.portfolio,
+    p.Contact,
+    p.ContactEmail
+FROM latest_buildings AS d
+LEFT JOIN dbo.portfolios AS p
+    ON p.espmid = d.espmid
+WHERE d.row_num = 1;"""
     else:
-        query="""select * from portfolios"""
+        query="""WITH latest_buildings AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY espmid
+            ORDER BY TRY_CONVERT(INT, datayear) DESC
+        ) AS row_num
+    FROM dbo.PrimaryDataBase
+)
+SELECT
+    d.buildingname,
+    d.address,
+    p.portfolio,
+    p.Contact,
+    p.ContactEmail
+FROM latest_buildings AS d
+LEFT JOIN dbo.portfolios AS p
+    ON p.espmid = d.espmid
+WHERE d.row_num = 1;"""
+    return query
 
 portfolioquery=conn.query(get_portfolio_database_query(tenant))
 gb = GridOptionsBuilder.from_dataframe(portfolioquery)
