@@ -74,6 +74,19 @@ set_filter_params = {
     "suppressMiniFilter": False,
     "defaultToNothingSelected": False,
 }
+gb.configure_column(
+    "Portfolio",
+    filter="agTextColumnFilter",
+    editable=True,
+)
+gb.configure_column(
+    "Contact",
+    filter="agTextColumnFilter",
+)
+gb.configure_column(
+    "ContactEmail",
+    filter="agTextColumnFilter",
+)
 grid_options = gb.build()
 grid_response = AgGrid(
     portfolioquery,
