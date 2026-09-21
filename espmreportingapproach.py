@@ -273,10 +273,9 @@ def errordbhandling():
                 WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
                   AND name = 'ix_espm_issue'
             )
-                CREATE INDEX ix_espm_issue
-                ON dbo.PrimaryDataBase (espmid, datayear DESC)
-                WHERE has_issue = 1
-                WITH (DROP_EXISTING = ON);
+            BEGIN
+                -- Index already exists; avoid a blocking rebuild.
+            END
             ELSE
                 CREATE INDEX ix_espm_issue
                 ON dbo.PrimaryDataBase (espmid, datayear DESC)
