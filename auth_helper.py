@@ -35,14 +35,6 @@ def get_connection_name(alias="washtenawsql"):
 
 def get_connection(alias="washtenawsql", **kwargs):
     kwargs.setdefault("type", "sql")
-
-    kwargs.setdefault("pool_pre_ping", True)
-
-    connect_args = dict(kwargs.get("connect_args", {}))
-    connect_args.setdefault("timeout", 15)
-    connect_args.setdefault("login_timeout", 30)
-    kwargs["connect_args"] = connect_args
-
     return st.connection(get_connection_name(alias), **kwargs)
 
 
