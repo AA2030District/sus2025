@@ -184,8 +184,9 @@ def chunks(items, size):
 def generatereport(espmidlist):
     ##This property is bugged - isn't shared with us and I can't unshare it so it's in the list and causing problems 
     ids_xml = "\n".join(f"          <id>{espmid}</id>" for espmid in espmidlist)
-    currentyear=datetime.date.today().year
-    currentyear=currentyear-1
+    today = datetime.date.today()
+    most_recent_complete_month = today.replace(day=1) - datetime.timedelta(days=1)
+
     report_xml = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         "<report>\n"
@@ -196,8 +197,8 @@ def generatereport(espmidlist):
         "                    <year>2021</year>\n"
         "               </fromPeriodEndingDate>\n"
         "               <toPeriodEndingDate>\n"
-        "                     <month>12</month>\n"
-        f"                    <year>{currentyear}</year>\n"
+        f"                    <month>{most_recent_complete_month.month}</month>\n"
+        f"                    <year>{most_recent_complete_month.year}</year>\n"
         "               </toPeriodEndingDate>\n"
         "                <interval>YEARLY</interval>\n"
         "          </dateRange>\n"
