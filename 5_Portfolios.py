@@ -74,6 +74,16 @@ set_filter_params = {
     "suppressMiniFilter": False,
     "defaultToNothingSelected": False,
 }
-    
+grid_options = gb.build()
+grid_response = AgGrid(
+    portfolioquery,
+    gridOptions=grid_options,
+    height=1000,
+    use_container_width=True,
+    update_mode="MODEL_CHANGED",
+    data_return_mode="FILTERED_AND_SORTED",
+    key="base_list_grid",
+    allow_unsafe_jscode=True,
+)
 
     
