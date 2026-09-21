@@ -17,6 +17,7 @@ page1 = st.Page("1_Portfolio_Data.py", title="Portfolio Data")
 page2 = st.Page("2_Building_Data.py", title="Building Data")
 page3 = st.Page("errorfinder.py", title="Error Finder")
 page4 = st.Page("portfolio check.py", title="Portfolio Analysis")
+page5= st.Page("5_Portfolios.py",title="Assign Owners")
 
 pg = st.navigation([home, page1,page2,page3,page4])
 
