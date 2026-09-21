@@ -27,14 +27,17 @@ st.title("Portfolio Data")
 conn = get_connection()
 tenant = get_current_tenant()
 most_recent_full_calendar_year = time.localtime().tm_year - 1
+energy_data_start_year = 2021
+water_data_start_year = 2021
+
 
 def summary_query_builder(tenant):
     if tenant=='washtenaw':
         summary_query = """
         WITH latest_year AS (
-            SELECT MAX(TRY_CAST([datayear] AS INT)) AS report_year
+            SELECT MAX([datayear]) AS report_year
             FROM [dbo].[PrimaryDataBase]
-            WHERE TRY_CAST([datayear] AS INT) IS NOT NULL
+            WHERE [datayear] IS NOT NULL
             AND ISNULL([donotinclude], 0) <> 1
         )
         SELECT 
@@ -44,16 +47,16 @@ def summary_query_builder(tenant):
         FROM [dbo].[PrimaryDataBase] e
         CROSS JOIN latest_year ly
         WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-            AND TRY_CAST(e.[datayear] AS INT) = ly.report_year
+            AND e.[datayear] = ly.report_year
             AND ISNULL(e.[donotinclude], 0) <> 1
         HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
         return summary_query
     else:
         summary_query = """
                 WITH latest_year AS (
-                    SELECT MAX(TRY_CAST([datayear] AS INT)) AS report_year
+                    SELECT MAX([datayear]) AS report_year
                     FROM [dbo].[PrimaryDataBase]
-                    WHERE TRY_CAST([datayear] AS INT) IS NOT NULL
+                    WHERE [datayear] IS NOT NULL
                     AND ISNULL([donotinclude], 0) <> 1
                 )
                 SELECT 
@@ -63,7 +66,7 @@ def summary_query_builder(tenant):
                 FROM [dbo].[PrimaryDataBase] e
                 CROSS JOIN latest_year ly
                 WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-                    AND TRY_CAST(e.[datayear] AS INT) = ly.report_year
+                    AND e.[datayear] = ly.report_year
                     AND ISNULL(e.[donotinclude], 0) <> 1
                 HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
         return summary_query
@@ -76,11 +79,8 @@ def energy_ok_buildings_query_builder(tenant):
 WITH property_rollup AS (
     SELECT
         d.espmid,
-        MIN(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
     FROM [dbo].[PrimaryDataBase] d
-    LEFT JOIN [dbo].[yearjoined] yj
-        ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
     GROUP BY d.espmid
@@ -93,16 +93,14 @@ qualifying_properties AS (
         ON d.espmid = pr.espmid
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND pr.year_joined IS NOT NULL
-      AND pr.year_joined <= {most_recent_full_calendar_year}
-      AND TRY_CAST(d.[datayear] AS INT) BETWEEN pr.year_joined AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid, pr.year_joined
-    HAVING COUNT(DISTINCT TRY_CAST(d.[datayear] AS INT)) = {most_recent_full_calendar_year} - pr.year_joined + 1
+      AND d.[datayear] BETWEEN {energy_data_start_year} AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid
+    HAVING COUNT(DISTINCT d.[datayear]) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
        AND COUNT(DISTINCT CASE
             WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
              AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
-            THEN TRY_CAST(d.[datayear] AS INT)
-        END) = {most_recent_full_calendar_year} - pr.year_joined + 1
+            THEN d.[datayear]
+        END) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
 )
 SELECT
     COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
@@ -116,7 +114,6 @@ JOIN qualifying_properties qp
 WITH property_rollup AS (
     SELECT
         d.espmid,
-        MIN(TRY_CAST(d.[yearcreatedinespm] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
     FROM [dbo].[PrimaryDataBase] d
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
@@ -131,16 +128,14 @@ qualifying_properties AS (
         ON d.espmid = pr.espmid
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND pr.year_joined IS NOT NULL
-      AND pr.year_joined <= {most_recent_full_calendar_year}
-      AND TRY_CAST(d.[datayear] AS INT) BETWEEN pr.year_joined AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid, pr.year_joined
-    HAVING COUNT(DISTINCT TRY_CAST(d.[datayear] AS INT)) = {most_recent_full_calendar_year} - pr.year_joined + 1
+      AND d.[datayear] BETWEEN {energy_data_start_year} AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid
+    HAVING COUNT(DISTINCT d.[datayear]) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
        AND COUNT(DISTINCT CASE
             WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
              AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
-            THEN TRY_CAST(d.[datayear] AS INT)
-        END) = {most_recent_full_calendar_year} - pr.year_joined + 1
+            THEN d.[datayear]
+        END) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
 )
 SELECT
     COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
@@ -157,50 +152,91 @@ else:
     energy_ok_buildings = 0
 
 def water_ok_buildings_query_builder(tenant):
-    if tenant == "washtenaw":
-        water_ok_buildings_query = f"""
-        WITH property_rollup AS (
-            SELECT
-                d.espmid,
-                MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
-                MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
-            FROM [dbo].[PrimaryDataBase] d
-            LEFT JOIN [dbo].[yearjoined] yj
-                ON d.espmid = yj.ESPMID
-            WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-            AND ISNULL(d.[donotinclude], 0) <> 1
-            AND TRY_CAST(d.datayear AS INT) = {most_recent_full_calendar_year}
-            AND TRY_CAST(yj.[year joined] AS INT) <= {most_recent_full_calendar_year}
-            AND d.[waterlessthan12months] = 'ok'
-            AND d.[haswatergaps] = 'ok'
-            GROUP BY d.espmid
-        )
-        SELECT
-            COALESCE(SUM(WATER_ok_buildings), 0) AS water_ok_buildings
-        FROM property_rollup;
-        """
-        return water_ok_buildings_query
-    else:
-        water_ok_buildings_query = f"""
-                WITH property_rollup AS (
-                    SELECT
-                        d.espmid,
-                        MAX(TRY_CAST(d.[yearcreatedinespm] AS INT)) AS year_joined,
-                        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
-                    FROM [dbo].[PrimaryDataBase] d
-                    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-                    AND ISNULL(d.[donotinclude], 0) <> 1
-                    AND TRY_CAST(d.datayear AS INT) = {most_recent_full_calendar_year}
-                    AND TRY_CAST(d.[yearcreatedinespm] AS INT) <= {most_recent_full_calendar_year}
-                    AND d.[waterlessthan12months] = 'ok'
-                    AND d.[haswatergaps] = 'ok'
-                    GROUP BY d.espmid
-                )
-                SELECT
-                    COALESCE(SUM(WATER_ok_buildings), 0) AS water_ok_buildings
-                FROM property_rollup;
-                """
-        return water_ok_buildings_query
+    if tenant == "detroit":
+        return f"""
+WITH property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+    GROUP BY d.espmid
+),
+water_data_start AS (
+    SELECT
+        d.espmid,
+        MIN(d.[datayear]) AS first_water_data_year
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND d.[datayear] <= {most_recent_full_calendar_year}
+      AND TRY_CAST(d.[wui] AS DECIMAL(18,2)) IS NOT NULL
+    GROUP BY d.espmid
+),
+qualifying_properties AS (
+    SELECT
+        pr.espmid
+    FROM property_rollup pr
+    JOIN water_data_start ws
+        ON ws.espmid = pr.espmid
+    JOIN [dbo].[PrimaryDataBase] d
+        ON d.espmid = pr.espmid
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND d.[datayear]
+          BETWEEN ws.first_water_data_year AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid, ws.first_water_data_year
+    HAVING COUNT(DISTINCT d.[datayear])
+               = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
+       AND COUNT(DISTINCT CASE
+            WHEN UPPER(ISNULL(d.[haswatergaps], '')) = 'OK'
+             AND UPPER(ISNULL(d.[waterlessthan12months], '')) = 'OK'
+            THEN d.[datayear]
+        END) = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
+)
+SELECT
+    COALESCE(SUM(pr.water_ok_buildings), 0) AS water_ok_buildings
+FROM property_rollup pr
+JOIN qualifying_properties qp
+    ON pr.espmid = qp.espmid;
+"""
+
+    return f"""
+WITH property_rollup AS (
+    SELECT
+        d.espmid,
+        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
+    FROM [dbo].[PrimaryDataBase] d
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+    GROUP BY d.espmid
+),
+qualifying_properties AS (
+    SELECT
+        pr.espmid
+    FROM property_rollup pr
+    JOIN [dbo].[PrimaryDataBase] d
+        ON d.espmid = pr.espmid
+    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+      AND ISNULL(d.[donotinclude], 0) <> 1
+      AND d.[datayear]
+          BETWEEN {water_data_start_year} AND {most_recent_full_calendar_year}
+    GROUP BY pr.espmid
+    HAVING COUNT(DISTINCT d.[datayear])
+               = {most_recent_full_calendar_year} - {water_data_start_year} + 1
+       AND COUNT(DISTINCT CASE
+            WHEN UPPER(ISNULL(d.[haswatergaps], '')) = 'OK'
+             AND UPPER(ISNULL(d.[waterlessthan12months], '')) = 'OK'
+            THEN d.[datayear]
+        END) = {most_recent_full_calendar_year} - {water_data_start_year} + 1
+)
+SELECT
+    COALESCE(SUM(pr.water_ok_buildings), 0) AS water_ok_buildings
+FROM property_rollup pr
+JOIN qualifying_properties qp
+    ON pr.espmid = qp.espmid;
+"""
 water_ok_buildings_df = conn.query(water_ok_buildings_query_builder(tenant))
 if not water_ok_buildings_df.empty and pd.notna(water_ok_buildings_df['water_ok_buildings'].iloc[0]):
     water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0])))
@@ -251,7 +287,7 @@ property_rollup AS (
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND TRY_CAST(d.datayear AS INT) < {most_recent_full_calendar_year + 1}
+      AND d.datayear < {most_recent_full_calendar_year + 1}
     GROUP BY d.espmid
 )
 SELECT
@@ -287,7 +323,7 @@ property_rollup AS (
     FROM [dbo].[PrimaryDataBase] d
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND TRY_CAST(d.datayear AS INT) < {most_recent_full_calendar_year + 1}
+      AND d.datayear < {most_recent_full_calendar_year + 1}
     GROUP BY d.espmid
 )
 SELECT
@@ -404,7 +440,7 @@ SELECT
     AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) AS avg_siteeui,
     COUNT(DISTINCT e.[espmid]) AS property_count
 FROM [dbo].[PrimaryDataBase] e
-WHERE TRY_CONVERT(INT, e.[datayear]) = {most_recent_full_calendar_year}
+WHERE e.[datayear] = {most_recent_full_calendar_year}
     AND ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND ISNULL(e.[donotinclude], 0) <> 1
     AND EXISTS (
@@ -423,7 +459,7 @@ SELECT
     AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) AS avg_siteeui,
     COUNT(DISTINCT e.[espmid]) AS property_count
 FROM [dbo].[PrimaryDataBase] e
-WHERE TRY_CONVERT(INT, e.[datayear]) = {most_recent_full_calendar_year}
+WHERE e.[datayear] = {most_recent_full_calendar_year}
     AND ISNULL(e.pmparentid, e.espmid) = e.espmid
     AND ISNULL(e.[donotinclude], 0) <> 1
     AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= {most_recent_full_calendar_year}
@@ -445,7 +481,7 @@ WITH ranked AS (
         ) AS usetype_rank
     FROM [dbo].[PrimaryDataBase] e
     WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-        AND TRY_CONVERT(INT, e.datayear) = {most_recent_full_calendar_year}
+        AND e.datayear = {most_recent_full_calendar_year}
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND EXISTS (
             SELECT 1
@@ -487,7 +523,7 @@ WITH ranked AS (
         ) AS usetype_rank
     FROM [dbo].[PrimaryDataBase] e
     WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-        AND TRY_CONVERT(INT, e.datayear) = {most_recent_full_calendar_year}
+        AND e.datayear = {most_recent_full_calendar_year}
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= {most_recent_full_calendar_year}
     GROUP BY e.usetype
@@ -567,11 +603,11 @@ def yearly_query_builder(tenant):
     if tenant == "washtenaw":
         return f"""
     SELECT
-        TRY_CAST(e.[datayear] AS INT) as datayear,
+        e.[datayear] as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
-        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (e.[datayear] - 2018)) as target
     FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN (
         SELECT
@@ -589,24 +625,24 @@ def yearly_query_builder(tenant):
         GROUP BY TRY_CONVERT(INT, [ESPMID])
     ) yj
         ON TRY_CONVERT(INT, e.[espmid]) = yj.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK'
         AND e.energylessthan12months = 'OK'
         AND e.weathernormalizedsiteeui IS NOT NULL
-        AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
-    GROUP BY TRY_CAST(e.[datayear] AS INT)
+        AND e.[datayear] >= yj.yearjoined
+    GROUP BY e.[datayear]
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
     return f"""
     SELECT
-        TRY_CAST(e.[datayear] AS INT) as datayear,
+        e.[datayear] as datayear,
         COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
         AVG(TRY_CAST(e.[weathernormalizedsiteeui] AS DECIMAL(10,2))) as avg_siteeui,
         AVG(b.zerotool_baseline) as baseline,
-        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+        AVG(b.zerotool_baseline) * (0.86 - 0.03 * (e.[datayear] - 2018)) as target
     FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN (
         SELECT
@@ -616,14 +652,14 @@ def yearly_query_builder(tenant):
         GROUP BY TRY_CAST([espmid] AS BIGINT)
     ) b
         ON TRY_CAST(e.[espmid] AS BIGINT) = b.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.hasenergygaps = 'OK'
         AND e.energylessthan12months = 'OK'
         AND e.weathernormalizedsiteeui IS NOT NULL
-        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
-    GROUP BY TRY_CAST(e.[datayear] AS INT)
+        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= e.[datayear]
+    GROUP BY e.[datayear]
     HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
     ORDER BY datayear
 """
@@ -711,10 +747,10 @@ def wateryear_query_builder(tenant):
     if tenant == "washtenaw":
         return f"""
     SELECT
-        TRY_CAST(e.[datayear] AS INT) as datayear,
+        e.[datayear] as datayear,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
-        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (e.[datayear] - 2018)) as target
     FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN [dbo].[wuibaselines] wb
         ON e.[usetype] = wb.[usetype]
@@ -726,35 +762,35 @@ def wateryear_query_builder(tenant):
         GROUP BY TRY_CONVERT(INT, [ESPMID])
     ) yj
         ON TRY_CONVERT(INT, e.[espmid]) = yj.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.haswatergaps = 'OK'
         AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
         AND e.waterlessthan12months = 'OK'
         AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
-        AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
-    GROUP BY TRY_CAST(e.[datayear] AS INT)
+        AND e.[datayear] >= yj.yearjoined
+    GROUP BY e.[datayear]
     ORDER BY datayear
 """
     return f"""
     SELECT
-        TRY_CAST(e.[datayear] AS INT) as datayear,
+        e.[datayear] as datayear,
         AVG(TRY_CAST(e.[wui] AS DECIMAL(10,2))) as avg_wui,
         AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) as baseline,
-        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (TRY_CAST(e.[datayear] AS INT) - 2018)) as target
+        AVG(TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2))) * (0.86 - 0.03 * (e.[datayear] - 2018)) as target
     FROM [dbo].[PrimaryDataBase] e
     LEFT JOIN [dbo].[wuibaselines] wb
         ON e.[usetype] = wb.[usetype]
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, {most_recent_full_calendar_year})
         AND ISNULL(e.pmparentid, e.espmid) = e.espmid
         AND ISNULL(e.[donotinclude], 0) <> 1
         AND e.haswatergaps = 'OK'
         AND TRY_CAST(e.[wui] AS DECIMAL(10,2)) IS NOT NULL
         AND e.waterlessthan12months = 'OK'
         AND TRY_CAST(wb.[wuibaseline] AS DECIMAL(10,2)) IS NOT NULL
-        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
-    GROUP BY TRY_CAST(e.[datayear] AS INT)
+        AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= e.[datayear]
+    GROUP BY e.[datayear]
     ORDER BY datayear
 """
 
@@ -838,13 +874,13 @@ def wuibybuildingtype_query_builder(tenant):
         GROUP BY TRY_CONVERT(INT, [ESPMID])
     ) yj
         ON TRY_CONVERT(INT, e.espmid) = yj.espmid
-    WHERE TRY_CAST(e.datayear AS INT) = {most_recent_full_calendar_year}
+    WHERE e.datayear = {most_recent_full_calendar_year}
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
       AND e.haswatergaps = 'OK'
       AND e.waterlessthan12months = 'OK'
       AND TRY_CAST(e.wui AS FLOAT) IS NOT NULL
-      AND TRY_CAST(e.datayear AS INT) >= yj.yearjoined
+      AND e.datayear >= yj.yearjoined
     GROUP BY e.usetype
     ORDER BY numberofbuildingswithuse DESC
 """
@@ -855,7 +891,7 @@ def wuibybuildingtype_query_builder(tenant):
         COUNT(e.usetype) AS numproperties,
         SUM(TRY_CAST(e.numbuildings AS INT)) AS numberofbuildingswithuse
     FROM dbo.PrimaryDataBase e
-    WHERE TRY_CAST(e.datayear AS INT) = {most_recent_full_calendar_year}
+    WHERE e.datayear = {most_recent_full_calendar_year}
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
       AND e.haswatergaps = 'OK'
@@ -919,7 +955,7 @@ def solar_query_builder(tenant):
     if tenant == "washtenaw":
         return """
 SELECT
-    TRY_CONVERT(INT, e.datayear) AS datayear,
+    e.datayear AS datayear,
     SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
 FROM PrimaryDataBase e
 INNER JOIN (
@@ -932,20 +968,20 @@ INNER JOIN (
     ON TRY_CONVERT(INT, e.espmid) = y.espmid
 WHERE e.onSiteRenewableSystemGeneration IS NOT NULL
     AND ISNULL(e.pmparentid, e.espmid) = e.espmid
-    AND TRY_CONVERT(INT, e.datayear) >= y.yearjoined
-GROUP BY TRY_CONVERT(INT, e.datayear)
-ORDER BY TRY_CONVERT(INT, e.datayear);
+    AND e.datayear >= y.yearjoined
+GROUP BY e.datayear
+ORDER BY e.datayear;
 """
     return """
 SELECT
-    TRY_CONVERT(INT, e.datayear) AS datayear,
+    e.datayear AS datayear,
     SUM(e.onSiteRenewableSystemGeneration) AS renewablesum
 FROM PrimaryDataBase e
 WHERE e.onSiteRenewableSystemGeneration IS NOT NULL
     AND ISNULL(e.pmparentid, e.espmid) = e.espmid
-    AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= TRY_CONVERT(INT, e.datayear)
-GROUP BY TRY_CONVERT(INT, e.datayear)
-ORDER BY TRY_CONVERT(INT, e.datayear);
+    AND TRY_CONVERT(INT, e.[yearcreatedinespm]) <= e.datayear
+GROUP BY e.datayear
+ORDER BY e.datayear;
 """
 
 
@@ -1009,7 +1045,7 @@ WITH emissions_factors AS (
 ),
 base_data AS (
     SELECT
-        TRY_CAST(e.datayear AS INT) AS datayear,
+        e.datayear AS datayear,
         TRY_CAST(e.espmid AS BIGINT) AS espmid,
         TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) AS electricity_kwh,
         TRY_CAST(e.greenPowerOffSite AS DECIMAL(18,4)) AS green_power_offsite,
@@ -1027,13 +1063,13 @@ base_data AS (
         GROUP BY TRY_CAST([espmid] AS BIGINT)
     ) yj
         ON TRY_CAST(e.espmid AS BIGINT) = yj.espmid
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
       AND e.hasenergygaps = 'OK'
       AND e.energylessthan12months = 'OK'
       AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
-      AND TRY_CAST(e.[datayear] AS INT) >= yj.yearjoined
+      AND e.[datayear] >= yj.yearjoined
 )
 SELECT
     b.datayear,
@@ -1105,7 +1141,7 @@ WITH emissions_factors AS (
 ),
 base_data AS (
     SELECT
-        TRY_CAST(e.datayear AS INT) AS datayear,
+        e.datayear AS datayear,
         TRY_CAST(e.espmid AS BIGINT) AS espmid,
         TRY_CAST(e.siteEnergyUseElectricityGridPurchaseKwh AS DECIMAL(18,4)) AS electricity_kwh,
         TRY_CAST(e.greenPowerOffSite AS DECIMAL(18,4)) AS green_power_offsite,
@@ -1113,13 +1149,13 @@ base_data AS (
         TRY_CAST(e.siteEnergyUseNaturalGas AS DECIMAL(18,4)) AS natural_gas,
         TRY_CAST(e.sqfootage AS DECIMAL(18,4)) AS sqfootage
     FROM dbo.PrimaryDataBase e
-    WHERE TRY_CAST(e.[datayear] AS INT) IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
+    WHERE e.[datayear] IN (2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025)
       AND ISNULL(e.pmparentid, e.espmid) = e.espmid
       AND ISNULL(e.[donotinclude], 0) <> 1
       AND e.hasenergygaps = 'OK'
       AND e.energylessthan12months = 'OK'
       AND TRY_CAST(e.sqfootage AS DECIMAL(18,4)) IS NOT NULL
-      AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= TRY_CAST(e.[datayear] AS INT)
+      AND TRY_CAST(e.[yearcreatedinespm] AS INT) <= e.[datayear]
 )
 SELECT
     b.datayear,
