@@ -290,7 +290,7 @@ try:
         occupancy NVARCHAR(100),
         numbuildings NVARCHAR(100),
         usetype NVARCHAR(100),
-        datayear NVARCHAR(100) NOT NULL,
+        datayear INT NOT NULL,
         yearbuilt NVARCHAR(100),
         yearcreatedinespm INT,
         siteeui FLOAT,
@@ -358,43 +358,70 @@ try:
                     print(f"Warning: Could not add 'usetype' column: {e}")
 
             try:
-                cursor.execute("ALTER TABLE PrimaryDataBase ADD datayear NVARCHAR(100)")
-                print("Added 'datayear' column to PrimaryDataBase table.")
-                connection.commit()
-            except pyodbc.Error as e:
-                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
-                    pass  # Column already exists
-                else:
-                    print(f"Warning: Could not add 'datayear' column: {e}")
-
-            try:
                 cursor.execute("""
-                UPDATE PrimaryDataBase
-                SET datayear = 'UNKNOWN'
-                WHERE datayear IS NULL;
+                DECLARE @datayear_type SYSNAME;
+                DECLARE @pk_name SYSNAME;
+
+                IF COL_LENGTH('dbo.PrimaryDataBase', 'datayear') IS NULL
+                    ALTER TABLE dbo.PrimaryDataBase ADD datayear INT NULL;
+
+                SELECT @datayear_type = t.name
+                FROM sys.columns c
+                JOIN sys.types t ON c.user_type_id = t.user_type_id
+                WHERE c.object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                  AND c.name = 'datayear';
+
+                IF @datayear_type <> 'int' OR EXISTS (
+                    SELECT 1
+                    FROM sys.columns
+                    WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND name = 'datayear'
+                      AND is_nullable = 1
+                )
+                BEGIN
+                    IF EXISTS (
+                        SELECT espmid, COALESCE(TRY_CONVERT(INT, datayear), -1)
+                        FROM dbo.PrimaryDataBase
+                        GROUP BY espmid, COALESCE(TRY_CONVERT(INT, datayear), -1)
+                        HAVING COUNT(*) > 1
+                    )
+                        THROW 51000, 'datayear migration would create duplicate primary keys.', 1;
+
+                    IF @datayear_type <> 'int'
+                        UPDATE dbo.PrimaryDataBase
+                        SET datayear = CONVERT(NVARCHAR(12), COALESCE(TRY_CONVERT(INT, datayear), -1));
+                    ELSE
+                        UPDATE dbo.PrimaryDataBase
+                        SET datayear = -1
+                        WHERE datayear IS NULL;
+
+                    DROP INDEX IF EXISTS ix_espmid_datayear ON dbo.PrimaryDataBase;
+                    DROP INDEX IF EXISTS ix_espm_issue ON dbo.PrimaryDataBase;
+
+                    SELECT @pk_name = kc.name
+                    FROM sys.key_constraints kc
+                    WHERE kc.parent_object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND kc.[type] = 'PK';
+
+                    IF @pk_name IS NOT NULL
+                        EXEC(N'ALTER TABLE dbo.PrimaryDataBase DROP CONSTRAINT ' + QUOTENAME(@pk_name));
+
+                    ALTER TABLE dbo.PrimaryDataBase ALTER COLUMN datayear INT NOT NULL;
+                END;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.key_constraints kc
+                    WHERE kc.parent_object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND kc.[type] = 'PK'
+                )
+                    ALTER TABLE dbo.PrimaryDataBase
+                    ADD CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear);
                 """)
                 connection.commit()
+                print("Ensured 'datayear' is INT and the primary key is (espmid, datayear).")
             except pyodbc.Error as e:
-                print(f"Warning: Could not backfill NULL datayear values: {e}")
-
-            try:
-                cursor.execute("""
-                DECLARE @pk_name NVARCHAR(128);
-                SELECT @pk_name = kc.name
-                FROM sys.key_constraints kc
-                JOIN sys.tables t ON kc.parent_object_id = t.object_id
-                WHERE kc.[type] = 'PK' AND t.name = 'PrimaryDataBase';
-
-                IF @pk_name IS NOT NULL
-                    EXEC('ALTER TABLE PrimaryDataBase DROP CONSTRAINT [' + @pk_name + ']');
-
-                ALTER TABLE PrimaryDataBase ALTER COLUMN datayear NVARCHAR(100) NOT NULL;
-                ALTER TABLE PrimaryDataBase ADD CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear);
-                """)
-                connection.commit()
-                print("Updated primary key to (espmid, datayear) on PrimaryDataBase.")
-            except pyodbc.Error as e:
-                print(f"Warning: Could not update primary key on PrimaryDataBase: {e}")
+                print(f"Warning: Could not migrate 'datayear' to INT: {e}")
             
             try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD yearbuilt NVARCHAR(100)")
@@ -766,7 +793,7 @@ try:
         occupancy NVARCHAR(100),
         numbuildings NVARCHAR(100),
         usetype NVARCHAR(100),
-        datayear NVARCHAR(100) NOT NULL,
+        datayear INT NOT NULL,
         yearbuilt NVARCHAR(100),
         yearcreatedinespm INT,
         siteeui FLOAT,
@@ -832,7 +859,9 @@ try:
         onsiterenewablesystemelectricityexported=None
         onsiterenewablesystemgeneration=None
 
-        datayear = building.get('@year')
+        datayear = safe_to_int(building.get('@year'))
+        if datayear is None:
+            raise ValueError(f"Property {espmid} has no valid report year.")
         for buildingvalue in building['metric']:
             metric_name = buildingvalue.get('@name')
             raw_value = buildingvalue.get('value')
