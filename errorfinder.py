@@ -89,7 +89,7 @@ def findgaps(selection):
         energy_errordict={}
         water_errordict={}
         espmid = selection["espmid"].iloc[0]
-        datayear = datetime.now().year - 1
+        datayear = int(selection["datayear"].iloc[0])
         lastdayinyear=datetime(int(datayear),12,31)
         hasenergygaps = selection["hasenergygaps"].iloc[0]
         haswatergaps = selection["haswatergaps"].iloc[0]
@@ -331,6 +331,7 @@ buildings_query = """
     LEFT JOIN portfolios p
         ON e.espmid = p.espmid
     WHERE e.has_issue = 1
+      AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
 )
 SELECT
     espmid,
