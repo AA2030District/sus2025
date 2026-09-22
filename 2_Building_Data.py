@@ -128,26 +128,27 @@ selected_espmid = buildings_df.loc[
 building_info = buildings_df.loc[buildings_df['buildingname'] == selected_building].iloc[0]
 # st.write(building_info['this_espmid'])
 
-# Get all data for this building using parameterized query
+# Get completed calendar-year data for this building
 this_building_query = f"""
     SELECT *
     FROM [dbo].[PrimaryDataBase]
     WHERE [espmid] = '{selected_espmid}'
-    ORDER BY [datayear] DESC
+      AND TRY_CONVERT(INT, [datayear]) < YEAR(GETDATE())
+    ORDER BY TRY_CONVERT(INT, [datayear]) DESC
 """
 this_building_df = conn.query(this_building_query)
 
 # Display building info
-# Get the most current year's data (first row since we ordered DESC)
+# The first row is the latest available complete calendar year
 if not this_building_df.empty:
-    most_current_data = this_building_df.iloc[0]
-    most_current_year = most_current_data['datayear']
+    latest_complete_data = this_building_df.iloc[0]
+    latest_complete_year = latest_complete_data['datayear']
     
-    # Get the use type (should be consistent across years, but we'll get it from most current)
-    use_type = most_current_data['usetype']
+    # Get the use type from the latest complete calendar year
+    use_type = latest_complete_data['usetype']
     use_type_sql = str(use_type).replace("'", "''") if pd.notna(use_type) else None
     selected_espmid_sql = str(selected_espmid).replace("'", "''")
-    most_current_year_sql = str(most_current_year).replace("'", "''")
+    latest_complete_year_sql = str(latest_complete_year).replace("'", "''")
 
     energy_star_rank_df = pd.DataFrame()
     if use_type_sql:
@@ -158,7 +159,7 @@ if not this_building_df.empty:
                     TRY_CAST([energystarscore] AS FLOAT) AS energystarscore
                 FROM [dbo].[PrimaryDataBase]
                 WHERE [usetype] = '{use_type_sql}'
-                  AND [datayear] = '{most_current_year_sql}'
+                  AND [datayear] = '{latest_complete_year_sql}'
                   AND TRY_CAST([energystarscore] AS FLOAT) IS NOT NULL
             ),
             ranked_scores AS (
@@ -185,16 +186,16 @@ if not this_building_df.empty:
     # Prepare display values for summary metrics
     use_type_display = str(use_type) if pd.notna(use_type) else 'Not Available'
 
-    if pd.notna(most_current_data['sqfootage']) and str(most_current_data['sqfootage']).replace('.', '').isdigit():
-        sqft_display = f"{float(most_current_data['sqfootage']):,.0f}"
-    elif pd.notna(most_current_data['sqfootage']):
-        sqft_display = str(most_current_data['sqfootage'])
+    if pd.notna(latest_complete_data['sqfootage']) and str(latest_complete_data['sqfootage']).replace('.', '').isdigit():
+        sqft_display = f"{float(latest_complete_data['sqfootage']):,.0f}"
+    elif pd.notna(latest_complete_data['sqfootage']):
+        sqft_display = str(latest_complete_data['sqfootage'])
     else:
         sqft_display = 'Not Available'
 
-    year_display = str(most_current_year)
+    year_display = str(latest_complete_year)
 
-    current_eci = most_current_data.get('energycostintensity')
+    current_eci = latest_complete_data.get('energycostintensity')
     if pd.notna(current_eci):
         try:
             eci_display = f"${float(current_eci):,.2f}/ft^2"
@@ -206,7 +207,7 @@ if not this_building_df.empty:
     available_years = [str(y) for y in this_building_df['datayear'].tolist() if pd.notna(y)]
     years_display = ", ".join(available_years) if available_years else "Not Available"
 
-    current_score = most_current_data.get('energystarscore')
+    current_score = latest_complete_data.get('energystarscore')
     if pd.notna(current_score):
         energy_star_score_display = f"{int(float(current_score))}/100"
     else:
@@ -233,7 +234,7 @@ if not this_building_df.empty:
     metric_items = [
         ("Use Type", use_type_display),
         ("Square Footage", sqft_display),
-        ("Most Current Year", year_display),
+        ("Most Recent Complete Year", year_display),
         ("Energy Cost Per Square Foot", eci_display),
         ("Energy Star Score", energy_star_score_display),
         ("Energy Star Rank (Use Type)", energy_star_rank_display),
@@ -257,7 +258,11 @@ if not this_building_df.empty:
     st.metric("All Recorded Years", years_display)
 
 else:
-    st.error(f"No data found for ESPMID: {selected_espmid}")
+    st.error(
+        f"No completed calendar-year data found for ESPMID: "
+        f"{selected_espmid}"
+    )
+    st.stop()
 col1, col2 = st.columns(2)
 
 
@@ -453,24 +458,30 @@ if not electric_df.empty:
     electric_sorted = electric_df.sort_values('startdate')
     
 
-    # For pie chart, add electric values of most current year
-    electric_2025 = electric_sorted[electric_sorted['enddate'].dt.year == int(most_current_year)]
-    pie_energy_metrics['electric_usage'] = electric_2025['usage'].sum() * 3.412
+    # Add electric values from the latest complete calendar year
+    electric_complete_year = electric_sorted[
+        electric_sorted['enddate'].dt.year == int(latest_complete_year)
+    ]
+    pie_energy_metrics['electric_usage'] = electric_complete_year['usage'].sum() * 3.412
 
 
 # Natural Gas stepped line graph
 if not gas_df.empty:
     gas_sorted = gas_df.sort_values('startdate')
     
-    gas_2025 = gas_sorted[gas_sorted['enddate'].dt.year == int(most_current_year)]
-    pie_energy_metrics['natural_gas_usage'] = gas_2025['usage'].sum() * 100
+    gas_complete_year = gas_sorted[
+        gas_sorted['enddate'].dt.year == int(latest_complete_year)
+    ]
+    pie_energy_metrics['natural_gas_usage'] = gas_complete_year['usage'].sum() * 100
 
 # Solar stepped line graph
 if not solar_df.empty:
     solar_sorted = solar_df.sort_values('startdate')
     
-    solar_2025 = solar_sorted[solar_sorted['enddate'].dt.year == int(most_current_year)]
-    pie_energy_metrics['solar_usage'] = solar_2025['usage'].sum() * 3.412
+    solar_complete_year = solar_sorted[
+        solar_sorted['enddate'].dt.year == int(latest_complete_year)
+    ]
+    pie_energy_metrics['solar_usage'] = solar_complete_year['usage'].sum() * 3.412
     
 
 
@@ -491,7 +502,7 @@ if not pie_df.empty:
         pie_df,
         values='Usage (kBtu)',
         names='Energy Source',
-        title=f"{most_current_year} Fuel Mix Breakdown",
+        title=f"{latest_complete_year} Fuel Mix Breakdown",
         color_discrete_sequence=px.colors.qualitative.Set2,
     )
     fig_pie.update_traces(
@@ -506,7 +517,10 @@ if not pie_df.empty:
     
     st.plotly_chart(fig_pie, use_container_width=True)
 else:
-    st.warning("No energy data available for 2025 to display pie chart")
+    st.warning(
+        f"No energy data available for {latest_complete_year} "
+        "to display the pie chart"
+    )
 
 def _prepare_pdf_chart_figure(figure):
     export_figure = go.Figure(figure)
