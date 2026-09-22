@@ -590,7 +590,6 @@ def _pdf_add_chart_card(figure, title, x, y, w, h):
     chart_image = io.BytesIO(
         export_figure.to_image(
             format="png",
-            engine="kaleido",
             width=export_w,
             height=export_h,
             scale=2,
