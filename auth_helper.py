@@ -40,7 +40,6 @@ def get_connection(alias="washtenawsql", **kwargs):
     connect_args = dict(kwargs.get("connect_args", {}))
     connect_args.setdefault("timeout", 5)
     connect_args.setdefault("login_timeout", 10)
-    connect_args.setdefault("read_timeout", 10)
     kwargs["connect_args"] = connect_args
     return st.connection(get_connection_name(alias), **kwargs)
 
