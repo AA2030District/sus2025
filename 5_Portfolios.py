@@ -1,3 +1,5 @@
+import hashlib
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -57,7 +59,138 @@ LEFT JOIN dbo.portfolios AS p
     ON p.espmid = d.espmid
 WHERE d.row_num = 1;"""
     return query
-uploadedfile=st.file_uploader("Upload Portfolio Associations",type=['xlsx,csv'])
+
+
+PORTFOLIO_UPLOAD_COLUMNS = {
+    "ESPMID": "espmid",
+    "Portfolio": "portfolio",
+    "Property Admin": "Contact",
+    "Property Email": "ContactEmail",
+}
+
+
+def clean_optional_text(value):
+    if value is None or pd.isna(value):
+        return None
+
+    cleaned_value = str(value).strip()
+    return cleaned_value or None
+
+
+def read_portfolio_upload(uploaded_file):
+    uploaded_file.seek(0)
+    if uploaded_file.name.lower().endswith(".csv"):
+        uploaded_df = pd.read_csv(uploaded_file, dtype=object)
+    else:
+        uploaded_df = pd.read_excel(
+            uploaded_file,
+            sheet_name=0,
+            dtype=object,
+        )
+
+    uploaded_df.columns = [
+        str(column).strip()
+        for column in uploaded_df.columns
+    ]
+    missing_columns = [
+        column
+        for column in PORTFOLIO_UPLOAD_COLUMNS
+        if column not in uploaded_df.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Missing required column(s): "
+            + ", ".join(missing_columns)
+        )
+
+    uploaded_df = uploaded_df[
+        list(PORTFOLIO_UPLOAD_COLUMNS)
+    ].rename(columns=PORTFOLIO_UPLOAD_COLUMNS)
+    uploaded_df = uploaded_df.dropna(how="all")
+
+    raw_ids = (
+        uploaded_df["espmid"]
+        .astype("string")
+        .str.replace(",", "", regex=False)
+        .str.strip()
+    )
+    numeric_ids = pd.to_numeric(raw_ids, errors="coerce")
+    valid_id_mask = (
+        numeric_ids.notna()
+        & numeric_ids.eq(numeric_ids.round())
+    )
+    invalid_row_count = int((~valid_id_mask).sum())
+
+    uploaded_df = uploaded_df.loc[valid_id_mask].copy()
+    uploaded_df["espmid"] = (
+        numeric_ids.loc[valid_id_mask].astype("int64")
+    )
+
+    for column in ["portfolio", "Contact", "ContactEmail"]:
+        uploaded_df[column] = uploaded_df[column].map(
+            clean_optional_text
+        )
+
+    duplicate_row_count = int(
+        uploaded_df.duplicated("espmid").sum()
+    )
+    if duplicate_row_count:
+        def last_nonblank(values):
+            nonblank_values = values.dropna()
+            if nonblank_values.empty:
+                return None
+            return nonblank_values.iloc[-1]
+
+        uploaded_df = (
+            uploaded_df.groupby(
+                "espmid",
+                as_index=False,
+                sort=False,
+            )
+            .agg(
+                {
+                    "portfolio": last_nonblank,
+                    "Contact": last_nonblank,
+                    "ContactEmail": last_nonblank,
+                }
+            )
+        )
+
+    return uploaded_df, invalid_row_count, duplicate_row_count
+
+
+def apply_portfolio_upload(portfolio_df, uploaded_df):
+    updated_df = portfolio_df.copy()
+    database_ids = pd.to_numeric(
+        updated_df["espmid"],
+        errors="coerce",
+    ).astype("Int64")
+
+    database_id_set = set(
+        database_ids.dropna().astype(int).tolist()
+    )
+    upload_id_set = set(uploaded_df["espmid"].tolist())
+    matched_ids = database_id_set.intersection(upload_id_set)
+    unmatched_ids = sorted(upload_id_set - database_id_set)
+
+    upload_lookup = uploaded_df.set_index("espmid")
+    for column in ["portfolio", "Contact", "ContactEmail"]:
+        incoming_values = database_ids.map(upload_lookup[column])
+        rows_to_update = (
+            database_ids.isin(matched_ids)
+            & incoming_values.notna()
+        )
+        updated_df.loc[rows_to_update, column] = (
+            incoming_values.loc[rows_to_update]
+        )
+
+    return updated_df, len(matched_ids), unmatched_ids
+
+
+uploadedfile = st.file_uploader(
+    "Upload Portfolio Associations",
+    type=["xlsx", "csv"],
+)
 save_button_placeholder = st.empty()
 
 
@@ -151,7 +284,77 @@ def save_portfolio_changes(current_grid_df):
         else:
             st.cache_data.clear()
             st.rerun()
-portfolioquery=conn.query(get_portfolio_database_query(tenant))
+portfolioquery = conn.query(get_portfolio_database_query(tenant))
+grid_key = f"portfolio_grid_{tenant}"
+
+if uploadedfile is not None:
+    upload_signature = hashlib.sha256(
+        uploadedfile.getvalue()
+    ).hexdigest()[:12]
+    grid_key = (
+        f"portfolio_grid_{tenant}_{upload_signature}"
+    )
+
+    try:
+        (
+            uploaded_portfolios,
+            invalid_row_count,
+            duplicate_row_count,
+        ) = read_portfolio_upload(uploadedfile)
+        (
+            portfolioquery,
+            matched_count,
+            unmatched_ids,
+        ) = apply_portfolio_upload(
+            portfolioquery,
+            uploaded_portfolios,
+        )
+    except Exception as error:
+        st.error(f"Unable to read portfolio upload: {error}")
+    else:
+        if matched_count:
+            st.success(
+                f"Loaded portfolio information for "
+                f"{matched_count:,} matching ESPM IDs."
+            )
+        else:
+            st.warning(
+                "The upload contains no ESPM IDs that match "
+                "the current building portfolio."
+            )
+
+        if invalid_row_count:
+            st.warning(
+                f"Skipped {invalid_row_count:,} row(s) with "
+                "a missing or invalid ESPMID."
+            )
+
+        if duplicate_row_count:
+            st.warning(
+                f"Combined {duplicate_row_count:,} duplicate "
+                "ESPMID row(s), using the last nonblank value "
+                "in each field."
+            )
+
+        if unmatched_ids:
+            unmatched_preview = ", ".join(
+                str(value)
+                for value in unmatched_ids[:10]
+            )
+            if len(unmatched_ids) > 10:
+                unmatched_preview += ", ..."
+            st.warning(
+                f"{len(unmatched_ids):,} ESPM ID(s) were not "
+                f"found and will not be updated: "
+                f"{unmatched_preview}"
+            )
+
+        st.caption(
+            "Blank upload cells leave the current value "
+            "unchanged. Review the grid, then click "
+            "Save Portfolio Changes."
+        )
+
 gb = GridOptionsBuilder.from_dataframe(portfolioquery)
 gb.configure_default_column(
     filter=True,
@@ -197,17 +400,9 @@ grid_response = AgGrid(
     use_container_width=True,
     update_mode="VALUE_CHANGED",
     data_return_mode="AS_INPUT",
-    key="base_list_grid",
+    key=grid_key,
     allow_unsafe_jscode=True,
 )
-
-
-def clean_optional_text(value):
-    if value is None or pd.isna(value):
-        return None
-
-    cleaned_value = str(value).strip()
-    return cleaned_value or None
 
 
 current_grid_df = pd.DataFrame(grid_response["data"])
