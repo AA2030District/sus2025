@@ -2,7 +2,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from auth_helper import get_connection, require_login
+from auth_helper import get_connection, require_login, get_current_tenant
 from humanize import number
 from fpdf import FPDF
 import numpy as np
@@ -439,88 +439,94 @@ def get_meter_data(table_name, espmid, energy_type):
     
     return df
 
-# Then after getting the data, ensure all dataframes have 'year' column
-# Get data from all tables
-electric_df = get_meter_data('electric', selected_espmid, 'Electric')
-gas_df = get_meter_data('naturalgas', selected_espmid, 'Natural Gas')
-solar_df = get_meter_data('solar', selected_espmid, 'Solar')
-
-# 3. Pie chart creation
+is_migbc = get_current_tenant() == "migbc"
 pie_energy_metrics = {
     "electric_usage": 0,
-    "natural_gas_usage": 0, 
-    "solar_usage": 0
+    "natural_gas_usage": 0,
+    "solar_usage": 0,
 }
 
-# 2. Stepped line graphs for each energy type
-# Electric stepped line graph
-if not electric_df.empty:
-    electric_sorted = electric_df.sort_values('startdate')
-    
+if is_migbc:
+    # PrimaryDataBase has one annual row per building, not meter entries.
+    fuel_columns = {
+        "electric_usage": ("siteEnergyUseElectricityGridPurchaseKwh", KWH_TO_KBTU),
+        "natural_gas_usage": ("siteEnergyUseNaturalGas", 1.0),
+        "solar_usage": ("onSiteRenewableSystemGeneration", KWH_TO_KBTU),
+    }
+    annual_fuel_kbtu = pd.DataFrame({
+        fuel: (
+            pd.to_numeric(this_building_df[column], errors="coerce")
+            .fillna(0)
+            .clip(lower=0)
+            * multiplier
+        )
+        for fuel, (column, multiplier) in fuel_columns.items()
+    })
+    annual_total_kbtu = annual_fuel_kbtu.sum(axis=1)
+    valid_years = annual_total_kbtu > 0
 
-    # Add electric values from the latest complete calendar year
-    electric_complete_year = electric_sorted[
-        electric_sorted['enddate'].dt.year == int(latest_complete_year)
-    ]
-    pie_energy_metrics['electric_usage'] = electric_complete_year['usage'].sum() * 3.412
+    if valid_years.any():
+        average_shares = (
+            annual_fuel_kbtu.loc[valid_years]
+            .div(annual_total_kbtu.loc[valid_years], axis=0)
+            .mean(axis=0)
+            .mul(100)
+        )
+        pie_energy_metrics.update(average_shares.to_dict())
+else:
+    electric_df = get_meter_data("electric", selected_espmid, "Electric")
+    gas_df = get_meter_data("naturalgas", selected_espmid, "Natural Gas")
+    solar_df = get_meter_data("solar", selected_espmid, "Solar")
 
+    for meter_df, metric, multiplier in (
+        (electric_df, "electric_usage", KWH_TO_KBTU),
+        (gas_df, "natural_gas_usage", THERM_TO_KBTU),
+        (solar_df, "solar_usage", KWH_TO_KBTU),
+    ):
+        if not meter_df.empty:
+            year_data = meter_df[
+                meter_df["enddate"].dt.year == int(latest_complete_year)
+            ]
+            pie_energy_metrics[metric] = year_data["usage"].sum() * multiplier
 
-# Natural Gas stepped line graph
-if not gas_df.empty:
-    gas_sorted = gas_df.sort_values('startdate')
-    
-    gas_complete_year = gas_sorted[
-        gas_sorted['enddate'].dt.year == int(latest_complete_year)
-    ]
-    pie_energy_metrics['natural_gas_usage'] = gas_complete_year['usage'].sum() * 100
-
-# Solar stepped line graph
-if not solar_df.empty:
-    solar_sorted = solar_df.sort_values('startdate')
-    
-    solar_complete_year = solar_sorted[
-        solar_sorted['enddate'].dt.year == int(latest_complete_year)
-    ]
-    pie_energy_metrics['solar_usage'] = solar_complete_year['usage'].sum() * 3.412
-    
-
-
-# 3. Pie chart:
+value_column = "Average annual share (%)" if is_migbc else "Usage (kBtu)"
 pie_df = pd.DataFrame({
-    'Energy Source': ['Electric', 'Natural Gas', 'Solar'],
-    'Usage (kBtu)': [
-        pie_energy_metrics['electric_usage'],
-        pie_energy_metrics['natural_gas_usage'],
-        pie_energy_metrics['solar_usage']
-    ]
+    "Energy Source": ["Electric", "Natural Gas", "Solar"],
+    value_column: [
+        pie_energy_metrics["electric_usage"],
+        pie_energy_metrics["natural_gas_usage"],
+        pie_energy_metrics["solar_usage"],
+    ],
 })
+pie_df = pie_df[pie_df[value_column] > 0]
 
-# Filter out zero values if you don't want empty slices
-pie_df = pie_df[pie_df['Usage (kBtu)'] > 0]
 if not pie_df.empty:
     fig_pie = px.pie(
         pie_df,
-        values='Usage (kBtu)',
-        names='Energy Source',
-        title=f"{latest_complete_year} Fuel Mix Breakdown",
+        values=value_column,
+        names="Energy Source",
+        title=(
+            "Average Annual Fuel Mix"
+            if is_migbc
+            else f"{latest_complete_year} Fuel Mix Breakdown"
+        ),
         color_discrete_sequence=px.colors.qualitative.Set2,
     )
     fig_pie.update_traces(
-        textposition='outside',
-        textinfo='percent+label',
-        hoverinfo='label+percent+value',
-        hovertemplate='<b>%{label}</b><br>Usage: %{value:,.0f} kBtu<br>Percentage: %{percent}<extra></extra>'
+        textposition="outside",
+        textinfo="percent+label",
+        hoverinfo="label+percent+value",
+        hovertemplate=(
+            "<b>%{label}</b><br>Average annual share: %{value:.1f}%<extra></extra>"
+            if is_migbc
+            else "<b>%{label}</b><br>Usage: %{value:,.0f} kBtu"
+                 "<br>Percentage: %{percent}<extra></extra>"
+        ),
     )
-    fig_pie.update_layout(
-        margin=dict(l=50, r=50, t=80, b=50)
-    )
-    
+    fig_pie.update_layout(margin=dict(l=50, r=50, t=80, b=50))
     st.plotly_chart(fig_pie, use_container_width=True)
 else:
-    st.warning(
-        f"No energy data available for {latest_complete_year} "
-        "to display the pie chart"
-    )
+    st.warning("No energy data available to display the pie chart")
 
 def _prepare_pdf_chart_figure(figure):
     export_figure = go.Figure(figure)
