@@ -15,7 +15,7 @@ import streamlit.components.v1 as components
 
 ###Todo - add the option to rerun a report using ONLY the buildings in the table and take it off the error list if so, real time updating error list.
 
-st.write(get_current_tenant)
+st.write(get_connection)
 espm_creds = get_tenant_secret("espm")
 user = espm_creds["username"]
 pw = espm_creds["password"]
