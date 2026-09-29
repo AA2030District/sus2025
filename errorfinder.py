@@ -17,7 +17,6 @@ import streamlit.components.v1 as components
 
 require_login()
 tenant = get_current_tenant()
-st.write(tenant)
 espm_creds = get_tenant_secret("espm")
 user = espm_creds["username"]
 pw = espm_creds["password"]
@@ -83,6 +82,273 @@ def _build_meter_df(meter_dict):
         )
     return df
 
+def _build_meter_dfgr(meter_dict):
+    df = (
+        pd.DataFrame.from_dict(meter_dict, orient="index")
+        .rename(
+            columns={
+                "name": "Name",
+                "gaps": "Gap Dates",
+                "gapdays": "Gap Duration",
+                "overlaps": "Overlap Dates",
+                "overlapdays": "Overlap Duration",
+                "meterlink": "Meter Link",
+            }
+        )
+        if meter_dict
+        else pd.DataFrame(
+            columns=[
+                "Name",
+                "Gap Dates",
+                "Gap Duration",
+                "Overlap Dates",
+                "Overlap Duration",
+                "Last Meter Data Date",
+                "Meter Link",
+            ]
+        )
+    )
+    df = df.rename_axis("Meter Number").reset_index()
+    if "Meter Link" in df.columns:
+        df["Meter Link"] = df["Meter Link"].map(
+            lambda x: f'<a href="{x}" target="_blank" rel="noopener noreferrer">Open</a>'
+            if isinstance(x, str) and x.strip()
+            else ""
+        )
+    return df
+
+def findgapsgr(selection):
+    ###Finding the gaps
+    ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
+        espm_credsgr=get_tenant_secret("espm","gr")
+        espm_credsmigbc=get_tenant_secret("espm","migbc")
+        errorlist=[]
+        energy_errordict={}
+        water_errordict={}
+        espmid = selection["espmid"].iloc[0]
+        datayear = int(selection["datayear"].iloc[0])
+        lastdayinyear=datetime(int(datayear),12,31)
+        hasenergygaps = selection["hasenergygaps"].iloc[0]
+        haswatergaps = selection["haswatergaps"].iloc[0]
+        energylessthan12months = selection["energylessthan12months"].iloc[0]
+        waterlessthan12months = selection["waterlessthan12months"].iloc[0]
+        response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
+        dict_data= xmltodict.parse(response.content)
+
+        if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
+            for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
+                date2=datetime(int(datayear),1,1)
+                meterid=meter
+                response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                dict_data2= xmltodict.parse(response.content)
+                meter_info = dict_data2.get("meter", {})
+                response = session.get(
+                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate=2020-01-01",
+                    auth=HTTPBasicAuth(user, pw),
+                    timeout=60,
+                )
+                if meter_info.get("inUse") == 'false':
+                    if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
+                        pass
+                    else:
+                        errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
+                elif response.ok and response.content:
+                    try:
+                        dict_data3=xmltodict.parse(response.content)
+                    except ExpatError:
+                        errorlist.append(
+                            f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
+                        )
+                        continue
+                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    if not meter_consumption:
+                        continue
+                    df = pd.json_normalize(meter_consumption)
+                    df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
+                    df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
+                    df = df.sort_values("startDate").reset_index(drop=True)
+                    df["prev_endDate"] = df["endDate"].shift(1)
+                    df["gap_days"] = (df["startDate"] - df["prev_endDate"]).dt.days
+                    gaps = df[df["gap_days"] > 1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "gap_start_endDate",
+                            "startDate": "gap_end_startDate"
+                        }
+                    )
+                    gapdates=[]
+                    gapdays=[]
+                    overlapdates=[]
+                    overlapdays=[]
+                    overlaps = df[df["gap_days"] <= -1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "overlap_prev_endDate",
+                            "startDate": "overlap_startDate",
+                            "gap_days": "overlap_days",
+                        }
+                    )
+                    for row in gaps.itertuples(index=False):
+                        gapstartenddate = row.gap_start_endDate.strftime("%Y-%m-%d")
+                        gapendstartdate = row.gap_end_startDate.strftime("%Y-%m-%d")
+                        gapdates.append(f"{gapstartenddate} to {gapendstartdate}")
+                        gapdays.append(f"{row.gap_days}<br>")
+                    for row in overlaps.itertuples(index=False):
+                        overlapstartdate = row.overlap_prev_endDate.strftime("%Y-%m-%d")
+                        overlapenddate = row.overlap_startDate.strftime("%Y-%m-%d")
+                        overlapdates.append(f"{overlapstartdate} to {overlapenddate}")
+                        overlapdays.append(f"{abs(row.overlap_days)}<br>")
+                    gapdates = "<br>".join(gapdates)
+                    gapdays ="<br>".join(gapdays)
+                    overlapdates = "<br>".join(overlapdates)
+                    overlapdays = "<br>".join(overlapdays)
+                    failedenddate = ""
+                    last_end_date = df["endDate"].dropna().max()
+                    inactive_date = pd.to_datetime(
+                        meter_info.get("inactiveDate"),
+                        format="%Y-%m-%d",
+                        errors="coerce",
+                    )
+                    comparison_date = inactive_date if pd.notna(inactive_date) else lastdayinyear
+                    if (
+                        meter_info.get("inUse") != "false"
+                        and pd.notna(last_end_date)
+                        and last_end_date < comparison_date
+                    ):
+                        failedenddate = last_end_date.strftime("%Y-%m-%d")
+                    energy_errordict.update(
+                        {
+                            meterid: {
+                                "name": meter_info.get("name", ""),
+                                "gaps": gapdates,
+                                "gapdays": gapdays,
+                                "overlaps": overlapdates,
+                                "overlapdays": overlapdays,
+                                "Last Meter Data Date":failedenddate,
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#energy"
+                            }
+                        }
+                    )
+                else:
+                        st.write(f"Failed to fetch consumption data for meter {meterid} (HTTP {response.status_code})"
+                    )
+        
+        if haswatergaps == "Possible Issue" or waterlessthan12months == "Possible Issue":
+            for meter in dict_data['meterPropertyAssociationList']['waterMeterAssociation']['meters']['meterId']:
+                date2=datetime(int(datayear),1,1)
+                meterid=meter
+                response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                dict_data2= xmltodict.parse(response.content)
+                meter_info = dict_data2.get("meter", {})
+                response = session.get(
+                    f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}/consumptionData?startDate=2020-01-01",
+                    auth=HTTPBasicAuth(user, pw),
+                    timeout=60,
+                )
+                if meter_info.get("inUse") == 'false':
+                    if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
+                        pass
+                    else:
+                        errorlist.append(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
+                elif response.ok and response.content:
+                    try:
+                        dict_data3=xmltodict.parse(response.content)
+                    except ExpatError:
+                        errorlist.append(
+                            f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
+                        )
+                        continue
+                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    if not meter_consumption:
+                        continue
+                    df = pd.json_normalize(meter_consumption)
+                    df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
+                    df['endDate'] = pd.to_datetime(df['endDate'], format="%Y-%m-%d", errors="coerce")
+                    df = df.sort_values("startDate").reset_index(drop=True)
+                    df["prev_endDate"] = df["endDate"].shift(1)
+                    df["gap_days"] = (df["startDate"] - df["prev_endDate"]).dt.days
+                    gaps = df[df["gap_days"] > 1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "gap_start_endDate",
+                            "startDate": "gap_end_startDate"
+                        }
+                    )
+                    gapdates=[]
+                    gapdays=[]
+                    overlapdates=[]
+                    overlapdays=[]
+                    overlaps = df[df["gap_days"] <= -1][["prev_endDate", "startDate", "gap_days"]].rename(
+                        columns={
+                            "prev_endDate": "overlap_prev_endDate",
+                            "startDate": "overlap_startDate",
+                            "gap_days": "overlap_days",
+                        }
+                    )
+                    for row in gaps.itertuples(index=False):
+                        gapstartenddate = row.gap_start_endDate.strftime("%Y-%m-%d")
+                        gapendstartdate = row.gap_end_startDate.strftime("%Y-%m-%d")
+                        gapdates.append(f"{gapstartenddate} to {gapendstartdate}")
+                        gapdays.append(f"{row.gap_days}<br>")
+                    for row in overlaps.itertuples(index=False):
+                        overlapstartdate = row.overlap_prev_endDate.strftime("%Y-%m-%d")
+                        overlapenddate = row.overlap_startDate.strftime("%Y-%m-%d")
+                        overlapdates.append(f"{overlapstartdate} to {overlapenddate}")
+                        overlapdays.append(f"{abs(row.overlap_days)}<br>")
+                    gapdates = "<br>".join(gapdates)
+                    gapdays ="<br>".join(gapdays)
+                    overlapdates = "<br>".join(overlapdates)
+                    overlapdays = "<br>".join(overlapdays)
+                    failedenddate = ""
+                    last_end_date = df["endDate"].dropna().max()
+                    inactive_date = pd.to_datetime(
+                        meter_info.get("inactiveDate"),
+                        format="%Y-%m-%d",
+                        errors="coerce",
+                    )
+                    comparison_date = inactive_date if pd.notna(inactive_date) else lastdayinyear
+                    if (
+                        meter_info.get("inUse") != "false"
+                        and pd.notna(last_end_date)
+                        and last_end_date < comparison_date
+                    ):
+                        failedenddate = last_end_date.strftime("%Y-%m-%d")
+                    
+                    water_errordict.update(
+                        {
+                            meterid: {
+                                "name": meter_info.get("name", ""),
+                                "gaps": gapdates,
+                                "gapdays": gapdays,
+                                "overlaps": overlapdates,
+                                "overlapdays": overlapdays,
+                                "Last Meter Data Date":failedenddate,
+                                "meterlink":f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#water"
+                            }
+                        }
+                    )
+                else:
+                    st.write(f"Failed to fetch consumption data for water meter {meterid} (HTTP {response.status_code})"
+                    )
+
+        energy_errordict = {
+            meter_id: details
+            for meter_id, details in energy_errordict.items()
+            if isinstance(details, dict)
+            and any(
+                pd.notna(value) and str(value).strip() != ""
+                for key, value in details.items()
+                if key not in {"meterlink", "name"}
+            )
+        }
+        water_errordict = {
+            meter_id: details
+            for meter_id, details in water_errordict.items()
+            if isinstance(details, dict)
+            and any(
+                pd.notna(value) and str(value).strip() != ""
+                for key, value in details.items()
+                if key not in {"meterlink", "name"}
+            )
+        }
+        return {"energy": energy_errordict, "water": water_errordict}
 def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
@@ -313,40 +579,78 @@ def findgaps(selection):
             )
         }
         return {"energy": energy_errordict, "water": water_errordict}
-buildings_query = """
-    ;WITH ranked AS (
+if tenant == "migbc":
+    buildings_query = """
+            ;WITH ranked AS (
+            SELECT
+                e.espmid,
+                e.buildingname,
+                COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
+                e.datayear,
+                e.hasenergygaps,
+                e.haswatergaps,
+                e.energylessthan12months,
+                e.waterlessthan12months,
+                e.association,
+                ROW_NUMBER() OVER (
+                    PARTITION BY e.espmid
+                    ORDER BY e.datayear DESC
+                ) AS rn
+            FROM PrimaryDataBase e
+            LEFT JOIN portfolios p
+                ON e.espmid = p.espmid
+            WHERE e.has_issue = 1
+            AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
+        )
+        SELECT
+            espmid,
+            buildingname,
+            portfolio_name,
+            datayear,
+            hasenergygaps,
+            haswatergaps,
+            energylessthan12months,
+            waterlessthan12months,
+            association
+        FROM ranked
+        WHERE rn = 1
+        ORDER BY espmid;
+        """
+else:
+    buildings_query = """
+        ;WITH ranked AS (
+        SELECT
+            e.espmid,
+            e.buildingname,
+            COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
+            e.datayear,
+            e.hasenergygaps,
+            e.haswatergaps,
+            e.energylessthan12months,
+            e.waterlessthan12months,
+            ROW_NUMBER() OVER (
+                PARTITION BY e.espmid
+                ORDER BY e.datayear DESC
+            ) AS rn
+        FROM PrimaryDataBase e
+        LEFT JOIN portfolios p
+            ON e.espmid = p.espmid
+        WHERE e.has_issue = 1
+        AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
+    )
     SELECT
-        e.espmid,
-        e.buildingname,
-        COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
-        e.datayear,
-        e.hasenergygaps,
-        e.haswatergaps,
-        e.energylessthan12months,
-        e.waterlessthan12months,
-        ROW_NUMBER() OVER (
-            PARTITION BY e.espmid
-            ORDER BY e.datayear DESC
-        ) AS rn
-    FROM PrimaryDataBase e
-    LEFT JOIN portfolios p
-        ON e.espmid = p.espmid
-    WHERE e.has_issue = 1
-      AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
-)
-SELECT
-    espmid,
-    buildingname,
-    portfolio_name,
-    datayear,
-    hasenergygaps,
-    haswatergaps,
-    energylessthan12months,
-    waterlessthan12months
-FROM ranked
-WHERE rn = 1
-ORDER BY espmid;
-"""
+        espmid,
+        buildingname,
+        portfolio_name,
+        datayear,
+        hasenergygaps,
+        haswatergaps,
+        energylessthan12months,
+        waterlessthan12months
+    FROM ranked
+    WHERE rn = 1
+    ORDER BY espmid;
+    """
 
 buildings_df = conn.query(buildings_query)
 portfolio_options = ["All Portfolios"] + sorted(
