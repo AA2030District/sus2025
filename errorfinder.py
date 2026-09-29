@@ -7,7 +7,7 @@ import requests
 from requests.auth import HTTPBasicAuth 
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from auth_helper import get_connection, get_tenant_secret, require_login
+from auth_helper import get_connection, get_tenant_secret, require_login,get_current_tenant
 import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
@@ -15,7 +15,7 @@ import streamlit.components.v1 as components
 
 ###Todo - add the option to rerun a report using ONLY the buildings in the table and take it off the error list if so, real time updating error list.
 
-
+print(get_current_tenant)
 espm_creds = get_tenant_secret("espm")
 user = espm_creds["username"]
 pw = espm_creds["password"]
