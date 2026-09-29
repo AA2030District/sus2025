@@ -121,7 +121,7 @@ def findgapsgr(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
         if selection["association"].iloc[0] in ("GBC", "Both"):
-            espm_credsmigbc=get_tenant_secret("espm","migbc")
+            espm_credsmigbc=get_tenant_secret("espm","gbc")
             user = espm_credsmigbc["username"]
             pw = espm_credsmigbc["password"]
         else:
