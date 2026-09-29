@@ -81,7 +81,7 @@ def _build_meter_df(meter_dict):
             else ""
         )
     return df
-
+#MAYBE DELETE
 def _build_meter_dfgr(meter_dict):
     df = (
         pd.DataFrame.from_dict(meter_dict, orient="index")
@@ -120,8 +120,14 @@ def _build_meter_dfgr(meter_dict):
 def findgapsgr(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
-        espm_credsgr=get_tenant_secret("espm","gr")
-        espm_credsmigbc=get_tenant_secret("espm","migbc")
+        if selection['assocation'] =='GBC' or 'Both':
+            espm_credsmigbc=get_tenant_secret("espm","migbc")
+            user = espm_credsmigbc["username"]
+            pw = espm_credsmigbc["password"]
+        else:
+            espm_credsgr=get_tenant_secret("espm","gr")
+            user = espm_credsgr["username"]
+            pw = espm_credsgr["password"]
         errorlist=[]
         energy_errordict={}
         water_errordict={}
@@ -718,7 +724,10 @@ with errors:
                 f"Selected: {filtered_df['buildingname'].iloc[0]} "
                 f"({selected_row_index + 1}/{len(df)})"
             )
-            errordicts = findgaps(filtered_df)
+            if tenant == 'migbc':
+                errordicts = findgapsgr(filtered_df)
+            else:
+                errordicts = findgaps(filtered_df)
             energy_df = _build_meter_df(errordicts.get("energy", {}))
             water_df = _build_meter_df(errordicts.get("water", {}))
 
