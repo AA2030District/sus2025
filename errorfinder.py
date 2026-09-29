@@ -17,6 +17,7 @@ import streamlit.components.v1 as components
 
 require_login()
 tenant = get_current_tenant()
+st.write(tenant)
 espm_creds = get_tenant_secret("espm")
 user = espm_creds["username"]
 pw = espm_creds["password"]
