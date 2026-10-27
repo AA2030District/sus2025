@@ -39,7 +39,7 @@ left JOIN [dbo].[portfolios] p
     ON e.[espmid] = p.[espmid]
 left JOIN [dbo].[Baselines] b
     ON e.[espmid] = b.[espmid]
-WHERE TRY_CONVERT(INT, e.datayear) = (
+WHERE TRY_CONVERT(INT, e.datayear) = 
       SELECT MAX(TRY_CONVERT(INT, e2.datayear))
       FROM [dbo].[PrimaryDataBase] e2
       WHERE e2.espmid = e.espmid

@@ -224,71 +224,116 @@ def add_missing_portfolio_ids(connection, cursor, espmids):
     print(f"Added {inserted_count} missing ESPM IDs to dbo.portfolios.")
 
 def generatereport(espmidlist):
-    ##This property is bugged - isn't shared with us and I can't unshare it so it's in the list and causing problems 
     ids_xml = "\n".join(f"          <id>{espmid}</id>" for espmid in espmidlist)
     today = datetime.date.today()
-    most_recent_complete_month = today.replace(day=1) - datetime.timedelta(days=1)
+    auth = HTTPBasicAuth(user, pw)
+    report_ranges = [(21829340, 2021, today.year - 1, 12)]
 
-    report_xml = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        "<report>\n"
-        "     <timeframe>\n"
-        "          <dateRange>\n"
-        "               <fromPeriodEndingDate>\n"
-        "                    <month>1</month>\n"
-        "                    <year>2021</year>\n"
-        "               </fromPeriodEndingDate>\n"
-        "               <toPeriodEndingDate>\n"
-        f"                    <month>{most_recent_complete_month.month}</month>\n"
-        f"                    <year>{most_recent_complete_month.year}</year>\n"
-        "               </toPeriodEndingDate>\n"
-        "                <interval>YEARLY</interval>\n"
-        "          </dateRange>\n"
-        "     </timeframe>\n"
-        "     <properties>\n"
-        f"{ids_xml}\n"
-        "     </properties>\n"
-        "</report>"
-    )
-    response = session.put(
-        "https://portfoliomanager.energystar.gov/ws/reports/21829340",
-        auth=HTTPBasicAuth(user, pw),
-        data=report_xml,
-        headers={"Content-Type": "application/xml"},
-        timeout=60,
-    ).content
-    response =session.post("https://portfoliomanager.energystar.gov/ws/reports/21829340/generate",auth=HTTPBasicAuth(user, pw),timeout=60)
-    results=response.content
-    print(results)
-    try:
-        time.sleep(100)
-        max_download_attempts = 6
-        response = None
-        dict_data = None    
-        for attempt in range(1, max_download_attempts + 1):
+    submitted_reports = []
+    for report_id, from_year, to_year, to_month in report_ranges:
+        report_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<report>\n"
+            "     <timeframe>\n"
+            "          <dateRange>\n"
+            "               <fromPeriodEndingDate>\n"
+            "                    <month>1</month>\n"
+            f"                    <year>{from_year}</year>\n"
+            "               </fromPeriodEndingDate>\n"
+            "               <toPeriodEndingDate>\n"
+            f"                    <month>{to_month}</month>\n"
+            f"                    <year>{to_year}</year>\n"
+            "               </toPeriodEndingDate>\n"
+            "                <interval>YEARLY</interval>\n"
+            "          </dateRange>\n"
+            "     </timeframe>\n"
+            "     <properties>\n"
+            f"{ids_xml}\n"
+            "     </properties>\n"
+            "</report>"
+        )
+        report_url = (
+            f"https://portfoliomanager.energystar.gov/ws/reports/{report_id}"
+        )
+        response = session.get(f"{report_url}/status", auth=auth, timeout=60)
+        response.raise_for_status()
+        previous_submission = et.fromstring(response.content).findtext(
+            "submittedDate"
+        )
+
+        response = session.put(
+            report_url,
+            auth=auth,
+            data=report_xml,
+            headers={"Content-Type": "application/xml"},
+            timeout=60,
+        )
+        response.raise_for_status()
+        response = session.post(f"{report_url}/generate", auth=auth, timeout=60)
+        response.raise_for_status()
+        submitted_reports.append(
+            (report_id, report_url, previous_submission, time.monotonic() + 900)
+        )
+
+    reports = {}
+    for report_id, report_url, previous_submission, deadline in submitted_reports:
+        last_status = None
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Report {report_id} did not finish within 900 seconds. "
+                    f"Last status: {last_status or 'UNKNOWN'}"
+                )
+
             response = session.get(
-                "https://portfoliomanager.energystar.gov/ws/reports/21829340/download?type=XML",
-                auth=HTTPBasicAuth(user, pw),
-                timeout=60,
+                f"{report_url}/status",
+                auth=auth,
+                timeout=min(60, remaining),
             )
-            if response.status_code == 200 and response.content:
-                results = response.content
-                dict_data = xmltodict.parse(response.content)
+            response.raise_for_status()
+            report_status = et.fromstring(response.content)
+            status = report_status.findtext("status", default="").strip()
+            submitted_date = report_status.findtext("submittedDate")
+            current_run = bool(
+                submitted_date and submitted_date != previous_submission
+            )
+
+            if status != last_status:
+                print(f"Report {report_id} status: {status or 'UNKNOWN'}")
+                last_status = status
+
+            if current_run and status == "FAILED":
+                raise RuntimeError(f"Report {report_id} generation failed.")
+            if current_run and status == "GENERATED":
                 break
-            print(
-                f"Report download attempt {attempt}/{max_download_attempts} "
-                f"returned HTTP {response.status_code}. Retrying..."
-            )
-            if attempt < max_download_attempts:
-                time.sleep(100)
-        if dict_data is None:
+            if status not in {
+                "INITIALIZED", "SUBMITTED", "IN_PROCESS", "GENERATED", "FAILED"
+            }:
+                raise RuntimeError(
+                    f"Unexpected status for report {report_id}: {status or 'UNKNOWN'}"
+                )
+
+            time.sleep(min(5, max(0, deadline - time.monotonic())))
+
+        response = session.get(
+            f"{report_url}/download?type=XML",
+            auth=auth,
+            timeout=60,
+        )
+        response.raise_for_status()
+        if not response.content:
             raise RuntimeError(
-                f"Failed to download report after {max_download_attempts} attempts. "
-                f"Last HTTP status: {response.status_code if response else 'N/A'}"
+                f"Report {report_id} download returned an empty response."
             )
-    except Exception as e:
-        print(f"The following exception occurred: {e}")
-    return dict_data
+        reports[report_id] = xmltodict.parse(
+            response.content, force_list=("propertyMetrics", "metric")
+        )
+
+    report_data = reports[21829340]
+    metrics = report_data["reportData"]["informationAndMetrics"]
+    metrics["propertyMetrics"] = metrics.get("propertyMetrics") or []
+    return report_data
 
 def errordbhandling():
     espmyearsort="""

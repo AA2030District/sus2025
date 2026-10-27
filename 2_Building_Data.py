@@ -440,13 +440,14 @@ def get_meter_data(table_name, espmid, energy_type):
     return df
 
 is_migbc = get_current_tenant() == "migbc"
+is_detroit = get_current_tenant() =='detroit'
 pie_energy_metrics = {
     "electric_usage": 0,
     "natural_gas_usage": 0,
     "solar_usage": 0,
 }
 
-if is_migbc:
+if is_migbc or is_detroit:
     # PrimaryDataBase has one annual row per building, not meter entries.
     fuel_columns = {
         "electric_usage": ("siteEnergyUseElectricityGridPurchaseKwh", KWH_TO_KBTU),

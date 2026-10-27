@@ -262,10 +262,12 @@ site_eui_first_slot = st.empty()
 
 # Building counts by year from DB:
 # include a property's building count when report_year >= year joined
+### ONCE I FIX REPORTING SWITCH THIS BACK TO BE MOST RECENT YEAR
+#todo SWITCH BACK TO BE MOST RECENT YEAR!!!!
 def buildings_by_year_query_builder(tenant):
     if tenant == "washtenaw":
         buildings_by_year_query = f"""
-WITH years AS (
+WITH years AS (S
     SELECT 2018 AS report_year UNION ALL
     SELECT 2019 UNION ALL
     SELECT 2020 UNION ALL
@@ -287,7 +289,7 @@ property_rollup AS (
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.datayear < {most_recent_full_calendar_year + 1}
+      AND d.datayear < {most_recent_full_calendar_year}
     GROUP BY d.espmid
 )
 SELECT
