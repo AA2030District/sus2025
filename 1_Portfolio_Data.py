@@ -267,7 +267,7 @@ site_eui_first_slot = st.empty()
 def buildings_by_year_query_builder(tenant):
     if tenant == "washtenaw":
         buildings_by_year_query = f"""
-WITH years AS (S
+WITH years AS (
     SELECT 2018 AS report_year UNION ALL
     SELECT 2019 UNION ALL
     SELECT 2020 UNION ALL
