@@ -219,9 +219,22 @@ def add_missing_portfolio_ids(connection, cursor, espmids):
     """)
     cursor.execute("SELECT @@ROWCOUNT")
     inserted_count = cursor.fetchone()[0]
+    cursor.execute("""
+        INSERT INTO dbo.yearjoined (ESPMID, [year joined])
+        SELECT source.espmid, ?
+        FROM #PortfolioIds AS source
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.yearjoined AS target
+            WHERE target.ESPMID = source.espmid
+        );
+    """, datetime.date.today().year)
+    cursor.execute("SELECT @@ROWCOUNT")
+    joined_count = cursor.fetchone()[0]
     cursor.execute("DROP TABLE #PortfolioIds")
     connection.commit()
     print(f"Added {inserted_count} missing ESPM IDs to dbo.portfolios.")
+    print(f"Added {joined_count} missing ESPM IDs to dbo.yearjoined.")
 
 def generatereport(espmidlist):
     ids_xml = "\n".join(f"          <id>{espmid}</id>" for espmid in espmidlist)
