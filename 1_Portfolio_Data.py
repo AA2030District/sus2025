@@ -283,12 +283,14 @@ property_rollup AS (
         d.espmid,
         MAX(TRY_CAST(yj.[year joined] AS INT)) AS year_joined,
         MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS numbuildings,
-        MAX(TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))) AS sqfootage
+        MAX(CASE
+            WHEN ISNULL(d.[donotinclude], 0) <> 1
+            THEN TRY_CAST(d.[sqfootage] AS DECIMAL(18,2))
+        END) AS sqfootage
     FROM [dbo].[PrimaryDataBase] d
     LEFT JOIN [dbo].[yearjoined] yj
         ON d.espmid = yj.ESPMID
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
       AND d.datayear < {most_recent_full_calendar_year}
     GROUP BY d.espmid
 )
@@ -324,7 +326,7 @@ property_rollup AS (
     FROM [dbo].[PrimaryDataBase] d
     WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
       AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.datayear < {most_recent_full_calendar_year + 1}
+      AND d.datayear = {most_recent_full_calendar_year}
     GROUP BY d.espmid
 )
 SELECT
