@@ -27,221 +27,45 @@ st.title("Portfolio Data")
 conn = get_connection()
 tenant = get_current_tenant()
 most_recent_full_calendar_year = time.localtime().tm_year - 1
-energy_data_start_year = 2021
-water_data_start_year = 2021
 
 
 def summary_query_builder(tenant):
-    if tenant=='washtenaw':
-        summary_query = """
-        WITH latest_year AS (
-            SELECT MAX([datayear]) AS report_year
-            FROM [dbo].[PrimaryDataBase]
-            WHERE [datayear] IS NOT NULL
-            AND ISNULL([donotinclude], 0) <> 1
-        )
-        SELECT 
-            COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-            AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-            COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-        FROM [dbo].[PrimaryDataBase] e
-        CROSS JOIN latest_year ly
-        WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-            AND e.[datayear] = ly.report_year
-            AND ISNULL(e.[donotinclude], 0) <> 1
-        HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
-        return summary_query
-    else:
-        summary_query = """
-                WITH latest_year AS (
-                    SELECT MAX([datayear]) AS report_year
-                    FROM [dbo].[PrimaryDataBase]
-                    WHERE [datayear] IS NOT NULL
-                    AND ISNULL([donotinclude], 0) <> 1
-                )
-                SELECT 
-                    COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) as total_sqft,
-                    AVG(TRY_CAST([siteeui] AS DECIMAL(10,2))) as avg_siteeui,
-                    COALESCE(SUM(TRY_CAST([numbuildings] AS DECIMAL(10,2))), 0) as building_count
-                FROM [dbo].[PrimaryDataBase] e
-                CROSS JOIN latest_year ly
-                WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
-                    AND e.[datayear] = ly.report_year
-                    AND ISNULL(e.[donotinclude], 0) <> 1
-                HAVING COALESCE(SUM(TRY_CAST([sqfootage] AS DECIMAL(10,2))), 0) > 0"""
-        return summary_query
+    return """
+WITH latest_year AS (
+    SELECT MAX([datayear]) AS report_year
+    FROM [dbo].[PrimaryDataBase]
+    WHERE [datayear] IS NOT NULL
+      AND ISNULL([donotinclude], 0) <> 1
+)
+SELECT
+    COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) AS total_sqft,
+    AVG(TRY_CAST(e.[siteeui] AS DECIMAL(10,2))) AS avg_siteeui,
+    COALESCE(SUM(TRY_CAST(e.[numbuildings] AS DECIMAL(10,2))), 0) AS building_count,
+    COALESCE(SUM(CASE
+        WHEN UPPER(ISNULL(e.[hasenergygaps], '')) = 'OK'
+         AND UPPER(ISNULL(e.[energylessthan12months], '')) = 'OK'
+        THEN TRY_CAST(e.[numbuildings] AS DECIMAL(10,2))
+        ELSE 0
+    END), 0) AS energy_ok_buildings,
+    COALESCE(SUM(CASE
+        WHEN UPPER(ISNULL(e.[haswatergaps], '')) = 'OK'
+         AND UPPER(ISNULL(e.[waterlessthan12months], '')) = 'OK'
+        THEN TRY_CAST(e.[numbuildings] AS DECIMAL(10,2))
+        ELSE 0
+    END), 0) AS water_ok_buildings
+FROM [dbo].[PrimaryDataBase] e
+CROSS JOIN latest_year ly
+WHERE ISNULL(e.pmparentid, e.espmid) = e.espmid
+    AND e.[datayear] = ly.report_year
+    AND ISNULL(e.[donotinclude], 0) <> 1
+HAVING COALESCE(SUM(TRY_CAST(e.[sqfootage] AS DECIMAL(10,2))), 0) > 0
+"""
+
 
 summary_df = conn.query(summary_query_builder(tenant))
+energy_ok_buildings = int(round(float(summary_df["energy_ok_buildings"].sum())))
+water_ok_buildings = int(round(float(summary_df["water_ok_buildings"].sum())))
 
-def energy_ok_buildings_query_builder(tenant):
-    if tenant == 'washtenaw':
-        energy_ok_buildings_query = f"""
-WITH property_rollup AS (
-    SELECT
-        d.espmid,
-        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
-    FROM [dbo].[PrimaryDataBase] d
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-    GROUP BY d.espmid
-),
-qualifying_properties AS (
-    SELECT
-        pr.espmid
-    FROM property_rollup pr
-    JOIN [dbo].[PrimaryDataBase] d
-        ON d.espmid = pr.espmid
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.[datayear] BETWEEN {energy_data_start_year} AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid
-    HAVING COUNT(DISTINCT d.[datayear]) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
-       AND COUNT(DISTINCT CASE
-            WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
-             AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
-            THEN d.[datayear]
-        END) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
-)
-SELECT
-    COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
-FROM property_rollup pr
-JOIN qualifying_properties qp
-    ON pr.espmid = qp.espmid;
-"""
-        return energy_ok_buildings_query
-    else:
-        energy_ok_buildings_query = f"""
-WITH property_rollup AS (
-    SELECT
-        d.espmid,
-        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS energy_ok_buildings
-    FROM [dbo].[PrimaryDataBase] d
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-    GROUP BY d.espmid
-),
-qualifying_properties AS (
-    SELECT
-        pr.espmid
-    FROM property_rollup pr
-    JOIN [dbo].[PrimaryDataBase] d
-        ON d.espmid = pr.espmid
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.[datayear] BETWEEN {energy_data_start_year} AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid
-    HAVING COUNT(DISTINCT d.[datayear]) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
-       AND COUNT(DISTINCT CASE
-            WHEN UPPER(ISNULL(d.[hasenergygaps], '')) = 'OK'
-             AND UPPER(ISNULL(d.[energylessthan12months], '')) = 'OK'
-            THEN d.[datayear]
-        END) = {most_recent_full_calendar_year} - {energy_data_start_year} + 1
-)
-SELECT
-    COALESCE(SUM(pr.energy_ok_buildings), 0) AS energy_ok_buildings
-FROM property_rollup pr
-JOIN qualifying_properties qp
-    ON pr.espmid = qp.espmid;
-"""
-        return energy_ok_buildings_query
-
-energy_ok_buildings_df = conn.query(energy_ok_buildings_query_builder(tenant))
-if not energy_ok_buildings_df.empty and pd.notna(energy_ok_buildings_df['energy_ok_buildings'].iloc[0]):
-    energy_ok_buildings = int(round(float(energy_ok_buildings_df['energy_ok_buildings'].iloc[0])))
-else:
-    energy_ok_buildings = 0
-
-def water_ok_buildings_query_builder(tenant):
-    if tenant == "detroit":
-        return f"""
-WITH property_rollup AS (
-    SELECT
-        d.espmid,
-        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
-    FROM [dbo].[PrimaryDataBase] d
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-    GROUP BY d.espmid
-),
-water_data_start AS (
-    SELECT
-        d.espmid,
-        MIN(d.[datayear]) AS first_water_data_year
-    FROM [dbo].[PrimaryDataBase] d
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.[datayear] <= {most_recent_full_calendar_year}
-      AND TRY_CAST(d.[wui] AS DECIMAL(18,2)) IS NOT NULL
-    GROUP BY d.espmid
-),
-qualifying_properties AS (
-    SELECT
-        pr.espmid
-    FROM property_rollup pr
-    JOIN water_data_start ws
-        ON ws.espmid = pr.espmid
-    JOIN [dbo].[PrimaryDataBase] d
-        ON d.espmid = pr.espmid
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.[datayear]
-          BETWEEN ws.first_water_data_year AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid, ws.first_water_data_year
-    HAVING COUNT(DISTINCT d.[datayear])
-               = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
-       AND COUNT(DISTINCT CASE
-            WHEN UPPER(ISNULL(d.[haswatergaps], '')) = 'OK'
-             AND UPPER(ISNULL(d.[waterlessthan12months], '')) = 'OK'
-            THEN d.[datayear]
-        END) = {most_recent_full_calendar_year} - ws.first_water_data_year + 1
-)
-SELECT
-    COALESCE(SUM(pr.water_ok_buildings), 0) AS water_ok_buildings
-FROM property_rollup pr
-JOIN qualifying_properties qp
-    ON pr.espmid = qp.espmid;
-"""
-
-    return f"""
-WITH property_rollup AS (
-    SELECT
-        d.espmid,
-        MAX(TRY_CAST(d.[numbuildings] AS DECIMAL(18,2))) AS water_ok_buildings
-    FROM [dbo].[PrimaryDataBase] d
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-    GROUP BY d.espmid
-),
-qualifying_properties AS (
-    SELECT
-        pr.espmid
-    FROM property_rollup pr
-    JOIN [dbo].[PrimaryDataBase] d
-        ON d.espmid = pr.espmid
-    WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
-      AND ISNULL(d.[donotinclude], 0) <> 1
-      AND d.[datayear]
-          BETWEEN {water_data_start_year} AND {most_recent_full_calendar_year}
-    GROUP BY pr.espmid
-    HAVING COUNT(DISTINCT d.[datayear])
-               = {most_recent_full_calendar_year} - {water_data_start_year} + 1
-       AND COUNT(DISTINCT CASE
-            WHEN UPPER(ISNULL(d.[haswatergaps], '')) = 'OK'
-             AND UPPER(ISNULL(d.[waterlessthan12months], '')) = 'OK'
-            THEN d.[datayear]
-        END) = {most_recent_full_calendar_year} - {water_data_start_year} + 1
-)
-SELECT
-    COALESCE(SUM(pr.water_ok_buildings), 0) AS water_ok_buildings
-FROM property_rollup pr
-JOIN qualifying_properties qp
-    ON pr.espmid = qp.espmid;
-"""
-water_ok_buildings_df = conn.query(water_ok_buildings_query_builder(tenant))
-if not water_ok_buildings_df.empty and pd.notna(water_ok_buildings_df['water_ok_buildings'].iloc[0]):
-    water_ok_buildings = int(round(float(water_ok_buildings_df['water_ok_buildings'].iloc[0])))
-else:
-    water_ok_buildings = 0
 
 # Summary stats
 col1, col2, col3, col4 = st.columns(4)
