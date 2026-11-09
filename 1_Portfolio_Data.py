@@ -347,9 +347,27 @@ buildings_df["buildings"] = (
     .round()
     .astype(int)
 )
-buildings_df['buildings'] = buildings_df['buildings']
+building_counts_query = """
+SELECT
+    d.datayear AS [year],
+    COALESCE(SUM(TRY_CAST(d.numbuildings AS DECIMAL(18,2))), 0) AS buildings
+FROM [dbo].[PrimaryDataBase] d
+WHERE ISNULL(d.pmparentid, d.espmid) = d.espmid
+    AND ISNULL(d.donotinclude, 0) <> 1
+    AND d.datayear IS NOT NULL
+GROUP BY d.datayear
+ORDER BY d.datayear
+"""
+building_counts_df = conn.query(building_counts_query)
+building_counts_df["year"] = building_counts_df["year"].astype(str)
+building_counts_df["buildings"] = (
+    pd.to_numeric(building_counts_df["buildings"], errors="coerce")
+    .fillna(0)
+    .round()
+    .astype(int)
+)
 fig = px.bar(
-    buildings_df,
+    building_counts_df,
     x='year',
     y='buildings',
     color_discrete_sequence=['#205330'],
