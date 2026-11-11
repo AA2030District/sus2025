@@ -58,7 +58,7 @@ def _build_meter_df(meter_dict):
                 "gapdays": "Gap Duration",
                 "overlaps": "Overlap Dates",
                 "overlapdays": "Overlap Duration",
-                "meterlink": "Link To ESPM",
+                "meterlink": "Link to ESPM",
             }
         )
         if meter_dict
@@ -70,7 +70,7 @@ def _build_meter_df(meter_dict):
                 "Overlap Dates",
                 "Overlap Duration",
                 "Last Meter Data Date",
-                "Meter Link",
+                "Link to ESPM",
             ]
         )
     )
@@ -87,7 +87,7 @@ def _build_meter_dfgr(meter_dict):
                 "gapdays": "Gap Duration",
                 "overlaps": "Overlap Dates",
                 "overlapdays": "Overlap Duration",
-                "meterlink": "Meter Link",
+                "meterlink": "Link to ESPM",
             }
         )
         if meter_dict
@@ -99,13 +99,13 @@ def _build_meter_dfgr(meter_dict):
                 "Overlap Dates",
                 "Overlap Duration",
                 "Last Meter Data Date",
-                "Meter Link",
+                "Link to ESPM",
             ]
         )
     )
     df = df.rename_axis("Meter Number").reset_index()
-    if "Meter Link" in df.columns:
-        df["Meter Link"] = df["Meter Link"].map(
+    if "Link to ESPM" in df.columns:
+        df["Link to ESPM"] = df["Link to ESPM"].map(
             lambda x: f'<a href="{x}" target="_blank" rel="noopener noreferrer">Open</a>'
             if isinstance(x, str) and x.strip()
             else ""
@@ -134,9 +134,9 @@ def _show_errorfinder_grid(df, key, selectable=False):
     )
     if "portfolio_name" in grid_df.columns:
         gb.configure_column("portfolio_name", header_name="Portfolio")
-    if "Meter Link" in grid_df.columns:
+    if "Link to ESPM" in grid_df.columns:
         gb.configure_column(
-            "Meter Link",
+            "Link to ESPM",
             cellRenderer=JsCode(
                 """
                 class MeterLinkRenderer {
@@ -212,7 +212,7 @@ def findgapsgr(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(unshared_meters, meterid, selection)
                     continue
                 dict_data2= xmltodict.parse(response.content)
@@ -222,7 +222,7 @@ def findgapsgr(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(
                         unshared_meters, meterid, selection, meter_info.get("name", "")
                     )
@@ -316,7 +316,7 @@ def findgapsgr(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(unshared_meters, meterid, selection)
                     continue
                 dict_data2= xmltodict.parse(response.content)
@@ -326,7 +326,7 @@ def findgapsgr(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(
                         unshared_meters, meterid, selection, meter_info.get("name", "")
                     )
@@ -463,7 +463,7 @@ def findgaps(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(unshared_meters, meterid, selection)
                     continue
                 dict_data2= xmltodict.parse(response.content)
@@ -473,7 +473,7 @@ def findgaps(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(
                         unshared_meters, meterid, selection, meter_info.get("name", "")
                     )
@@ -567,7 +567,7 @@ def findgaps(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(unshared_meters, meterid, selection)
                     continue
                 dict_data2= xmltodict.parse(response.content)
@@ -577,7 +577,7 @@ def findgaps(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
-                if response.status_code == 404:
+                if response.status_code in (403, 404):
                     _record_unshared_meter(
                         unshared_meters, meterid, selection, meter_info.get("name", "")
                     )
