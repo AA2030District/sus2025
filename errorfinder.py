@@ -139,14 +139,22 @@ def _show_errorfinder_grid(df, key, selectable=False):
             "Meter Link",
             cellRenderer=JsCode(
                 """
-                function(params) {
-                    if (!params.value) return "";
-                    const link = document.createElement("a");
-                    link.href = params.value;
-                    link.target = "_blank";
-                    link.rel = "noopener noreferrer";
-                    link.textContent = "Open";
-                    return link;
+                class MeterLinkRenderer {
+                    init(params) {
+                        this.link = document.createElement("a");
+                        this.link.target = "_blank";
+                        this.link.rel = "noopener noreferrer";
+                        if (params.value) {
+                            this.link.href = params.value;
+                            this.link.textContent = "Open";
+                        }
+                    }
+                    getGui() {
+                        return this.link;
+                    }
+                    refresh() {
+                        return false;
+                    }
                 }
                 """
             ),
