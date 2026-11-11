@@ -117,6 +117,17 @@ def _build_meter_dfgr(meter_dict):
         )
     return df
 
+def _record_unshared_meter(unshared_meters, meterid, selection, meter_name=""):
+    building = selection.iloc[0]
+    contact = building.get("Contact")
+    contact_email = building.get("ContactEmail")
+    unshared_meters[meterid] = {
+        "Meter Name": meter_name or "Name unavailable",
+        "Building Contact Name": contact if pd.notna(contact) else "",
+        "Building Contact Email": contact_email if pd.notna(contact_email) else "",
+    }
+
+
 def findgapsgr(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
@@ -131,6 +142,7 @@ def findgapsgr(selection):
         errorlist=[]
         energy_errordict={}
         water_errordict={}
+        unshared_meters={}
         espmid = selection["espmid"].iloc[0]
         datayear = int(selection["datayear"].iloc[0])
         lastdayinyear=datetime(int(datayear),12,31)
@@ -139,13 +151,16 @@ def findgapsgr(selection):
         energylessthan12months = selection["energylessthan12months"].iloc[0]
         waterlessthan12months = selection["waterlessthan12months"].iloc[0]
         response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
-        dict_data= xmltodict.parse(response.content)
+        dict_data= xmltodict.parse(response.content, force_list=("meterId",))
 
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                if response.status_code == 404:
+                    _record_unshared_meter(unshared_meters, meterid, selection)
+                    continue
                 dict_data2= xmltodict.parse(response.content)
                 meter_info = dict_data2.get("meter", {})
                 response = session.get(
@@ -153,6 +168,11 @@ def findgapsgr(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
+                if response.status_code == 404:
+                    _record_unshared_meter(
+                        unshared_meters, meterid, selection, meter_info.get("name", "")
+                    )
+                    continue
                 if meter_info.get("inUse") == 'false':
                     if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
@@ -242,6 +262,9 @@ def findgapsgr(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                if response.status_code == 404:
+                    _record_unshared_meter(unshared_meters, meterid, selection)
+                    continue
                 dict_data2= xmltodict.parse(response.content)
                 meter_info = dict_data2.get("meter", {})
                 response = session.get(
@@ -249,6 +272,11 @@ def findgapsgr(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
+                if response.status_code == 404:
+                    _record_unshared_meter(
+                        unshared_meters, meterid, selection, meter_info.get("name", "")
+                    )
+                    continue
                 if meter_info.get("inUse") == 'false':
                     if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
@@ -354,13 +382,18 @@ def findgapsgr(selection):
                 if key not in {"meterlink", "name"}
             )
         }
-        return {"energy": energy_errordict, "water": water_errordict}
+        return {
+            "energy": energy_errordict,
+            "water": water_errordict,
+            "unshared": unshared_meters,
+        }
 def findgaps(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
         errorlist=[]
         energy_errordict={}
         water_errordict={}
+        unshared_meters={}
         espmid = selection["espmid"].iloc[0]
         datayear = int(selection["datayear"].iloc[0])
         lastdayinyear=datetime(int(datayear),12,31)
@@ -369,13 +402,16 @@ def findgaps(selection):
         energylessthan12months = selection["energylessthan12months"].iloc[0]
         waterlessthan12months = selection["waterlessthan12months"].iloc[0]
         response =session.get(f"https://portfoliomanager.energystar.gov/ws/association/property/{espmid}/meter",auth=HTTPBasicAuth(user, pw),timeout=60)
-        dict_data= xmltodict.parse(response.content)
+        dict_data= xmltodict.parse(response.content, force_list=("meterId",))
 
         if hasenergygaps == "Possible Issue" or energylessthan12months =="Possible Issue":
             for meter in dict_data['meterPropertyAssociationList']['energyMeterAssociation']['meters']['meterId']:
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                if response.status_code == 404:
+                    _record_unshared_meter(unshared_meters, meterid, selection)
+                    continue
                 dict_data2= xmltodict.parse(response.content)
                 meter_info = dict_data2.get("meter", {})
                 response = session.get(
@@ -383,6 +419,11 @@ def findgaps(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
+                if response.status_code == 404:
+                    _record_unshared_meter(
+                        unshared_meters, meterid, selection, meter_info.get("name", "")
+                    )
+                    continue
                 if meter_info.get("inUse") == 'false':
                     if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
@@ -472,6 +513,9 @@ def findgaps(selection):
                 date2=datetime(int(datayear),1,1)
                 meterid=meter
                 response =session.get(f"https://portfoliomanager.energystar.gov/ws/meter/{meterid}",auth=HTTPBasicAuth(user, pw),timeout=60)
+                if response.status_code == 404:
+                    _record_unshared_meter(unshared_meters, meterid, selection)
+                    continue
                 dict_data2= xmltodict.parse(response.content)
                 meter_info = dict_data2.get("meter", {})
                 response = session.get(
@@ -479,6 +523,11 @@ def findgaps(selection):
                     auth=HTTPBasicAuth(user, pw),
                     timeout=60,
                 )
+                if response.status_code == 404:
+                    _record_unshared_meter(
+                        unshared_meters, meterid, selection, meter_info.get("name", "")
+                    )
+                    continue
                 if meter_info.get("inUse") == 'false':
                     if datetime.strptime(meter_info['inactiveDate'],"%Y-%m-%d")<date2:
                         pass
@@ -584,7 +633,11 @@ def findgaps(selection):
                 if key not in {"meterlink", "name"}
             )
         }
-        return {"energy": energy_errordict, "water": water_errordict}
+        return {
+            "energy": energy_errordict,
+            "water": water_errordict,
+            "unshared": unshared_meters,
+        }
 if tenant == "migbc":
     buildings_query = """
             ;WITH ranked AS (
@@ -592,6 +645,8 @@ if tenant == "migbc":
                 e.espmid,
                 e.buildingname,
                 COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
+                p.Contact,
+                p.ContactEmail,
                 e.datayear,
                 e.hasenergygaps,
                 e.haswatergaps,
@@ -612,6 +667,8 @@ if tenant == "migbc":
             espmid,
             buildingname,
             portfolio_name,
+            Contact,
+            ContactEmail,
             datayear,
             hasenergygaps,
             haswatergaps,
@@ -629,6 +686,8 @@ else:
             e.espmid,
             e.buildingname,
             COALESCE(CAST(p.portfolio AS NVARCHAR(255)), 'Unassigned') AS portfolio_name,
+            p.Contact,
+            p.ContactEmail,
             e.datayear,
             e.hasenergygaps,
             e.haswatergaps,
@@ -648,6 +707,8 @@ else:
         espmid,
         buildingname,
         portfolio_name,
+        Contact,
+        ContactEmail,
         datayear,
         hasenergygaps,
         haswatergaps,
@@ -730,6 +791,11 @@ with errors:
                 errordicts = findgaps(filtered_df)
             energy_df = _build_meter_df(errordicts.get("energy", {}))
             water_df = _build_meter_df(errordicts.get("water", {}))
+            unshared_df = (
+                pd.DataFrame.from_dict(errordicts.get("unshared", {}), orient="index")
+                .rename_axis("Meter Number")
+                .reset_index()
+            )
 
             if not energy_df.empty:
                 st.subheader("Energy Meter Errors")
@@ -739,7 +805,11 @@ with errors:
                 st.subheader("Water Meter Errors")
                 st.markdown(water_df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
-            if energy_df.empty and water_df.empty:
+            if not unshared_df.empty:
+                st.subheader("Unshared Meters")
+                st.dataframe(unshared_df, hide_index=True, use_container_width=True)
+
+            if energy_df.empty and water_df.empty and unshared_df.empty:
                 st.write("No errors returned for this building.")
 
             _, col_prev, col_next = st.columns([6, 1, 1])
