@@ -12,6 +12,7 @@ import xmltodict
 from datetime import datetime
 from xml.parsers.expat import ExpatError
 import streamlit.components.v1 as components
+from st_aggrid import AgGrid, GridOptionsBuilder, JsCode
 
 ###Todo - add the option to rerun a report using ONLY the buildings in the table and take it off the error list if so, real time updating error list.
 
@@ -74,12 +75,6 @@ def _build_meter_df(meter_dict):
         )
     )
     df = df.rename_axis("Meter Number").reset_index()
-    if "Meter Link" in df.columns:
-        df["Meter Link"] = df["Meter Link"].map(
-            lambda x: f'<a href="{x}" target="_blank" rel="noopener noreferrer">Open</a>'
-            if isinstance(x, str) and x.strip()
-            else ""
-        )
     return df
 #MAYBE DELETE
 def _build_meter_dfgr(meter_dict):
@@ -116,6 +111,57 @@ def _build_meter_dfgr(meter_dict):
             else ""
         )
     return df
+
+def _show_errorfinder_grid(df, key, selectable=False):
+    grid_df = df.copy()
+    for column in ("Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration"):
+        if column in grid_df.columns:
+            grid_df[column] = grid_df[column].str.replace(
+                "<br>", "\n", regex=False
+            ).str.strip()
+
+    gb = GridOptionsBuilder.from_dataframe(grid_df)
+    gb.configure_default_column(
+        editable=False,
+        filter=True,
+        sortable=True,
+        resizable=True,
+        floatingFilter=True,
+        minWidth=100,
+        wrapText=True,
+        autoHeight=True,
+        cellStyle={"whiteSpace": "pre-line"},
+    )
+    if "portfolio_name" in grid_df.columns:
+        gb.configure_column("portfolio_name", header_name="Portfolio")
+    if "Meter Link" in grid_df.columns:
+        gb.configure_column(
+            "Meter Link",
+            cellRenderer=JsCode(
+                """
+                function(params) {
+                    if (!params.value) return "";
+                    const link = document.createElement("a");
+                    link.href = params.value;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.textContent = "Open";
+                    return link;
+                }
+                """
+            ),
+        )
+    gb.configure_selection("single" if selectable else "disabled")
+    gb.configure_grid_options(autoSizeStrategy={"type": "fitCellContents"})
+    return AgGrid(
+        grid_df,
+        gridOptions=gb.build(),
+        height=500 if selectable else 350,
+        update_on=["selectionChanged"] if selectable else [],
+        allow_unsafe_jscode=True,
+        key=key,
+    )
+
 
 def _record_unshared_meter(unshared_meters, meterid, selection, meter_name=""):
     building = selection.iloc[0]
@@ -743,11 +789,6 @@ else:
 
 replace_text = "Not Checked (See Possible Issues)"
 df = df.replace(replace_text, "No Meters in Property Metrics")
-column_configuration = {
-    col: st.column_config.Column(col)
-    for col in df.columns
-}
-column_configuration["portfolio_name"] = st.column_config.TextColumn("Portfolio")
 
 with select: # Add select tab #############################################
     if selected_portfolio == "All Portfolios":
@@ -758,21 +799,21 @@ with select: # Add select tab #############################################
     if df.empty:
         st.info("No buildings with errors found for the selected portfolio.")
     else:
-        event = st.dataframe(
+        event = _show_errorfinder_grid(
             df,
-            use_container_width=True,
-            column_config=column_configuration,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
+            key=f"errorfinder_buildings_{selected_portfolio}",
+            selectable=True,
         )
 
-        building = event.selection.rows
-        if building:
-            table_selected_row = building[0]
-            if st.session_state.last_table_selected_row != table_selected_row:
-                st.session_state.selected_row_index = table_selected_row
-                st.session_state.last_table_selected_row = table_selected_row
+        selected_rows = event["selected_rows"]
+        if selected_rows is not None and len(selected_rows):
+            selected_espmid = pd.DataFrame(selected_rows)["espmid"].iloc[0]
+            matching_rows = df.index[df["espmid"] == selected_espmid]
+            if len(matching_rows):
+                table_selected_row = int(matching_rows[0])
+                if st.session_state.last_table_selected_row != table_selected_row:
+                    st.session_state.selected_row_index = table_selected_row
+                    st.session_state.last_table_selected_row = table_selected_row
 with errors:
     if df.empty:
         st.write("No buildings available for the selected portfolio.")
@@ -799,15 +840,21 @@ with errors:
 
             if not energy_df.empty:
                 st.subheader("Energy Meter Errors")
-                st.markdown(energy_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                _show_errorfinder_grid(
+                    energy_df, key=f"errorfinder_energy_{filtered_df['espmid'].iloc[0]}"
+                )
 
             if not water_df.empty:
                 st.subheader("Water Meter Errors")
-                st.markdown(water_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+                _show_errorfinder_grid(
+                    water_df, key=f"errorfinder_water_{filtered_df['espmid'].iloc[0]}"
+                )
 
             if not unshared_df.empty:
                 st.subheader("Unshared Meters")
-                st.dataframe(unshared_df, hide_index=True, use_container_width=True)
+                _show_errorfinder_grid(
+                    unshared_df, key=f"errorfinder_unshared_{filtered_df['espmid'].iloc[0]}"
+                )
 
             if energy_df.empty and water_df.empty and unshared_df.empty:
                 st.write("No errors returned for this building.")
