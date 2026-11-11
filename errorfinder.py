@@ -166,6 +166,11 @@ def _show_errorfinder_grid(df, key, selectable=False):
         gridOptions=gb.build(),
         height=500 if selectable else 350,
         update_on=["selectionChanged"] if selectable else [],
+        custom_css={
+            ".ag-row-selected": {
+                "--ag-selected-row-background-color": "#42ac49",
+            },
+        },
         allow_unsafe_jscode=True,
         key=key,
     )
