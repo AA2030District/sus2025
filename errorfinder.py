@@ -726,13 +726,13 @@ if tenant == "migbc":
             espmid,
             buildingname,
             portfolio_name,
-            Contact,
-            ContactEmail,
             datayear,
             hasenergygaps,
             haswatergaps,
             energylessthan12months,
             waterlessthan12months,
+            Contact,
+            ContactEmail,
             association
         FROM ranked
         WHERE rn = 1
@@ -766,13 +766,13 @@ else:
         espmid,
         buildingname,
         portfolio_name,
-        Contact,
-        ContactEmail,
         datayear,
         hasenergygaps,
         haswatergaps,
         energylessthan12months,
         waterlessthan12months
+        Contact,
+        ContactEmail
     FROM ranked
     WHERE rn = 1
     ORDER BY espmid;
@@ -808,7 +808,6 @@ with select: # Add select tab #############################################
         st.header("All Buildings With Errors")
     else:
         st.header(f"Buildings With Errors: {selected_portfolio}")
-
     if df.empty:
         st.info("No buildings with errors found for the selected portfolio.")
     else:
@@ -850,7 +849,6 @@ with errors:
                 .rename_axis("Meter Number")
                 .reset_index()
             )
-
             if not energy_df.empty:
                 st.subheader("Energy Meter Errors")
                 _show_errorfinder_grid(
