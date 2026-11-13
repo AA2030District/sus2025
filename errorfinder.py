@@ -164,7 +164,7 @@ def _show_errorfinder_grid(df, key, selectable=False):
     return AgGrid(
         grid_df,
         gridOptions=gb.build(),
-        height=500 if selectable else 350,
+        height=None,
         update_on=["selectionChanged"] if selectable else [],
         custom_css={
             ".ag-row-selected": {
