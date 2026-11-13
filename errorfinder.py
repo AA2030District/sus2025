@@ -182,8 +182,8 @@ def _record_unshared_meter(unshared_meters, meterid, selection, meter_name=""):
     contact_email = building.get("ContactEmail")
     unshared_meters[meterid] = {
         "Meter Name": meter_name or "Name unavailable",
-        "Building Contact Name": contact if pd.notna(contact) else "",
-        "Building Contact Email": contact_email if pd.notna(contact_email) else "",
+        "Building Contact Name": contact if pd.notna(contact) else "No Contact Listed",
+        "Building Contact Email": contact_email if pd.notna(contact_email) else "No Contact Email Listed",
     }
 
 
