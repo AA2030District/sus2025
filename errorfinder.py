@@ -803,7 +803,7 @@ else:
         hasenergygaps,
         haswatergaps,
         energylessthan12months,
-        waterlessthan12months
+        waterlessthan12months,
         Contact,
         ContactEmail,
         datayear
