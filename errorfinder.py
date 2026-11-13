@@ -745,7 +745,7 @@ if tenant == "migbc":
                 e.haswatergaps,
                 e.energylessthan12months,
                 e.waterlessthan12months,
-                e.association,
+                e.association
                 ROW_NUMBER() OVER (
                     PARTITION BY e.espmid
                     ORDER BY e.datayear DESC
@@ -767,7 +767,7 @@ if tenant == "migbc":
             waterlessthan12months,
             Contact,
             ContactEmail,
-            datayear,
+            datayear
         FROM ranked
         WHERE rn = 1
         ORDER BY espmid;
