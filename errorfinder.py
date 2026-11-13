@@ -187,6 +187,38 @@ def _record_unshared_meter(unshared_meters, meterid, selection, meter_name=""):
     }
 
 
+def _find_unshared_meters(selection, user, pw):
+    espmid = selection["espmid"].iloc[0]
+    meter_lists = {}
+    try:
+        for access_only in ("false", "true"):
+            response = session.get(
+                f"https://portfoliomanager.energystar.gov/ws/property/{espmid}/meter/list",
+                params={"myAccessOnly": access_only},
+                auth=HTTPBasicAuth(user, pw),
+                timeout=60,
+            )
+            response.raise_for_status()
+            result = xmltodict.parse(response.content, force_list=("link",))
+            meter_response = result["response"]
+            if meter_response.get("@status") != "Ok":
+                raise ValueError("ESPM did not return a successful meter list")
+            links = (meter_response.get("links") or {}).get("link", [])
+            meter_lists[access_only] = {
+                link["@link"].rstrip("/").rsplit("/", 1)[-1]: link.get("@hint", "")
+                for link in links
+            }
+    except (requests.RequestException, ExpatError, KeyError, ValueError) as exc:
+        st.warning(f"Could not check meter sharing for ESPM ID {espmid}: {exc}")
+        return {}
+
+    unshared_meters = {}
+    for meterid, meter_name in meter_lists["false"].items():
+        if meterid not in meter_lists["true"]:
+            _record_unshared_meter(unshared_meters, meterid, selection, meter_name)
+    return unshared_meters
+
+
 def findgapsgr(selection):
     ###Finding the gaps
     ##list of dictionaries where each key is first the ID and then each different type of error (gap,overlap,no meter)
@@ -441,6 +473,7 @@ def findgapsgr(selection):
                 if key not in {"meterlink", "name"}
             )
         }
+        unshared_meters.update(_find_unshared_meters(selection, user, pw))
         return {
             "energy": energy_errordict,
             "water": water_errordict,
@@ -692,6 +725,7 @@ def findgaps(selection):
                 if key not in {"meterlink", "name"}
             )
         }
+        unshared_meters.update(_find_unshared_meters(selection, user, pw))
         return {
             "energy": energy_errordict,
             "water": water_errordict,
