@@ -785,7 +785,7 @@ else:
             e.hasenergygaps,
             e.haswatergaps,
             e.energylessthan12months,
-            e.waterlessthan12months,
+            e.waterlessthan12months
             ROW_NUMBER() OVER (
                 PARTITION BY e.espmid
                 ORDER BY e.datayear DESC
