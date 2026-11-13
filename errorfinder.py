@@ -725,15 +725,15 @@ if tenant == "migbc":
         SELECT
             espmid,
             buildingname,
+            association,
             portfolio_name,
-            datayear,
             hasenergygaps,
             haswatergaps,
             energylessthan12months,
             waterlessthan12months,
             Contact,
             ContactEmail,
-            association
+            datayear,
         FROM ranked
         WHERE rn = 1
         ORDER BY espmid;
@@ -766,13 +766,13 @@ else:
         espmid,
         buildingname,
         portfolio_name,
-        datayear,
         hasenergygaps,
         haswatergaps,
         energylessthan12months,
         waterlessthan12months
         Contact,
-        ContactEmail
+        ContactEmail,
+        datayear
     FROM ranked
     WHERE rn = 1
     ORDER BY espmid;
