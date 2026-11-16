@@ -165,7 +165,7 @@ def _show_errorfinder_grid(df, key, selectable=False):
         grid_df,
         gridOptions=gb.build(),
         height=None,
-        update_on=["selectionChanged"] if selectable else [],
+        update_on=["selectionChanged", "sortChanged", "filterChanged"] if selectable else [],
         custom_css={
             ".ag-row-selected": {
                 "--ag-selected-row-background-color": "#42ac49",
@@ -174,6 +174,20 @@ def _show_errorfinder_grid(df, key, selectable=False):
         allow_unsafe_jscode=True,
         key=key,
     )
+
+
+def _record_empty_meter(meter_errors, meterid, meter_info, espmid, meter_type):
+    meter_errors[meterid] = {
+        "name": meter_info.get("name", ""),
+        "gaps": "",
+        "gapdays": "",
+        "overlaps": "",
+        "overlapdays": "",
+        "Last Meter Data Date": "No consumption data",
+        "meterlink": (
+            f"https://portfoliomanager.energystar.gov/pm/property/{espmid}#{meter_type}"
+        ),
+    }
 
 
 def _record_unshared_meter(unshared_meters, meterid, selection, meter_name=""):
@@ -269,16 +283,19 @@ def findgapsgr(selection):
                         pass
                     else:
                         errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.ok and response.content:
+                elif response.ok:
                     try:
-                        dict_data3=xmltodict.parse(response.content)
+                        dict_data3 = xmltodict.parse(response.content) if response.content else {}
                     except ExpatError:
                         errorlist.append(
                             f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    meter_consumption = (dict_data3.get("meterData") or {}).get("meterConsumption")
                     if not meter_consumption:
+                        _record_empty_meter(
+                            energy_errordict, meterid, meter_info, espmid, "energy"
+                        )
                         continue
                     df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
@@ -373,16 +390,19 @@ def findgapsgr(selection):
                         pass
                     else:
                         errorlist.append(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.ok and response.content:
+                elif response.ok:
                     try:
-                        dict_data3=xmltodict.parse(response.content)
+                        dict_data3 = xmltodict.parse(response.content) if response.content else {}
                     except ExpatError:
                         errorlist.append(
                             f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    meter_consumption = (dict_data3.get("meterData") or {}).get("meterConsumption")
                     if not meter_consumption:
+                        _record_empty_meter(
+                            water_errordict, meterid, meter_info, espmid, "water"
+                        )
                         continue
                     df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
@@ -521,16 +541,19 @@ def findgaps(selection):
                         pass
                     else:
                         errorlist.append(f"Inactive Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.ok and response.content:
+                elif response.ok:
                     try:
-                        dict_data3=xmltodict.parse(response.content)
+                        dict_data3 = xmltodict.parse(response.content) if response.content else {}
                     except ExpatError:
                         errorlist.append(
                             f"Meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    meter_consumption = (dict_data3.get("meterData") or {}).get("meterConsumption")
                     if not meter_consumption:
+                        _record_empty_meter(
+                            energy_errordict, meterid, meter_info, espmid, "energy"
+                        )
                         continue
                     df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
@@ -625,16 +648,19 @@ def findgaps(selection):
                         pass
                     else:
                         errorlist.append(f"Inactive Water Meter {meterid} needs to have data added until its enddate or needs its enddate changed")
-                elif response.ok and response.content:
+                elif response.ok:
                     try:
-                        dict_data3=xmltodict.parse(response.content)
+                        dict_data3 = xmltodict.parse(response.content) if response.content else {}
                     except ExpatError:
                         errorlist.append(
                             f"Water meter {meterid} returned non-XML consumption data (HTTP {response.status_code})"
                         )
                         continue
-                    meter_consumption = dict_data3.get("meterData", {}).get("meterConsumption")
+                    meter_consumption = (dict_data3.get("meterData") or {}).get("meterConsumption")
                     if not meter_consumption:
+                        _record_empty_meter(
+                            water_errordict, meterid, meter_info, espmid, "water"
+                        )
                         continue
                     df = pd.json_normalize(meter_consumption)
                     df['startDate'] = pd.to_datetime(df['startDate'], format="%Y-%m-%d", errors="coerce")
@@ -837,6 +863,8 @@ else:
 replace_text = "Not Checked (See Possible Issues)"
 df = df.replace(replace_text, "No Meters in Property Metrics")
 
+navigation_rows = list(df.index)
+
 with select: # Add select tab #############################################
     if selected_portfolio == "All Portfolios":
         st.header("All Buildings With Errors")
@@ -850,6 +878,10 @@ with select: # Add select tab #############################################
             key=f"errorfinder_buildings_{selected_portfolio}",
             selectable=True,
         )
+
+        displayed_row_ids = event["rows_id_after_sort_and_filter"]
+        if displayed_row_ids is not None:
+            navigation_rows = [int(row_id) for row_id in displayed_row_ids]
 
         selected_rows = event["selected_rows"]
         if selected_rows is not None and len(selected_rows):
@@ -865,17 +897,38 @@ with errors:
         st.write("No buildings available for the selected portfolio.")
     else:
         selected_row_index = st.session_state.get("selected_row_index")
-        if selected_row_index is not None and 0 <= selected_row_index < len(df):
-            selected_row_index = st.session_state.selected_row_index
+        if selected_row_index is not None and selected_row_index in navigation_rows:
+            navigation_position = navigation_rows.index(selected_row_index)
             filtered_df = df.iloc[[selected_row_index]]
             st.caption(
                 f"Selected: {filtered_df['buildingname'].iloc[0]} "
-                f"({selected_row_index + 1}/{len(df)})"
+                f"({navigation_position + 1}/{len(navigation_rows)})"
             )
             if tenant == 'migbc':
                 errordicts = findgapsgr(filtered_df)
             else:
                 errordicts = findgaps(filtered_df)
+            for meter_type, metric_columns in (
+                ("energy", ("hasenergygaps", "energylessthan12months")),
+                ("water", ("haswatergaps", "waterlessthan12months")),
+            ):
+                if (
+                    filtered_df.iloc[0][list(metric_columns)]
+                    .eq("No Meters in Property Metrics")
+                    .any()
+                ):
+                    errordicts.setdefault(meter_type, {})["N/A"] = {
+                        "name": "No Meters in Property Metrics",
+                        "gaps": "",
+                        "gapdays": "",
+                        "overlaps": "",
+                        "overlapdays": "",
+                        "Last Meter Data Date": "",
+                        "meterlink": (
+                            "https://portfoliomanager.energystar.gov/pm/property/"
+                            f"{filtered_df['espmid'].iloc[0]}#summary"
+                        ),
+                    }
             energy_df = _build_meter_df(errordicts.get("energy", {}))
             water_df = _build_meter_df(errordicts.get("water", {}))
             unshared_df = (
@@ -907,11 +960,15 @@ with errors:
             _, col_prev, col_next = st.columns([6, 1, 1])
             with col_prev:
                 if st.button("Previous Building"):
-                    st.session_state.selected_row_index = (selected_row_index - 1) % len(df)
+                    st.session_state.selected_row_index = navigation_rows[
+                        (navigation_position - 1) % len(navigation_rows)
+                    ]
                     st.rerun()
             with col_next:
                 if st.button("Next Building"):
-                    st.session_state.selected_row_index = (selected_row_index + 1) % len(df)
+                    st.session_state.selected_row_index = navigation_rows[
+                        (navigation_position + 1) % len(navigation_rows)
+                    ]
                     st.rerun()
         else:
             st.write("No Building Selected")
