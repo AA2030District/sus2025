@@ -196,7 +196,7 @@ def _add_high_usage_flags(buildings, energy_baselines, water_baselines):
     use_types = df["usetype"].astype("string").str.strip().str.casefold().replace("", pd.NA)
     for metric, label, kind, baseline, source in (
         ("siteeui", "high eui", "EUI", building_ids.map(energy_lookup), "Building baseline"),
-        ("wui", "high wui", "WUI", use_types.map(water_lookup), "Use-type baseline"),
+        ("wui", "high wui", "WUI", use_types.map(water_lookup), "Baseline"),
     ):
         values = positive_numbers(df[metric])
         average = values.groupby(use_types).transform("mean")
