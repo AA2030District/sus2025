@@ -979,6 +979,11 @@ with errors:
                         "Irregular Value": filtered_df[metric].iloc[0],
                         "Baseline / Average": filtered_df[f"{kind} Reference"].iloc[0],
                         "Comparison Source": filtered_df[f"{kind} Reference Source"].iloc[0],
+                        "Link to ESPM": (
+                            "https://portfoliomanager.energystar.gov/pm/property/"
+                            f"{filtered_df['espmid'].iloc[0]}"
+                            f"#{'energy' if kind == 'EUI' else 'water'}"
+                        ),
                     })
             if irregular_rows:
                 st.subheader("Irregular Data")
