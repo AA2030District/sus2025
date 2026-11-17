@@ -19,3 +19,6 @@ humanize
 kaleido
 fpdf2>=2.7.0
 numpy
+pyodbc
+python-dotenv
+requests

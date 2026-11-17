@@ -15,6 +15,7 @@ from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 import os
 import io
+from update_progress import report_progress
 
 load_dotenv("secrets.env")
 user = os.environ.get("ENERGY_STAR_PORTFOLIO_MANAGER_USERNAME")
@@ -76,7 +77,7 @@ def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
     Returns:    
         pyodbc.Connection object if successful
     """
-    connection_string = f'Driver={driver};Server=tcp:aa2030dashboardfree.database.windows.net,1433;Database=dashboarddb;Uid=CloudSA3d4fc968;Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
+    connection_string = os.environ.get("ESPM_UPDATE_ODBC_CONNECTION_STRING") or f'Driver={driver};Server=tcp:aa2030dashboardfree.database.windows.net,1433;Database=dashboarddb;Uid=CloudSA3d4fc968;Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
     
     for attempt in range(max_retries):
         try:
@@ -314,6 +315,7 @@ def generatereport(espmidlist):
 
             if status != last_status:
                 print(f"Report {report_id} status: {status or 'UNKNOWN'}")
+                report_progress(10, f"Report {report_id}: {status or 'UNKNOWN'}")
                 last_status = status
 
             if current_run and status == "FAILED":
@@ -329,6 +331,7 @@ def generatereport(espmidlist):
 
             time.sleep(min(5, max(0, deadline - time.monotonic())))
 
+        report_progress(15, f"Downloading report {report_id}.")
         response = session.get(
             f"{report_url}/download?type=XML",
             auth=auth,
@@ -349,44 +352,32 @@ def generatereport(espmidlist):
     return report_data
 
 def errordbhandling():
-    espmyearsort="""
-    CREATE INDEX ix_espmid_datayear
-    ON PrimaryDataBase (espmid, datayear DESC);
-    """
-    try:
-                cursor.execute("ALTER TABLE PrimaryDataBase ADD has_issue bit")
-                print("Added 'has_issue' column to PrimaryDataBase table.")
-                connection.commit()
-    except pyodbc.Error as e:
-                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
-                    pass  # Column already exists
-                else:
-                    print(f"Warning: Could not add 'has_issue' column: {e}")
-    try:
-        cursor.execute("UPDATE PrimaryDataBase SET has_issue = 0")
-        cursor.execute("UPDATE PrimaryDataBase SET has_issue = 1 where hasenergygaps='possible issue' or haswatergaps = 'possible issue' or energylessthan12months = 'possible issue' or waterlessthan12months = 'Possible Issue'")
-        connection.commit()
-        cursor.execute("""
-            IF EXISTS (
-                SELECT 1
-                FROM sys.indexes
-                WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
-                  AND name = 'ix_espm_issue'
-            )
-            BEGIN
-                -- Index already exists; avoid a blocking rebuild.
-            END
-            ELSE
-                CREATE INDEX ix_espm_issue
-                ON dbo.PrimaryDataBase (espmid, datayear DESC)
-                WHERE has_issue = 1;
-        """)
-        connection.commit()
-    except pyodbc.Error as e:
-        print(e)
-    
+    cursor.execute("""
+        IF COL_LENGTH('dbo.PrimaryDataBase', 'has_issue') IS NULL
+            ALTER TABLE dbo.PrimaryDataBase ADD has_issue BIT;
+    """)
+    cursor.execute("UPDATE PrimaryDataBase SET has_issue = 0")
+    cursor.execute("""
+        UPDATE PrimaryDataBase SET has_issue = 1
+        WHERE hasenergygaps='possible issue' OR haswatergaps='possible issue'
+           OR energylessthan12months='possible issue'
+           OR waterlessthan12months='Possible Issue'
+    """)
+    cursor.execute("""
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
+              AND name = 'ix_espm_issue'
+        )
+            CREATE INDEX ix_espm_issue
+            ON dbo.PrimaryDataBase (espmid, datayear DESC)
+            WHERE has_issue = 1;
+    """)
+    connection.commit()
+
 
 try:
+    report_progress(0, "Connecting to the database.")
     connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
     
     # Create cursor with fast_executemany for better performance
@@ -886,12 +877,16 @@ try:
             raise  # Re-raise if it's a different error
 
 
+    report_progress(5, "Retrieving property IDs.")
     #Creates a list of ALL pmid's in the account
     idlist=[]
     response = requests.get(f'https://portfoliomanager.energystar.gov/ws/account/216165/property/list', auth=HTTPBasicAuth(user, pw), timeout=60)
+    response.raise_for_status()
     dict_data = xmltodict.parse(response.content)
     for entry in dict_data['response']['links']['link']:
         idlist.append(entry['@id'])
+    if not idlist:
+        raise RuntimeError("No property IDs were returned; update was not completed.")
     add_missing_portfolio_ids(connection, cursor, idlist)
     placeholders = ",".join("?" for _ in idlist)
     query = f"DELETE FROM PrimaryDataBase WHERE espmid NOT IN ({placeholders})"
@@ -941,12 +936,18 @@ try:
     """
     cursor.execute(create_temp_table_query)
     print("Temp table '#PrimaryDataBaseTEMP' created successfully.")
+    report_progress(10, "Waiting for ESPM report generation.")
     report_output = generatereport(idlist)
+    report_rows = report_output['reportData']['informationAndMetrics']['propertyMetrics']
+    if not report_rows:
+        raise RuntimeError("ESPM report contains no data; update was not completed.")
+    total_rows = len(report_rows)
+    report_progress(20, "Processing report rows.")
 
     ##create a list of tuples of all building data
     buildingdatalist=[]
 
-    for building in report_output['reportData']['informationAndMetrics']['propertyMetrics']:
+    for row_number, building in enumerate(report_rows, 1):
         espmid=building['@propertyId']
         response=session.get(f'https://portfoliomanager.energystar.gov/ws/property/{espmid}',auth=(user,pw))
         dict_data = xmltodict.parse(response.content)
@@ -1047,12 +1048,17 @@ try:
             elif metric_name == 'onSiteRenewableSystemGeneration':
                 onsiterenewablesystemgeneration = safe_to_decimal(metric_value)
         buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,yearcreatedinespm,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,siteenergyuseelectricitygridpurchasekwh,siteenergyusenaturalgas,totalmarketbasedghgemissions,greenpoweroffsite,onsiterenewablesystemelectricityexported,onsiterenewablesystemgeneration,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+        report_progress(
+            20 + 65 * row_number // total_rows,
+            f"Processing report rows: {row_number}/{total_rows}.",
+        )
     temp_insert_query = """
                 INSERT INTO #PrimaryDataBaseTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """ 
    
     cursor.fast_executemany = True
+    report_progress(85, "Saving report rows.")
     cursor.executemany(temp_insert_query, buildingdatalist)
     merge_query = """
                 MERGE PrimaryDataBase AS target
@@ -1121,11 +1127,14 @@ try:
                     VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.yearcreatedinespm, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.siteEnergyUseElectricityGridPurchaseKwh, source.siteEnergyUseNaturalGas, source.totalMarketBasedGHGEmissions, source.greenPowerOffSite, source.onSiteRenewableSystemElectricityExported, source.onSiteRenewableSystemGeneration, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
             """
     if buildingdatalist:
+        report_progress(90, "Updating dashboard data.")
         cursor.execute(merge_query)
         connection.commit()
         print("MERGE committed to PrimaryDataBase.")
         cursor.execute("DROP TABLE #PrimaryDataBaseTEMP")
+        report_progress(95, "Checking data quality.")
         errordbhandling()
+        report_progress(99, "Finalizing update.")
 
 
     ## Figure out how to get water and energy data for individual years.
@@ -1134,6 +1143,7 @@ except Exception as e:
     print(f"An error occurred: {e}")
     if connection:
         connection.rollback()
+    raise
 finally:
     # Close the cursor and connection
     if cursor:

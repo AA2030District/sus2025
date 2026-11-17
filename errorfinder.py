@@ -176,6 +176,45 @@ def _show_errorfinder_grid(df, key, selectable=False):
     )
 
 
+def _add_high_usage_flags(buildings, energy_baselines, water_baselines):
+    df = buildings.copy()
+
+    def positive_numbers(values):
+        numbers = pd.to_numeric(
+            values.astype("string").str.replace(",", "", regex=False),
+            errors="coerce",
+        ).astype("Float64")
+        return numbers.where(numbers.gt(0) & numbers.lt(float("inf")))
+
+    energy_lookup = positive_numbers(energy_baselines["baseline"]).groupby(
+        pd.to_numeric(energy_baselines["espmid"], errors="coerce")
+    ).max()
+    water_lookup = positive_numbers(water_baselines["wuibaseline"]).groupby(
+        water_baselines["usetype"].astype("string").str.strip().str.casefold()
+    ).max()
+    building_ids = pd.to_numeric(df["espmid"], errors="coerce")
+    use_types = df["usetype"].astype("string").str.strip().str.casefold().replace("", pd.NA)
+    for metric, label, kind, baseline, source in (
+        ("siteeui", "high eui", "EUI", building_ids.map(energy_lookup), "Building baseline"),
+        ("wui", "high wui", "WUI", use_types.map(water_lookup), "Use-type baseline"),
+    ):
+        values = positive_numbers(df[metric])
+        average = values.groupby(use_types).transform("mean")
+        reference = baseline.fillna(average)
+        df[metric] = values
+        df[label] = values.gt(2 * reference).fillna(False).map({True: label, False: ""})
+        df[f"{kind} Reference"] = reference
+        df[f"{kind} Reference Source"] = baseline.notna().map(
+            {True: source, False: "Use-type average"}
+        ).where(reference.notna(), "")
+    has_error = (
+        df["has_issue"].eq(1)
+        | df["high eui"].ne("")
+        | df["high wui"].ne("")
+    )
+    return df.loc[has_error.fillna(False)].drop(columns="has_issue").reset_index(drop=True)
+
+
 def _record_empty_meter(meter_errors, meterid, meter_info, espmid, meter_type):
     meter_errors[meterid] = {
         "name": meter_info.get("name", ""),
@@ -767,6 +806,10 @@ if tenant == "migbc":
                 p.Contact,
                 p.ContactEmail,
                 e.datayear,
+                e.has_issue,
+                e.usetype,
+                e.siteeui,
+                e.wui,
                 e.hasenergygaps,
                 e.haswatergaps,
                 e.energylessthan12months,
@@ -779,12 +822,15 @@ if tenant == "migbc":
             FROM PrimaryDataBase e
             LEFT JOIN portfolios p
                 ON e.espmid = p.espmid
-            WHERE e.has_issue = 1
-            AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
+            WHERE TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
         )
         SELECT
             espmid,
             buildingname,
+            has_issue,
+            usetype,
+            siteeui,
+            wui,
             association,
             portfolio_name,
             hasenergygaps,
@@ -808,6 +854,10 @@ else:
             p.Contact,
             p.ContactEmail,
             e.datayear,
+            e.has_issue,
+            e.usetype,
+            e.siteeui,
+            e.wui,
             e.hasenergygaps,
             e.haswatergaps,
             e.energylessthan12months,
@@ -819,12 +869,15 @@ else:
         FROM PrimaryDataBase e
         LEFT JOIN portfolios p
             ON e.espmid = p.espmid
-        WHERE e.has_issue = 1
-        AND TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
+        WHERE TRY_CONVERT(INT, e.datayear) = YEAR(GETDATE()) - 1
     )
     SELECT
         espmid,
         buildingname,
+        has_issue,
+        usetype,
+        siteeui,
+        wui,
         portfolio_name,
         hasenergygaps,
         haswatergaps,
@@ -838,7 +891,11 @@ else:
     ORDER BY espmid;
     """
 
-buildings_df = conn.query(buildings_query)
+buildings_df = _add_high_usage_flags(
+    conn.query(buildings_query),
+    conn.query("SELECT espmid, baseline FROM dbo.baselines"),
+    conn.query("SELECT usetype, wuibaseline FROM dbo.wuibaselines"),
+)
 portfolio_options = ["All Portfolios"] + sorted(
     buildings_df["portfolio_name"].dropna().astype(str).unique().tolist()
 )
@@ -904,6 +961,24 @@ with errors:
                 f"Selected: {filtered_df['buildingname'].iloc[0]} "
                 f"({navigation_position + 1}/{len(navigation_rows)})"
             )
+            irregular_rows = []
+            for metric, label, kind in (
+                ("siteeui", "high eui", "EUI"),
+                ("wui", "high wui", "WUI"),
+            ):
+                if filtered_df[label].iloc[0] == label:
+                    irregular_rows.append({
+                        "Error": label,
+                        "Irregular Value": filtered_df[metric].iloc[0],
+                        "Baseline / Average": filtered_df[f"{kind} Reference"].iloc[0],
+                        "Comparison Source": filtered_df[f"{kind} Reference Source"].iloc[0],
+                    })
+            if irregular_rows:
+                st.subheader("Irregular Data")
+                _show_errorfinder_grid(
+                    pd.DataFrame(irregular_rows),
+                    key=f"errorfinder_irregular_{filtered_df['espmid'].iloc[0]}",
+                )
             if tenant == 'migbc':
                 errordicts = findgapsgr(filtered_df)
             else:
@@ -954,7 +1029,10 @@ with errors:
                     unshared_df, key=f"errorfinder_unshared_{filtered_df['espmid'].iloc[0]}"
                 )
 
-            if energy_df.empty and water_df.empty and unshared_df.empty:
+            if (
+                energy_df.empty and water_df.empty
+                and unshared_df.empty and not irregular_rows
+            ):
                 st.write("No errors returned for this building.")
 
             _, col_prev, col_next = st.columns([6, 1, 1])
