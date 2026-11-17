@@ -19,12 +19,10 @@ if tenant not in labels:
 
 st.title(f"Update {labels[tenant]} data")
 st.write(
-    "Retrieve properties → Generate reports → Process report rows → "
-    "Save results → Check data quality"
+"Updates dashboard data to match ESPM."
 )
 st.caption(
-    "Progress follows completed stages, rather than elapsed time. "
-    "Only one update can run for this dashboard at a time."
+    "Only one update can run for this dashboard at a time. Don't run excessively!"
 )
 engine = get_connection().engine
 

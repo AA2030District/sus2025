@@ -330,7 +330,7 @@ def generatereport(espmidlist):
 
             time.sleep(min(5, max(0, deadline - time.monotonic())))
 
-        report_progress(15, f"Downloading report {report_id}.")
+        report_progress(15, f"Pulling Data from ESPM Report")
         response = session.get(
             f"{report_url}/download?type=XML",
             auth=auth,

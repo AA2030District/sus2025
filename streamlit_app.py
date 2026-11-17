@@ -33,7 +33,7 @@ def watch_updates():
     if not job:
         return
     if job["status"] in ACTIVE:
-        st.caption("A dashboard data update is running.")
+        st.caption("Dashboard is updating")
     success = job["last_success_at"]
     key = f"last_update_success:{tenant}"
     if success and st.session_state.get(key) != success:
