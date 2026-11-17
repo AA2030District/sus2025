@@ -155,17 +155,7 @@ def _worker_environment(engine, tenant, settings, espm_settings=None):
     if not all((url.host, url.database, url.username, url.password)):
         raise ValueError("Updates require a SQL connection with a username and password.")
 
-    def quoted(value):
-        return "{" + str(value).replace("}", "}}") + "}"
-
-    # Use the logged-in tenant's database, including its configured SQL port.
-    env["ESPM_UPDATE_ODBC_CONNECTION_STRING"] = (
-        "DRIVER={ODBC Driver 18 for SQL Server};"
-        f"SERVER={quoted(f'tcp:{url.host},{url.port or 1433}')};"
-        f"DATABASE={quoted(url.database)};"
-        f"UID={quoted(url.username)};PWD={quoted(url.password)};"
-        "Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;"
-    )
+    # Both tracking and data updates use the logged-in tenant's SQL connection.
     env["ESPM_UPDATE_DB_URL"] = url.render_as_string(hide_password=False)
     return env
 
@@ -218,7 +208,7 @@ def _run_worker(tenant, job_id):
     from update_progress import set_reporter
 
     engine = create_engine(
-        os.environ.pop("ESPM_UPDATE_DB_URL"), pool_pre_ping=True,
+        os.environ["ESPM_UPDATE_DB_URL"], pool_pre_ping=True,
     )
     try:
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
@@ -249,9 +239,6 @@ def _run_worker(tenant, job_id):
 
                 set_reporter(report)
                 try:
-                    import pyodbc
-                    if "ODBC Driver 18 for SQL Server" not in pyodbc.drivers():
-                        raise RuntimeError("ODBC Driver 18 for SQL Server is not installed.")
                     runpy.run_path(str(ROOT / UPDATERS[tenant]), run_name="__main__")
                     conn.execute(text("""
                         UPDATE dbo.DashboardUpdateJobs

@@ -1,4 +1,4 @@
-﻿import pyodbc
+﻿import pymssql
 import random
 import datetime
 import pandas as pd
@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import os
 import io
 from update_progress import report_progress
+from update_database import connect_database
 
 load_dotenv("secrets.env")
 user = os.environ.get("ENERGY_STAR_PORTFOLIO_MANAGER_USERNAME")
@@ -33,7 +34,6 @@ server='aa2030dashboardfree.database.windows.net'
 database='dashboarddb'
 username=os.environ.get("DATABASEUSER")
 password=os.environ.get("DATABASEPW")
-driver= '{ODBC Driver 18 for SQL Server}'
 connection = None
 cursor = None
 
@@ -75,17 +75,17 @@ def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
         timeout: Connection timeout in seconds
     
     Returns:    
-        pyodbc.Connection object if successful
+        pymssql.Connection object if successful
     """
-    connection_string = os.environ.get("ESPM_UPDATE_ODBC_CONNECTION_STRING") or f'Driver={driver};Server=tcp:aa2030dashboardfree.database.windows.net,1433;Database=dashboarddb;Uid=CloudSA3d4fc968;Pwd={password};Encrypt=yes;TrustServerCertificate=no;Connection Timeout=30;'
-    
     for attempt in range(max_retries):
         try:
             print(f'Attempting to connect to SQL Server (attempt {attempt + 1}/{max_retries})...')
-            connection = pyodbc.connect(connection_string)
+            connection = connect_database(
+                server, database, username, password, timeout=timeout,
+            )
             print('Connection Successful')
             return connection
-        except pyodbc.OperationalError as e:
+        except pymssql.OperationalError as e:
             error_str = str(e).lower()
             # Check if it's a timeout or connection error
             if 'timeout' in error_str or 'timed out' in error_str or 'connection' in error_str:
@@ -99,8 +99,8 @@ def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
             else:
                 # Not a timeout error, re-raise immediately
                 raise
-        except pyodbc.Error as e:
-            # For other pyodbc errors, check if it's connection-related
+        except pymssql.Error as e:
+            # For other pymssql errors, check if it's connection-related
             error_str = str(e).lower()
             if 'timeout' in error_str or 'timed out' in error_str or 'connection' in error_str:
                 if attempt < max_retries - 1:
@@ -115,7 +115,7 @@ def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
                 raise
     
     # Should not reach here, but just in case
-    raise pyodbc.OperationalError("Failed to establish connection after all retries")
+    raise pymssql.OperationalError("Failed to establish connection after all retries")
 
 def check_and_reconnect():
     """
@@ -128,7 +128,7 @@ def check_and_reconnect():
         cursor.execute("SELECT 1")
         cursor.fetchone()
         return connection, cursor
-    except (pyodbc.Error, AttributeError):
+    except (pymssql.Error, AttributeError):
         # Connection is dead or doesn't exist, reconnect
         print("Connection lost. Reconnecting...")
         try:
@@ -147,7 +147,6 @@ def check_and_reconnect():
         
         connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
         cursor = connection.cursor()
-        cursor.fast_executemany = True
         print("Reconnection successful.")
         return connection, cursor
 
@@ -163,7 +162,7 @@ def execute_with_retry(query, params=None, max_retries=3):
             else:
                 cursor.execute(query)
             return cursor
-        except pyodbc.Error as e:
+        except pymssql.Error as e:
             error_str = str(e).lower()
             if ('communication link failure' in error_str or '08S01' in str(e) or 
                 'connection' in error_str or 'timeout' in error_str):
@@ -203,10 +202,10 @@ def add_missing_portfolio_ids(connection, cursor, espmids):
             espmid INT NOT NULL PRIMARY KEY
         );
     """)
-    cursor.fast_executemany = True
     cursor.executemany(
-        "INSERT INTO #PortfolioIds (espmid) VALUES (?)",
+        "INSERT INTO #PortfolioIds (espmid) VALUES (%s)",
         [(espmid,) for espmid in portfolio_ids],
+        batch_size=350,
     )
     cursor.execute("""
         INSERT INTO dbo.portfolios (espmid)
@@ -222,14 +221,14 @@ def add_missing_portfolio_ids(connection, cursor, espmids):
     inserted_count = cursor.fetchone()[0]
     cursor.execute("""
         INSERT INTO dbo.yearjoined (ESPMID, [year joined])
-        SELECT source.espmid, ?
+        SELECT source.espmid, %s
         FROM #PortfolioIds AS source
         WHERE NOT EXISTS (
             SELECT 1
             FROM dbo.yearjoined AS target
             WHERE target.ESPMID = source.espmid
         );
-    """, datetime.date.today().year)
+    """, (datetime.date.today().year,))
     cursor.execute("SELECT @@ROWCOUNT")
     joined_count = cursor.fetchone()[0]
     cursor.execute("DROP TABLE #PortfolioIds")
@@ -380,10 +379,8 @@ try:
     report_progress(0, "Connecting to the database.")
     connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
     
-    # Create cursor with fast_executemany for better performance
+    # Create a cursor for bulk database operations.
     cursor = connection.cursor()
-    # Enable fast_executemany for bulk operations (much faster for large datasets)
-    cursor.fast_executemany = True  
 
     # Define the CREATE TABLE SQL query
     create_table_query = """
@@ -425,7 +422,7 @@ try:
         cursor.execute(create_table_query)
         print("Table 'espm basics' created successfully!")
         connection.commit()
-    except pyodbc.Error as create_error:
+    except pymssql.Error as create_error:
         # Table might already exist, that's okay
         if "already exists" in str(create_error).lower() or "There is already an object" in str(create_error):
             print("Table 'ESPM basics' already exists (or creation failed), continuing...")
@@ -436,7 +433,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD occupancy NVARCHAR(100)")
                 print("Added 'occupancy' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -446,7 +443,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD numbuildings NVARCHAR(100)")
                 print("Added 'numbuildings' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -456,7 +453,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD usetype NVARCHAR(100)")
                 print("Added 'usetype' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -531,14 +528,14 @@ try:
                 """)
                 connection.commit()
                 print("Ensured 'datayear' is INT and the primary key is (espmid, datayear).")
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not migrate 'datayear' to INT: {e}")
             
             try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD yearbuilt NVARCHAR(100)")
                 print("Added 'yearbuilt' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -548,7 +545,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD yearcreatedinespm INT")
                 print("Added 'yearcreatedinespm' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -558,7 +555,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD siteeui FLOAT")
                 print("Added 'siteeui' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -568,7 +565,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD weathernormalizedsiteeui FLOAT")
                 print("Added 'weathernormalizedsiteeui' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -578,7 +575,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energystarscore INT")
                 print("Added 'energystarscore' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -588,7 +585,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD wui NVARCHAR(100)")
                 print("Added 'wui' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -598,7 +595,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energycost FLOAT")
                 print("Added 'energycost' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -608,7 +605,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostintensity FLOAT")
                 print("Added 'energycostintensity' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -618,7 +615,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostelectricitygridpurchase FLOAT")
                 print("Added 'energycostelectricitygridpurchase' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -628,7 +625,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostnaturalgas FLOAT")
                 print("Added 'energycostnaturalgas' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -649,14 +646,14 @@ try:
                     """)
                     print(f"Ensured '{column_name}' column exists as FLOAT on PrimaryDataBase table.")
                     connection.commit()
-                except pyodbc.Error as e:
+                except pymssql.Error as e:
                     print(f"Warning: Could not ensure '{column_name}' FLOAT column: {e}")
             
             try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD hasenergygaps NVARCHAR(100)")
                 print("Added 'hasenergygaps' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -666,7 +663,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD haswatergaps NVARCHAR(100)")
                 print("Added 'haswatergaps' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -676,7 +673,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD energylessthan12months NVARCHAR(100)")
                 print("Added 'energylessthan12months' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -686,7 +683,7 @@ try:
                 cursor.execute("ALTER TABLE PrimaryDataBase ADD waterlessthan12months NVARCHAR(100)")
                 print("Added 'waterlessthan12months' column to PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
                     pass  # Column already exists
                 else:
@@ -721,7 +718,7 @@ try:
                 """)
                 print("Ensured 'sqfootage' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'sqfootage' INT column: {e}")
 
             try:
@@ -753,7 +750,7 @@ try:
                 """)
                 print("Ensured 'siteeui' column exists as FLOAT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'siteeui' FLOAT column: {e}")
 
             try:
@@ -783,7 +780,7 @@ try:
                 """)
                 print("Ensured 'weathernormalizedsiteeui' column exists as FLOAT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'weathernormalizedsiteeui' FLOAT column: {e}")
 
             try:
@@ -813,7 +810,7 @@ try:
                 """)
                 print("Ensured 'energystarscore' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'energystarscore' INT column: {e}")
 
             try:
@@ -843,7 +840,7 @@ try:
                 """)
                 print("Ensured 'yearcreatedinespm' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'yearcreatedinespm' INT column: {e}")
 
             try:
@@ -871,7 +868,7 @@ try:
                 """)
                 print("Ensured 'pmparentid' column exists as INT on PrimaryDataBase table.")
                 connection.commit()
-            except pyodbc.Error as e:
+            except pymssql.Error as e:
                 print(f"Warning: Could not ensure 'pmparentid' INT column: {e}")
         else:
             raise  # Re-raise if it's a different error
@@ -888,9 +885,9 @@ try:
     if not idlist:
         raise RuntimeError("No property IDs were returned; update was not completed.")
     add_missing_portfolio_ids(connection, cursor, idlist)
-    placeholders = ",".join("?" for _ in idlist)
+    placeholders = ",".join("%s" for _ in idlist)
     query = f"DELETE FROM PrimaryDataBase WHERE espmid NOT IN ({placeholders})"
-    cursor.execute(query, *idlist)
+    cursor.execute(query, tuple(idlist))
     connection.commit()
     #these are causing problems and we don't have access to them for some reason they still show up
     
@@ -1054,12 +1051,13 @@ try:
         )
     temp_insert_query = """
                 INSERT INTO #PrimaryDataBaseTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """ 
    
-    cursor.fast_executemany = True
     report_progress(85, "Saving report rows.")
-    cursor.executemany(temp_insert_query, buildingdatalist)
+    cursor.executemany(
+        temp_insert_query, buildingdatalist, batch_size=batch_size,
+    )
     merge_query = """
                 MERGE PrimaryDataBase AS target
                 USING #PrimaryDataBaseTEMP AS source

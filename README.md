@@ -26,11 +26,13 @@ across sessions and app instances. The status row preserves the last successful
 update time. A queued worker that never starts is marked failed after two minutes;
 a running worker whose database lock is gone is marked failed on the next poll.
 
-The dashboard host must allow child processes and have **ODBC Driver 18 for SQL
-Server** installed. The tenant's configured Streamlit SQL account needs permission
-to create the tracking table, acquire application locks, and perform the existing
-updater's schema and data operations. Updates use that tenant connection's database
-and credentials.
+The dashboard host must allow child processes. Updates use the existing
+`pymssql` Python dependency and do not require Microsoft ODBC Driver 18, including
+on Streamlit Community Cloud. Database connections require encryption.
+The tenant's configured Streamlit SQL account needs permission to create the
+tracking table, acquire application locks, and perform the existing updater's
+schema and data operations. Updates use that tenant connection's database and
+credentials.
 
 The update page forwards the existing Streamlit ESPM credentials:
 `[espm.washtenaw]` and `[espm.detroit]` use `username` and `password`;
