@@ -114,6 +114,13 @@ def _build_meter_dfgr(meter_dict):
 
 def _show_errorfinder_grid(df, key, selectable=False):
     grid_df = df.copy()
+    grid_df = grid_df.rename(columns={
+        "EUI Reference": "EUI baseline",
+        "WUI Reference": "WUI baseline",
+    })
+    for metric, label in (("siteeui", "high eui"), ("wui", "high wui")):
+        if metric in grid_df.columns and label in grid_df.columns:
+            grid_df[label] = grid_df[metric].where(grid_df[label].eq(label))
     for column in ("Gap Dates", "Gap Duration", "Overlap Dates", "Overlap Duration"):
         if column in grid_df.columns:
             grid_df[column] = grid_df[column].str.replace(
