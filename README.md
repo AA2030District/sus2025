@@ -32,11 +32,18 @@ to create the tracking table, acquire application locks, and perform the existin
 updater's schema and data operations. Updates use that tenant connection's database
 and credentials.
 
-ESPM credentials are read from environment variables or the existing
-`secrets.env`. On hosted Streamlit, they can instead be configured in
-`[updater_env.washtenaw]`, `[updater_env.detroit]`, and `[updater_env.migbc]`
-in Streamlit secrets, using the environment-variable names already used by the
-corresponding updater. MIGBC also requires both report ID settings.
+The update page forwards the existing Streamlit ESPM credentials:
+`[espm.washtenaw]` and `[espm.detroit]` use `username` and `password`;
+MIGBC uses both `[espm.gr]` and `[espm.gbc]`. The optional `report_id`
+field in those two account sections supplies the corresponding MIGBC report ID.
+
+Explicit overrides can be configured in `[updater_env.washtenaw]`,
+`[updater_env.detroit]`, and `[updater_env.migbc]`, using the
+environment-variable names already used by the corresponding updater.
+Settings are resolved in this order: nonempty updater overrides, the tenant's
+Streamlit ESPM credentials, environment variables, then `secrets.env`.
+MIGBC requires both sets of credentials and both report IDs. Credentials are
+passed to the worker through its environment, rather than command-line arguments.
 
 Progress is based on completed stages and processed report rows. Active jobs
 continue when the user changes pages or closes their browser. While a dashboard

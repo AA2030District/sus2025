@@ -42,7 +42,10 @@ def update_panel():
     if st.button("Update dashboard data", disabled=running, type="primary"):
         settings = st.secrets.get("updater_env", {}).get(tenant, {})
         try:
-            start_update(engine, tenant, settings)
+            start_update(
+                engine, tenant, settings,
+                espm_settings=st.secrets.get("espm", {}),
+            )
         except ValueError as exc:
             st.error(str(exc))
             return

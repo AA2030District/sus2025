@@ -38,6 +38,11 @@ CREDENTIALS = {
         "GBC_ENERGY_STAR_REPORT_ID",
     ),
 }
+SECRET_ACCOUNTS = {
+    "washtenaw": (("washtenaw", ""),),
+    "detroit": (("detroit", "DETROIT_"),),
+    "migbc": (("gr", "GR_"), ("gbc", "GBC_")),
+}
 ACTIVE = {"queued", "running"}
 
 
@@ -122,11 +127,26 @@ def get_job(engine, tenant):
         return _read_job(conn, tenant)
 
 
-def _worker_environment(engine, tenant, settings):
+def _worker_environment(engine, tenant, settings, espm_settings=None):
     env = os.environ.copy()
     local_settings = dotenv_values(ROOT / "secrets.env")
+    tenant_settings = {}
+    for account, prefix in SECRET_ACCOUNTS[tenant]:
+        credentials = (espm_settings or {}).get(account, {})
+        for field, suffix in (
+            ("username", "ENERGY_STAR_PORTFOLIO_MANAGER_USERNAME"),
+            ("password", "ENERGY_STAR_PORTFOLIO_MANAGER_PASSWORD"),
+            ("report_id", "ENERGY_STAR_REPORT_ID"),
+        ):
+            if credentials.get(field):
+                tenant_settings[f"{prefix}{suffix}"] = credentials[field]
     for name in CREDENTIALS[tenant]:
-        value = settings.get(name, env.get(name, local_settings.get(name)))
+        value = (
+            settings.get(name)
+            or tenant_settings.get(name)
+            or env.get(name)
+            or local_settings.get(name)
+        )
         if value:
             env[name] = str(value)
         else:
@@ -150,10 +170,10 @@ def _worker_environment(engine, tenant, settings):
     return env
 
 
-def start_update(engine, tenant, settings=None):
+def start_update(engine, tenant, settings=None, espm_settings=None):
     if tenant not in UPDATERS:
         raise ValueError("Unknown dashboard tenant.")
-    env = _worker_environment(engine, tenant, settings or {})
+    env = _worker_environment(engine, tenant, settings or {}, espm_settings)
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         _ensure_table(conn)
         with _lock(conn, tenant, "launch", 5000) as acquired:
