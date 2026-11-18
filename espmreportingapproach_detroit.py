@@ -1,0 +1,1200 @@
+﻿import pymssql
+import random
+import datetime
+import pandas as pd
+import requests
+import time
+import sqlite3
+from requests.auth import HTTPBasicAuth 
+import xml.etree.ElementTree as et
+import xmltodict
+from requests.adapters import HTTPAdapter
+import os
+import time
+import re
+from urllib3.util.retry import Retry
+from dotenv import load_dotenv
+import os
+import io
+from update_progress import report_progress
+from update_database import connect_database
+
+load_dotenv("secrets.env")
+user = os.environ.get("DETROIT_ENERGY_STAR_PORTFOLIO_MANAGER_USERNAME")
+pw = os.environ.get("DETROIT_ENERGY_STAR_PORTFOLIO_MANAGER_PASSWORD")
+retry_strategy = Retry(
+    total=3,  # Try 3 times
+    backoff_factor=1,
+    status_forcelist=[500, 502, 503, 504]
+)
+
+session = requests.Session()
+adapter = HTTPAdapter(max_retries=retry_strategy)
+session.mount("https://", adapter)
+server = os.environ.get("DETROIT_SQL_SERVER", "aa2030dashboardfree.database.windows.net")
+database = os.environ.get("DETROIT_DATABASE", "DetroitDB")
+username = os.environ.get("DETROIT_DATABASEUSER")
+password = os.environ.get("DETROIT_DATABASEPW")
+report_id = os.environ.get("DETROIT_ENERGY_STAR_REPORT_ID")
+connection = None
+cursor = None
+
+def safe_to_int(value):
+    if value is None:
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    text = str(value).replace(",", "").strip()
+    if text == "" or text.lower() in {"none", "nan"}:
+        return None
+    try:
+        return int(float(text))
+    except (TypeError, ValueError):
+        return None
+
+def safe_to_decimal(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return round(float(value), 2)
+    text = str(value).replace(",", "").strip()
+    if text == "" or text.lower() in {"none", "nan"}:
+        return None
+    try:
+        return round(float(text), 2)
+    except (TypeError, ValueError):
+        return None
+
+def connect_with_retry(max_retries=4, backoff_factor=2, timeout=30):
+    """
+    Attempt to connect to SQL Server with retry logic for timeouts.
+    
+    Args:
+        max_retries: Maximum number of connection attempts
+        backoff_factor: Multiplier for wait time between retries
+        timeout: Connection timeout in seconds
+    
+    Returns:    
+        pymssql.Connection object if successful
+    """
+    for attempt in range(max_retries):
+        try:
+            print(f'Attempting to connect to SQL Server (attempt {attempt + 1}/{max_retries})...')
+            connection = connect_database(
+                server, database, username, password, timeout=timeout,
+            )
+            print('Connection Successful')
+            return connection
+        except pymssql.OperationalError as e:
+            error_str = str(e).lower()
+            # Check if it's a timeout or connection error
+            if 'timeout' in error_str or 'timed out' in error_str or 'connection' in error_str:
+                if attempt < max_retries - 1:
+                    wait_time = backoff_factor ** attempt
+                    print(f'Connection timeout. Retrying in {wait_time} seconds...')
+                    time.sleep(wait_time)
+                else:
+                    print(f'Failed to connect after {max_retries} attempts.')
+                    raise
+            else:
+                # Not a timeout error, re-raise immediately
+                raise
+        except pymssql.Error as e:
+            # For other pymssql errors, check if it's connection-related
+            error_str = str(e).lower()
+            if 'timeout' in error_str or 'timed out' in error_str or 'connection' in error_str:
+                if attempt < max_retries - 1:
+                    wait_time = backoff_factor ** attempt
+                    print(f'Connection error. Retrying in {wait_time} seconds...')
+                    time.sleep(wait_time)
+                else:
+                    print(f'Failed to connect after {max_retries} attempts.')
+                    raise
+            else:
+                # Not a connection-related error, re-raise immediately
+                raise
+    
+    # Should not reach here, but just in case
+    raise pymssql.OperationalError("Failed to establish connection after all retries")
+
+def check_and_reconnect():
+    """
+    Check if connection is alive, reconnect if needed.
+    Returns: (connection, cursor) tuple
+    """
+    global connection, cursor
+    try:
+        # Try a simple query to check if connection is alive
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        return connection, cursor
+    except (pymssql.Error, AttributeError):
+        # Connection is dead or doesn't exist, reconnect
+        print("Connection lost. Reconnecting...")
+        try:
+            if connection:
+                try:
+                    connection.close()
+                except:
+                    pass
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+        except:
+            pass
+        
+        connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
+        cursor = connection.cursor()
+        print("Reconnection successful.")
+        return connection, cursor
+
+def execute_with_retry(query, params=None, max_retries=3):
+    """
+    Execute a database query with retry logic for connection failures.
+    """
+    for attempt in range(max_retries):
+        try:
+            connection, cursor = check_and_reconnect()
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            return cursor
+        except pymssql.Error as e:
+            error_str = str(e).lower()
+            if ('communication link failure' in error_str or '08S01' in str(e) or 
+                'connection' in error_str or 'timeout' in error_str):
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt
+                    print(f"Connection error during query. Retrying in {wait_time} seconds... (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    # Force reconnection
+                    connection, cursor = check_and_reconnect()
+                else:
+                    print(f"Failed to execute query after {max_retries} attempts: {e}")
+                    raise
+            else:
+                # Not a connection error, re-raise immediately
+                raise
+def chunks(items, size):
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+def add_missing_portfolio_ids(connection, cursor, espmids):
+    portfolio_ids = sorted(
+        {
+            parsed_id
+            for espmid in espmids
+            if (parsed_id := safe_to_int(espmid)) is not None
+        }
+    )
+    if not portfolio_ids:
+        print("No valid ESPM IDs found to sync to dbo.portfolios.")
+        return
+
+    cursor.execute("""
+        IF OBJECT_ID('tempdb..#PortfolioIds') IS NOT NULL
+            DROP TABLE #PortfolioIds;
+
+        CREATE TABLE #PortfolioIds (
+            espmid INT NOT NULL PRIMARY KEY
+        );
+    """)
+    cursor.executemany(
+        "INSERT INTO #PortfolioIds (espmid) VALUES (%s)",
+        [(espmid,) for espmid in portfolio_ids],
+        batch_size=350,
+    )
+    cursor.execute("""
+        INSERT INTO dbo.portfolios (espmid)
+        SELECT source.espmid
+        FROM #PortfolioIds AS source
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.portfolios AS target
+            WHERE target.espmid = source.espmid
+        );
+    """)
+    cursor.execute("SELECT @@ROWCOUNT")
+    inserted_count = cursor.fetchone()[0]
+    cursor.execute("DROP TABLE #PortfolioIds")
+    connection.commit()
+    print(f"Added {inserted_count} missing ESPM IDs to dbo.portfolios.")
+
+def generatereport(espmidlist):
+    today = datetime.date.today()
+    auth = HTTPBasicAuth(user, pw)
+    report_ranges = [(33790432, 2021, today.year - 1, 12)]
+
+    def build_report_xml(from_year, to_year, to_month):
+        ids_xml = "\n".join(f"          <id>{espmid}</id>" for espmid in espmidlist)
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<report>\n"
+            "     <timeframe>\n"
+            "          <dateRange>\n"
+            "               <fromPeriodEndingDate>\n"
+            "                    <month>1</month>\n"
+            f"                    <year>{from_year}</year>\n"
+            "               </fromPeriodEndingDate>\n"
+            "               <toPeriodEndingDate>\n"
+            f"                    <month>{to_month}</month>\n"
+            f"                    <year>{to_year}</year>\n"
+            "               </toPeriodEndingDate>\n"
+            "                <interval>YEARLY</interval>\n"
+            "          </dateRange>\n"
+            "     </timeframe>\n"
+            "     <properties>\n"
+            f"{ids_xml}\n"
+            "     </properties>\n"
+            "</report>"
+        )
+
+    # Configure the historic report, retrying once after filtering invalid IDs.
+    for put_attempt in range(2):
+        bad_ids = set()
+        for report_id, from_year, to_year, to_month in report_ranges:
+            report_url = (
+                f"https://portfoliomanager.energystar.gov/ws/reports/{report_id}"
+            )
+            put_response = session.put(
+                report_url,
+                auth=auth,
+                data=build_report_xml(from_year, to_year, to_month),
+                headers={"Content-Type": "application/xml"},
+                timeout=60,
+            )
+            print(f"Report {report_id} PUT status: {put_response.status_code}")
+
+            try:
+                put_dict = xmltodict.parse(put_response.text)
+            except Exception:
+                put_dict = {}
+            response_node = (
+                put_dict.get("response", {}) if isinstance(put_dict, dict) else {}
+            )
+            if not isinstance(response_node, dict):
+                response_node = {}
+            if response_node.get("@status") != "Error":
+                put_response.raise_for_status()
+                continue
+
+            errors = response_node.get("errors", {}).get("error")
+            if isinstance(errors, dict):
+                errors = [errors]
+            elif not isinstance(errors, list):
+                errors = []
+
+            report_bad_ids = set()
+            for error in errors:
+                description = str(error.get("@errorDescription", ""))
+                match = re.search(r"property ids .*?:\s*(.+)", description)
+                if match:
+                    report_bad_ids.update(
+                        value.strip() for value in match.group(1).split(",")
+                        if value.strip()
+                    )
+            if not report_bad_ids:
+                raise RuntimeError(
+                    f"Report {report_id} PUT request failed: {put_response.text}"
+                )
+            bad_ids.update(report_bad_ids)
+
+        if not bad_ids:
+            break
+        if put_attempt == 1:
+            raise RuntimeError(
+                f"Report configuration still rejects property IDs: {sorted(bad_ids)}"
+            )
+        print(f"Removing bad IDs from espmidlist: {sorted(bad_ids)}")
+        espmidlist[:] = [
+            espmid for espmid in espmidlist if str(espmid) not in bad_ids
+        ]
+        if not espmidlist:
+            raise RuntimeError(
+                "PUT failed and all property IDs were removed from espmidlist."
+            )
+
+    submitted_reports = []
+    for report_id, _, _, _ in report_ranges:
+        report_url = (
+            f"https://portfoliomanager.energystar.gov/ws/reports/{report_id}"
+        )
+        response = session.get(f"{report_url}/status", auth=auth, timeout=60)
+        response.raise_for_status()
+        previous_submission = et.fromstring(response.content).findtext(
+            "submittedDate"
+        )
+        response = session.post(f"{report_url}/generate", auth=auth, timeout=60)
+        response.raise_for_status()
+        submitted_reports.append(
+            (report_id, report_url, previous_submission, time.monotonic() + 900)
+        )
+
+    reports = {}
+    for report_id, report_url, previous_submission, deadline in submitted_reports:
+        last_status = None
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Report {report_id} did not finish within 900 seconds. "
+                    f"Last status: {last_status or 'UNKNOWN'}"
+                )
+
+            response = session.get(
+                f"{report_url}/status",
+                auth=auth,
+                timeout=min(60, remaining),
+            )
+            response.raise_for_status()
+            report_status = et.fromstring(response.content)
+            status = report_status.findtext("status", default="").strip()
+            submitted_date = report_status.findtext("submittedDate")
+            current_run = bool(
+                submitted_date and submitted_date != previous_submission
+            )
+
+            if status != last_status:
+                print(f"Report {report_id} status: {status or 'UNKNOWN'}")
+                report_progress(10, f"Report {report_id}: {status or 'UNKNOWN'}")
+                last_status = status
+
+            if current_run and status == "FAILED":
+                raise RuntimeError(f"Report {report_id} generation failed.")
+            if current_run and status == "GENERATED":
+                break
+            if status not in {
+                "INITIALIZED", "SUBMITTED", "IN_PROCESS", "GENERATED", "FAILED"
+            }:
+                raise RuntimeError(
+                    f"Unexpected status for report {report_id}: {status or 'UNKNOWN'}"
+                )
+
+            time.sleep(min(5, max(0, deadline - time.monotonic())))
+
+        report_progress(15, f"Downloading report {report_id}.")
+        response = session.get(
+            f"{report_url}/download?type=XML",
+            auth=auth,
+            timeout=60,
+        )
+        response.raise_for_status()
+        if not response.content:
+            raise RuntimeError(
+                f"Report {report_id} download returned an empty response."
+            )
+        reports[report_id] = xmltodict.parse(
+            response.content, force_list=("propertyMetrics", "metric")
+        )
+
+    report_data = reports[33790432]
+    metrics = report_data["reportData"]["informationAndMetrics"]
+    metrics["propertyMetrics"] = metrics.get("propertyMetrics") or []
+    return report_data
+
+def errordbhandling():
+    cursor.execute("""
+        IF COL_LENGTH('dbo.PrimaryDataBase', 'has_issue') IS NULL
+            ALTER TABLE dbo.PrimaryDataBase ADD has_issue BIT;
+    """)
+    cursor.execute("UPDATE PrimaryDataBase SET has_issue = 0")
+    cursor.execute("""
+        UPDATE PrimaryDataBase SET has_issue = 1
+        WHERE hasenergygaps='possible issue' OR haswatergaps='possible issue'
+           OR energylessthan12months='possible issue'
+           OR waterlessthan12months='Possible Issue'
+    """)
+    cursor.execute("""
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
+              AND name = 'ix_espm_issue'
+        )
+            CREATE INDEX ix_espm_issue
+            ON dbo.PrimaryDataBase (espmid, datayear DESC)
+            WHERE has_issue = 1;
+    """)
+    connection.commit()
+
+
+try:
+    report_progress(0, "Connecting to the database.")
+    connection = connect_with_retry(max_retries=3, backoff_factor=2, timeout=30)
+    
+    # Create a cursor for bulk database operations.
+    cursor = connection.cursor()
+
+    # Define the CREATE TABLE SQL query
+    create_table_query = """
+    CREATE TABLE PrimaryDataBase (
+        espmid INT NOT NULL,
+        buildingname NVARCHAR(100),
+        sqfootage INT,
+        address NVARCHAR(100),
+        occupancy NVARCHAR(100),
+        numbuildings NVARCHAR(100),
+        usetype NVARCHAR(100),
+        datayear INT NOT NULL,
+        yearbuilt NVARCHAR(100),
+        yearcreatedinespm INT,
+        siteeui FLOAT,
+        weathernormalizedsiteeui FLOAT,
+        energystarscore INT,
+        wui NVARCHAR(100),
+        energycost FLOAT,
+        energycostintensity FLOAT,
+        energycostelectricitygridpurchase FLOAT,
+        energycostnaturalgas FLOAT,
+        siteEnergyUseElectricityGridPurchaseKwh FLOAT,
+        siteEnergyUseNaturalGas FLOAT,
+        totalMarketBasedGHGEmissions FLOAT,
+        greenPowerOffSite FLOAT,
+        onSiteRenewableSystemElectricityExported FLOAT,
+        onSiteRenewableSystemGeneration FLOAT,
+        hasenergygaps NVARCHAR(100),
+        haswatergaps NVARCHAR(100),
+        energylessthan12months NVARCHAR(100),
+        waterlessthan12months NVARCHAR(100),
+        pmparentid INT,
+        CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear)
+    )
+    """ 
+    # Execute the query
+    try:
+        cursor.execute(create_table_query)
+        print("Table 'espm basics' created successfully!")
+        connection.commit()
+    except pymssql.Error as create_error:
+        # Table might already exist, that's okay
+        if "already exists" in str(create_error).lower() or "There is already an object" in str(create_error):
+            print("Table 'ESPM basics' already exists (or creation failed), continuing...")
+            connection.rollback()
+            
+            # Add new columns if they don't exist (for existing tables)
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD occupancy NVARCHAR(100)")
+                print("Added 'occupancy' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'occupancy' column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD numbuildings NVARCHAR(100)")
+                print("Added 'numbuildings' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'numbuildings' column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD usetype NVARCHAR(100)")
+                print("Added 'usetype' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'usetype' column: {e}")
+
+            try:
+                cursor.execute("""
+                DECLARE @datayear_type SYSNAME;
+                DECLARE @pk_name SYSNAME;
+                DECLARE @drop_pk_sql NVARCHAR(MAX);
+
+                IF COL_LENGTH('dbo.PrimaryDataBase', 'datayear') IS NULL
+                    ALTER TABLE dbo.PrimaryDataBase ADD datayear INT NULL;
+
+                SELECT @datayear_type = t.name
+                FROM sys.columns c
+                JOIN sys.types t ON c.user_type_id = t.user_type_id
+                WHERE c.object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                  AND c.name = 'datayear';
+
+                IF @datayear_type <> 'int' OR EXISTS (
+                    SELECT 1
+                    FROM sys.columns
+                    WHERE object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND name = 'datayear'
+                      AND is_nullable = 1
+                )
+                BEGIN
+                    IF EXISTS (
+                        SELECT espmid, COALESCE(TRY_CONVERT(INT, datayear), -1)
+                        FROM dbo.PrimaryDataBase
+                        GROUP BY espmid, COALESCE(TRY_CONVERT(INT, datayear), -1)
+                        HAVING COUNT(*) > 1
+                    )
+                        THROW 51000, 'datayear migration would create duplicate primary keys.', 1;
+
+                    IF @datayear_type <> 'int'
+                        UPDATE dbo.PrimaryDataBase
+                        SET datayear = CONVERT(NVARCHAR(12), COALESCE(TRY_CONVERT(INT, datayear), -1));
+                    ELSE
+                        UPDATE dbo.PrimaryDataBase
+                        SET datayear = -1
+                        WHERE datayear IS NULL;
+
+                    DROP INDEX IF EXISTS ix_espmid_datayear ON dbo.PrimaryDataBase;
+                    DROP INDEX IF EXISTS ix_espm_issue ON dbo.PrimaryDataBase;
+
+                    SELECT @pk_name = kc.name
+                    FROM sys.key_constraints kc
+                    WHERE kc.parent_object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND kc.[type] = 'PK';
+
+                    IF @pk_name IS NOT NULL
+                    BEGIN
+                        SET @drop_pk_sql =
+                            N'ALTER TABLE dbo.PrimaryDataBase DROP CONSTRAINT '
+                            + QUOTENAME(@pk_name);
+                        EXEC sys.sp_executesql @drop_pk_sql;
+                    END;
+
+                    ALTER TABLE dbo.PrimaryDataBase ALTER COLUMN datayear INT NOT NULL;
+                END;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.key_constraints kc
+                    WHERE kc.parent_object_id = OBJECT_ID('dbo.PrimaryDataBase')
+                      AND kc.[type] = 'PK'
+                )
+                    ALTER TABLE dbo.PrimaryDataBase
+                    ADD CONSTRAINT PK_PrimaryDataBase PRIMARY KEY (espmid, datayear);
+                """)
+                connection.commit()
+                print("Ensured 'datayear' is INT and the primary key is (espmid, datayear).")
+            except pymssql.Error as e:
+                print(f"Warning: Could not migrate 'datayear' to INT: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD yearbuilt NVARCHAR(100)")
+                print("Added 'yearbuilt' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'yearbuilt' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD yearcreatedinespm INT")
+                print("Added 'yearcreatedinespm' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'yearcreatedinespm' column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD siteeui FLOAT")
+                print("Added 'siteeui' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'siteeui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD weathernormalizedsiteeui FLOAT")
+                print("Added 'weathernormalizedsiteeui' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'weathernormalizedsiteeui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energystarscore INT")
+                print("Added 'energystarscore' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energystarscore' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD wui NVARCHAR(100)")
+                print("Added 'wui' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'wui' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycost FLOAT")
+                print("Added 'energycost' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycost' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostintensity FLOAT")
+                print("Added 'energycostintensity' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostintensity' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostelectricitygridpurchase FLOAT")
+                print("Added 'energycostelectricitygridpurchase' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostelectricitygridpurchase' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energycostnaturalgas FLOAT")
+                print("Added 'energycostnaturalgas' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energycostnaturalgas' column: {e}")
+
+            for column_name in [
+                "siteEnergyUseElectricityGridPurchaseKwh",
+                "siteEnergyUseNaturalGas",
+                "totalMarketBasedGHGEmissions",
+                "greenPowerOffSite",
+                "onSiteRenewableSystemElectricityExported",
+                "onSiteRenewableSystemGeneration",
+            ]:
+                try:
+                    cursor.execute(f"""
+                    IF COL_LENGTH('PrimaryDataBase', '{column_name}') IS NULL
+                        ALTER TABLE PrimaryDataBase ADD {column_name} FLOAT NULL;
+                    """)
+                    print(f"Ensured '{column_name}' column exists as FLOAT on PrimaryDataBase table.")
+                    connection.commit()
+                except pymssql.Error as e:
+                    print(f"Warning: Could not ensure '{column_name}' FLOAT column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD hasenergygaps NVARCHAR(100)")
+                print("Added 'hasenergygaps' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'hasenergygaps' column: {e}")
+            
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD haswatergaps NVARCHAR(100)")
+                print("Added 'haswatergaps' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'haswatergaps' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD energylessthan12months NVARCHAR(100)")
+                print("Added 'energylessthan12months' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'energylessthan12months' column: {e}")
+
+            try:
+                cursor.execute("ALTER TABLE PrimaryDataBase ADD waterlessthan12months NVARCHAR(100)")
+                print("Added 'waterlessthan12months' column to PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    pass  # Column already exists
+                else:
+                    print(f"Warning: Could not add 'waterlessthan12months' column: {e}")
+            
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'sqfootage') IS NULL
+                BEGIN
+                    ALTER TABLE PrimaryDataBase ADD sqfootage INT NULL;
+                END
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'sqfootage'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET sqfootage = NULL
+                    WHERE sqfootage IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', ''))) IS NULL;
+
+                    UPDATE PrimaryDataBase
+                    SET sqfootage = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(sqfootage, ',', '')))
+                    WHERE sqfootage IS NOT NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN sqfootage INT NULL;
+                END
+                """)
+                print("Ensured 'sqfootage' column exists as INT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'sqfootage' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'siteeui') IS NULL
+                BEGIN
+                    ALTER TABLE PrimaryDataBase ADD siteeui FLOAT NULL;
+                END
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'siteeui'
+                      AND t.name <> 'float'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET siteeui = NULL
+                    WHERE siteeui IS NOT NULL
+                      AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', ''))) IS NULL;
+
+                    UPDATE PrimaryDataBase
+                    SET siteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(siteeui, ',', '')))
+                    WHERE siteeui IS NOT NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN siteeui FLOAT NULL;
+                END
+                """)
+                print("Ensured 'siteeui' column exists as FLOAT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'siteeui' FLOAT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'weathernormalizedsiteeui') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD weathernormalizedsiteeui FLOAT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'weathernormalizedsiteeui'
+                      AND t.name <> 'float'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET weathernormalizedsiteeui = NULL
+                    WHERE weathernormalizedsiteeui IS NOT NULL
+                      AND TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', ''))) IS NULL;
+
+                    UPDATE PrimaryDataBase
+                    SET weathernormalizedsiteeui = TRY_CONVERT(FLOAT, TRY_CONVERT(FLOAT, REPLACE(weathernormalizedsiteeui, ',', '')))
+                    WHERE weathernormalizedsiteeui IS NOT NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN weathernormalizedsiteeui FLOAT NULL;
+                END
+                """)
+                print("Ensured 'weathernormalizedsiteeui' column exists as FLOAT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'weathernormalizedsiteeui' FLOAT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'energystarscore') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD energystarscore INT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'energystarscore'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET energystarscore = NULL
+                    WHERE energystarscore IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', ''))) IS NULL;
+
+                    UPDATE PrimaryDataBase
+                    SET energystarscore = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(energystarscore, ',', '')))
+                    WHERE energystarscore IS NOT NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN energystarscore INT NULL;
+                END
+                """)
+                print("Ensured 'energystarscore' column exists as INT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'energystarscore' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'yearcreatedinespm') IS NULL
+                    ALTER TABLE PrimaryDataBase ADD yearcreatedinespm INT NULL;
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'yearcreatedinespm'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET yearcreatedinespm = NULL
+                    WHERE yearcreatedinespm IS NOT NULL
+                      AND TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(yearcreatedinespm, ',', ''))) IS NULL;
+
+                    UPDATE PrimaryDataBase
+                    SET yearcreatedinespm = TRY_CONVERT(INT, TRY_CONVERT(FLOAT, REPLACE(yearcreatedinespm, ',', '')))
+                    WHERE yearcreatedinespm IS NOT NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN yearcreatedinespm INT NULL;
+                END
+                """)
+                print("Ensured 'yearcreatedinespm' column exists as INT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'yearcreatedinespm' INT column: {e}")
+
+            try:
+                cursor.execute("""
+                IF COL_LENGTH('PrimaryDataBase', 'pmparentid') IS NULL
+                BEGIN
+                    ALTER TABLE PrimaryDataBase ADD pmparentid INT NULL;
+                END
+                ELSE IF EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    JOIN sys.types t ON c.user_type_id = t.user_type_id
+                    WHERE c.object_id = OBJECT_ID('PrimaryDataBase')
+                      AND c.name = 'pmparentid'
+                      AND t.name <> 'int'
+                )
+                BEGIN
+                    UPDATE PrimaryDataBase
+                    SET pmparentid = NULL
+                    WHERE pmparentid IS NOT NULL
+                      AND TRY_CONVERT(INT, pmparentid) IS NULL;
+
+                    ALTER TABLE PrimaryDataBase ALTER COLUMN pmparentid INT NULL;
+                END
+                """)
+                print("Ensured 'pmparentid' column exists as INT on PrimaryDataBase table.")
+                connection.commit()
+            except pymssql.Error as e:
+                print(f"Warning: Could not ensure 'pmparentid' INT column: {e}")
+        else:
+            raise  # Re-raise if it's a different error
+
+
+    report_progress(5, "Retrieving property IDs.")
+    #Creates a list of ALL pmid's in the account
+    idlist=[]
+    response = requests.get(f'https://portfoliomanager.energystar.gov/ws/account/203479/property/list', auth=HTTPBasicAuth(user, pw), timeout=60)
+    response.raise_for_status()
+    dict_data = xmltodict.parse(response.content)
+    for entry in dict_data['response']['links']['link']:
+        idlist.append(entry['@id'])
+    if not idlist:
+        raise RuntimeError("No property IDs were returned; update was not completed.")
+    add_missing_portfolio_ids(connection, cursor, idlist)
+    placeholders = ",".join("%s" for _ in idlist)
+    query = f"DELETE FROM PrimaryDataBase WHERE espmid NOT IN ({placeholders})"
+    cursor.execute(query, tuple(idlist))
+    connection.commit()
+
+    
+    batch_size = 350  # safe under the 2,000,000 limit
+
+    # Create temp table with same schema as PrimaryDataBase for session-scoped processing
+    create_temp_table_query = """
+    IF OBJECT_ID('tempdb..#PrimaryDataBaseTEMP') IS NOT NULL
+        DROP TABLE #PrimaryDataBaseTEMP;
+
+    CREATE TABLE #PrimaryDataBaseTEMP (
+        espmid INT NOT NULL,
+        buildingname NVARCHAR(100),
+        sqfootage INT,
+        address NVARCHAR(100),
+        occupancy NVARCHAR(100),
+        numbuildings NVARCHAR(100),
+        usetype NVARCHAR(100),
+        datayear INT NOT NULL,
+        yearbuilt NVARCHAR(100),
+        yearcreatedinespm INT,
+        siteeui FLOAT,
+        weathernormalizedsiteeui FLOAT,
+        energystarscore INT,
+        wui NVARCHAR(100),
+        energycost FLOAT,
+        energycostintensity FLOAT,
+        energycostelectricitygridpurchase FLOAT,
+        energycostnaturalgas FLOAT,
+        siteEnergyUseElectricityGridPurchaseKwh FLOAT,
+        siteEnergyUseNaturalGas FLOAT,
+        totalMarketBasedGHGEmissions FLOAT,
+        greenPowerOffSite FLOAT,
+        onSiteRenewableSystemElectricityExported FLOAT,
+        onSiteRenewableSystemGeneration FLOAT,
+        hasenergygaps NVARCHAR(100),
+        haswatergaps NVARCHAR(100),
+        energylessthan12months NVARCHAR(100),
+        waterlessthan12months NVARCHAR(100),
+        pmparentid INT,
+        CONSTRAINT PK_PrimaryDataBaseTEMP PRIMARY KEY (espmid, datayear)
+    )
+    """
+    cursor.execute(create_temp_table_query)
+    print("Temp table '#PrimaryDataBaseTEMP' created successfully.")
+    report_progress(10, "Waiting for ESPM report generation.")
+    report_output = generatereport(idlist)
+    report_rows = report_output['reportData']['informationAndMetrics']['propertyMetrics']
+    if not report_rows:
+        raise RuntimeError("ESPM report contains no data; update was not completed.")
+    total_rows = len(report_rows)
+    report_progress(20, "Processing report rows.")
+
+    ##create a list of tuples of all building data
+    buildingdatalist=[]
+
+    for row_number, building in enumerate(report_rows, 1):
+        espmid=building['@propertyId']
+        response=session.get(f'https://portfoliomanager.energystar.gov/ws/property/{espmid}',auth=(user,pw))
+        dict_data = xmltodict.parse(response.content)
+        created_date = dict_data.get('property', {}).get('audit', {}).get('createdDate')
+        yearcreatedinespm = safe_to_int(created_date[:4] if isinstance(created_date, str) else created_date)
+        buildingname = None
+        sqfootage = None
+        address = None
+        occupancy = None
+        numbuildings = None
+        primarypropertytype = None
+        yearbuilt = None
+        datayear = None
+        siteeui = None
+        wui = None
+        hasenergygaps = None
+        haswatergaps = None
+        pmparentid = None
+        energylessthan12months=None
+        waterlessthan12months=None
+        energystarscore=None
+        weathernormalizedsiteeui=None
+        energycost=None
+        energycostintensity=None
+        energycostelectricitygridpurchase=None
+        energycostnaturalgas=None   
+        siteenergyuseelectricitygridpurchasekwh=None
+        siteenergyusenaturalgas=None
+        totalmarketbasedghgemissions=None
+        greenpoweroffsite=None
+        onsiterenewablesystemelectricityexported=None
+        onsiterenewablesystemgeneration=None
+
+        datayear = safe_to_int(building.get('@year'))
+        if datayear is None:
+            raise ValueError(f"Property {espmid} has no valid report year.")
+        for buildingvalue in building['metric']:
+            metric_name = buildingvalue.get('@name')
+            raw_value = buildingvalue.get('value')
+            metric_value = None if isinstance(raw_value, dict) else raw_value
+
+            if metric_name == 'propertyName':
+                buildingname = metric_value
+            elif metric_name == 'propGrossFloorArea':
+                sqfootage = safe_to_int(metric_value)
+            elif metric_name == 'address1':
+                address = metric_value
+            elif metric_name == 'numberOfBuildings':
+                numbuildings = metric_value
+            elif metric_name == 'primaryPropertyTypeSelfSelected':
+                primarypropertytype = metric_value
+            elif metric_name == 'yearBuilt':
+                yearbuilt = metric_value
+            elif metric_name == 'siteIntensity':
+                siteeui = safe_to_decimal(metric_value)
+            elif metric_name == 'alertEnergyMeterGap':
+                hasenergygaps = metric_value
+            elif metric_name == 'waterIntensityTotal':
+                wui = metric_value
+            elif metric_name == 'alertWaterMeterGap':
+                haswatergaps = metric_value
+            elif metric_name == 'alertEnergyMeterLessThanTwelveMonthsMeterData':
+                energylessthan12months=metric_value
+            elif metric_name == 'alertWaterMeterLessThanTwelveMonthsMeterData':
+                waterlessthan12months=metric_value
+            elif metric_name == 'parentPropertyId':
+                try:
+                    pmparentid = int(metric_value) if metric_value is not None else None
+                except (TypeError, ValueError):
+                    pmparentid = None
+            elif metric_name == 'occupancy':
+                occupancy = metric_value
+            elif metric_name =='siteIntensityWN':
+                 try:
+                    weathernormalizedsiteeui = float(metric_value) if metric_value is not None else None
+                 except (TypeError, ValueError):
+                    weathernormalizedsiteeui = None
+            elif metric_name =='score':
+                energystarscore = metric_value
+            elif metric_name == 'energyCost':
+                energycost = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostIntensity':
+                energycostintensity = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostElectricityGridPurchase':
+                energycostelectricitygridpurchase = safe_to_decimal(metric_value)
+            elif metric_name == 'energyCostNaturalGas':
+                energycostnaturalgas = safe_to_decimal(metric_value)
+            elif metric_name == 'siteEnergyUseElectricityGridPurchaseKwh':
+                siteenergyuseelectricitygridpurchasekwh = safe_to_decimal(metric_value)
+            elif metric_name == 'siteEnergyUseNaturalGas':
+                siteenergyusenaturalgas = safe_to_decimal(metric_value)
+            elif metric_name == 'totalMarketBasedGHGEmissions':
+                totalmarketbasedghgemissions = safe_to_decimal(metric_value)
+            elif metric_name == 'greenPowerOffSite':
+                greenpoweroffsite = safe_to_decimal(metric_value)
+            elif metric_name == 'onSiteRenewableSystemElectricityExported':
+                onsiterenewablesystemelectricityexported = safe_to_decimal(metric_value)
+            elif metric_name == 'onSiteRenewableSystemGeneration':
+                onsiterenewablesystemgeneration = safe_to_decimal(metric_value)
+        buildingdatalist.append((espmid,buildingname,sqfootage,address,occupancy,numbuildings,primarypropertytype,yearbuilt,yearcreatedinespm,datayear,siteeui,weathernormalizedsiteeui,energystarscore,wui,energycost,energycostintensity,energycostelectricitygridpurchase,energycostnaturalgas,siteenergyuseelectricitygridpurchasekwh,siteenergyusenaturalgas,totalmarketbasedghgemissions,greenpoweroffsite,onsiterenewablesystemelectricityexported,onsiterenewablesystemgeneration,hasenergygaps,haswatergaps,energylessthan12months,waterlessthan12months,pmparentid))
+        report_progress(
+            20 + 65 * row_number // total_rows,
+            f"Processing report rows: {row_number}/{total_rows}.",
+        )
+    temp_insert_query = """
+                INSERT INTO #PrimaryDataBaseTEMP (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, yearbuilt, yearcreatedinespm, datayear, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """ 
+   
+    report_progress(85, "Saving report rows.")
+    cursor.executemany(
+        temp_insert_query, buildingdatalist, batch_size=batch_size,
+    )
+    merge_query = """
+                MERGE PrimaryDataBase AS target
+                USING #PrimaryDataBaseTEMP AS source
+                ON target.espmid = source.espmid
+                   AND target.datayear = source.datayear
+                WHEN MATCHED AND (
+                    ISNULL(target.buildingname, '') <> ISNULL(source.buildingname, '') OR
+                    ISNULL(target.sqfootage, -1) <> ISNULL(source.sqfootage, -1) OR
+                    ISNULL(target.address, '') <> ISNULL(source.address, '') OR
+                    ISNULL(target.occupancy, '') <> ISNULL(source.occupancy, '') OR
+                    ISNULL(target.numbuildings, '') <> ISNULL(source.numbuildings, '') OR
+                    ISNULL(target.usetype, '') <> ISNULL(source.usetype, '') OR
+                    ISNULL(target.yearbuilt, '') <> ISNULL(source.yearbuilt, '') OR
+                    ISNULL(target.yearcreatedinespm, -1) <> ISNULL(source.yearcreatedinespm, -1) OR
+                    ISNULL(target.siteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.siteeui, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) <> ISNULL(source.weathernormalizedsiteeui, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energystarscore, -1) <> ISNULL(source.energystarscore, -1) OR
+                    ISNULL(target.wui, '') <> ISNULL(source.wui, '') OR
+                    ISNULL(target.energycost, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycost, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostintensity, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostintensity, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostelectricitygridpurchase, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.energycostnaturalgas, CAST(-1.0 AS FLOAT)) <> ISNULL(source.energycostnaturalgas, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.siteEnergyUseElectricityGridPurchaseKwh, CAST(-1.0 AS FLOAT)) <> ISNULL(source.siteEnergyUseElectricityGridPurchaseKwh, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.siteEnergyUseNaturalGas, CAST(-1.0 AS FLOAT)) <> ISNULL(source.siteEnergyUseNaturalGas, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.totalMarketBasedGHGEmissions, CAST(-1.0 AS FLOAT)) <> ISNULL(source.totalMarketBasedGHGEmissions, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.greenPowerOffSite, CAST(-1.0 AS FLOAT)) <> ISNULL(source.greenPowerOffSite, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.onSiteRenewableSystemElectricityExported, CAST(-1.0 AS FLOAT)) <> ISNULL(source.onSiteRenewableSystemElectricityExported, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.onSiteRenewableSystemGeneration, CAST(-1.0 AS FLOAT)) <> ISNULL(source.onSiteRenewableSystemGeneration, CAST(-1.0 AS FLOAT)) OR
+                    ISNULL(target.hasenergygaps, '') <> ISNULL(source.hasenergygaps, '') OR
+                    ISNULL(target.haswatergaps, '') <> ISNULL(source.haswatergaps, '') OR
+                    ISNULL(target.energylessthan12months, '') <> ISNULL(source.energylessthan12months, '') OR
+                    ISNULL(target.waterlessthan12months, '') <> ISNULL(source.waterlessthan12months, '') OR
+                    ISNULL(target.pmparentid, -1) <> ISNULL(source.pmparentid, -1)
+                ) THEN
+                    UPDATE SET
+                        buildingname = source.buildingname,
+                        sqfootage = source.sqfootage,
+                        address = source.address,
+                        occupancy = source.occupancy,
+                        numbuildings = source.numbuildings,
+                        usetype = source.usetype,
+                        yearbuilt = source.yearbuilt,
+                        yearcreatedinespm = source.yearcreatedinespm,
+                        siteeui = source.siteeui,
+                        weathernormalizedsiteeui = source.weathernormalizedsiteeui,
+                        energystarscore = source.energystarscore,
+                        wui = source.wui,
+                        energycost = source.energycost,
+                        energycostintensity = source.energycostintensity,
+                        energycostelectricitygridpurchase = source.energycostelectricitygridpurchase,
+                        energycostnaturalgas = source.energycostnaturalgas,
+                        siteEnergyUseElectricityGridPurchaseKwh = source.siteEnergyUseElectricityGridPurchaseKwh,
+                        siteEnergyUseNaturalGas = source.siteEnergyUseNaturalGas,
+                        totalMarketBasedGHGEmissions = source.totalMarketBasedGHGEmissions,
+                        greenPowerOffSite = source.greenPowerOffSite,
+                        onSiteRenewableSystemElectricityExported = source.onSiteRenewableSystemElectricityExported,
+                        onSiteRenewableSystemGeneration = source.onSiteRenewableSystemGeneration,
+                        hasenergygaps = source.hasenergygaps,
+                        haswatergaps = source.haswatergaps,
+                        energylessthan12months = source.energylessthan12months,
+                        waterlessthan12months = source.waterlessthan12months,
+                        pmparentid = source.pmparentid
+                WHEN NOT MATCHED THEN
+                    INSERT (espmid, buildingname, sqfootage, address, occupancy, numbuildings, usetype, datayear, yearbuilt, yearcreatedinespm, siteeui, weathernormalizedsiteeui, energystarscore, wui, energycost, energycostintensity, energycostelectricitygridpurchase, energycostnaturalgas, siteEnergyUseElectricityGridPurchaseKwh, siteEnergyUseNaturalGas, totalMarketBasedGHGEmissions, greenPowerOffSite, onSiteRenewableSystemElectricityExported, onSiteRenewableSystemGeneration, hasenergygaps, haswatergaps, energylessthan12months, waterlessthan12months, pmparentid)
+                    VALUES (source.espmid, source.buildingname, source.sqfootage, source.address, source.occupancy, source.numbuildings, source.usetype, source.datayear, source.yearbuilt, source.yearcreatedinespm, source.siteeui, source.weathernormalizedsiteeui, source.energystarscore, source.wui, source.energycost, source.energycostintensity, source.energycostelectricitygridpurchase, source.energycostnaturalgas, source.siteEnergyUseElectricityGridPurchaseKwh, source.siteEnergyUseNaturalGas, source.totalMarketBasedGHGEmissions, source.greenPowerOffSite, source.onSiteRenewableSystemElectricityExported, source.onSiteRenewableSystemGeneration, source.hasenergygaps, source.haswatergaps, source.energylessthan12months, source.waterlessthan12months, source.pmparentid);
+            """
+    if buildingdatalist:
+        report_progress(90, "Updating dashboard data.")
+        cursor.execute(merge_query)
+        connection.commit()
+        print("MERGE committed to PrimaryDataBase.")
+        cursor.execute("DROP TABLE #PrimaryDataBaseTEMP")
+        report_progress(95, "Checking data quality.")
+        errordbhandling()
+        report_progress(99, "Finalizing update.")
+
+
+    ## Figure out how to get water and energy data for individual years.
+    
+except Exception as e:
+    print(f"An error occurred: {e}")
+    if connection:
+        connection.rollback()
+    raise
+finally:
+    # Close the cursor and connection
+    if cursor:
+        cursor.close()
+    if connection:
+        connection.close()
+    print("Connection closed.")
+
+
